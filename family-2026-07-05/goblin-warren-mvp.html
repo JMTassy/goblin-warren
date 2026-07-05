@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GOBLIN WARREN — MVP: The Organism in Miniature</title>
+<!-- authority=false · NO_CLAIM · implements the ratified Goblin Warren Design
+     Template MVP slice (2026-07-05): one Goblin, one proposal, three stamps,
+     one Garden mutation, one joke, one receipt tray, one Kernel panel that
+     only changes after admission. PROPOSE→STAMP→MUTATE→LAUGH→CLAIM→ADMIT?
+     No persistence. Session-only. Law does not reskin. -->
+<style>
+ body{margin:0;background:#0c0f0a;color:#e8dcc0;font-family:"Courier New",monospace;
+  text-transform:uppercase;font-size:12px}
+ .row{display:flex;gap:10px;padding:10px;align-items:flex-start}
+ .panel{background:#10140c;border:3px solid #5c7a3a;padding:10px;box-shadow:4px 4px 0 #000}
+ .cap{font-size:10px;letter-spacing:.2em;color:#d08a3c;margin-bottom:6px}
+ button{background:#1a2410;color:#e8dcc0;border:3px solid #d08a3c;padding:6px 12px;
+  margin:2px;cursor:pointer;font-family:inherit;font-size:11px;text-transform:uppercase;
+  box-shadow:3px 3px 0 #000}
+ button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+ #goblin{width:64px;height:64px;position:relative;margin:6px auto}
+ #goblin .head{position:absolute;left:14px;top:16px;width:36px;height:30px;background:#5c7a3a;border:3px solid #0a0c06}
+ #goblin .earL,#goblin .earR{position:absolute;top:6px;width:12px;height:18px;background:#5c7a3a;border:3px solid #0a0c06}
+ #goblin .earL{left:2px}#goblin .earR{right:2px}
+ #goblin .eyeL,#goblin .eyeR{position:absolute;top:26px;width:6px;height:6px;background:#ffffd8}
+ #goblin .eyeL{left:24px}#goblin .eyeR{left:38px}
+ #prop{background:#151022;border:3px dashed #6a5a9a;padding:8px;min-height:56px;font-size:11.5px;text-transform:none}
+ #garden{min-height:180px;font-size:20px;line-height:1.6;letter-spacing:2px;word-break:break-all}
+ .receipt{border:3px solid #e0a83c;background:#171307;padding:6px;margin:5px 0;font-size:10px;text-transform:none}
+ #kernel{background:#0d0d10;border:3px solid #4a4a58;color:#8a86a0}
+ #kernel .truth{border-left:3px solid #a8d858;padding-left:6px;margin:3px 0;color:#c8c4b0;text-transform:none}
+ #log{font-size:10.5px;text-transform:none;max-height:120px;overflow-y:auto}
+ #log div{border-left:3px solid #5c7a3a;padding-left:6px;margin:2px 0}
+ #law{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:9px;letter-spacing:.2em;
+  color:#8fae6a;background:#0a0c06;padding:4px;border-top:3px solid #5c7a3a}
+ #bar{padding:6px 12px;background:#0a0c06;border-bottom:3px solid #5c7a3a;font-size:10px;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div id="bar">GOBLIN WARREN · MVP ORGANISM — 🔍 EVIDENCE <b id="b-ev">0</b> · 🌱 BLOOMS <b id="b-bl">0</b> · 🟤 COMPOST <b id="b-co">0</b> · <span style="color:#8a86a0">KERNEL TRUTHS <b id="b-k">0</b></span></div>
+<div class="row">
+ <div class="panel" style="width:250px">
+  <div class="cap">THE GOBLIN</div>
+  <div id="goblin"><div class="earL"></div><div class="earR"></div><div class="head"></div><div class="eyeL"></div><div class="eyeR"></div></div>
+  <div id="prop">…</div>
+  <div style="margin-top:6px;text-align:center">
+   <button onclick="ui('ADMIT')">✔ ADMIT</button><button onclick="ui('DENY')">✘ DENY</button><button onclick="ui('COMPOST')">🟤 COMPOST</button>
+  </div>
+ </div>
+ <div class="panel" style="flex:1">
+  <div class="cap">THE GARDEN (playable subconscious — mutates on your stamp)</div>
+  <div id="garden"></div>
+  <div style="border-top:2px solid #263b24;margin-top:8px;padding-top:6px">
+   <span class="cap">🐝 HIVEMIND /goal</span>
+   <select id="goalsel" onchange="act({k:'goal',g:this.value||null})">
+    <option value="">— NO GOAL (freelance weirdness) —</option>
+    <option>BUILD</option><option>RITUAL</option><option>ECONOMY</option><option>BEAUTY</option>
+    <option>DEFENSE</option><option>CHAOS</option><option>COMPOST</option>
+   </select>
+   <span id="hive" style="font-size:10px;color:#8fae6a;text-transform:none"></span>
+  </div>
+ </div>
+ <div style="width:290px">
+  <div class="panel"><div class="cap">RECEIPT TRAY (claimable ≠ admitted)</div><div id="tray" style="text-transform:none;font-size:10px">no claimable actions yet</div></div>
+  <div class="panel" id="kernel" style="margin-top:10px"><div class="cap" style="color:#8a86a0">KERNEL — BORING ON PURPOSE</div><div id="truths">nothing admitted. correct.</div></div>
+ </div>
+</div>
+<div class="row"><div class="panel" style="flex:1"><div class="cap">THE LOG (jokes are consequences)</div><div id="log"></div></div></div>
+<div id="law">MECHANISM IS VERIFIABLE · MEANING IS INHABITABLE · JM REMAINS THE FINAL GATE</div>
+<script>
+"use strict";
+/* ===== REDUCER-BEGIN (pure — no DOM; node-testable) ===== */
+function h32(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+const PROPOSALS=[
+ {t:"BUILD",x:"Add a mushroom courthouse.",m:"🍄",jA:"The courthouse convenes. All verdicts are spores.",jD:"Justice postponed. The mushrooms appeal.",jC:"Buried. A smaller, humbler toadstool grows."},
+ {t:"RITUAL",x:"Declare Tuesday legally damp.",m:"💧",jA:"Tuesday is damp now. Socks file a grievance.",jD:"Tuesday stays dry. The puddles remember.",jC:"Composted. Wednesday inherits a light mist."},
+ {t:"ECONOMY",x:"Tax the moon for emotional damages.",m:"🌙",jA:"The moon pays in tides. Treasury slightly salty.",jD:"The moon countersues. Case pending forever.",jC:"Buried. A small coin of moonlight sprouts."},
+ {t:"BEAUTY",x:"Install a bench facing the good sadness.",m:"🪑",jA:"The bench is installed. It is always slightly warm.",jD:"No bench. The sadness sits on the ground.",jC:"Composted into a stump with excellent posture."},
+ {t:"DEFENSE",x:"Raise a suspicious tower that watches only itself.",m:"🗼",jA:"The tower is up. It reports itself hourly. All clear.",jD:"Denied. The tower watches you decline it.",jC:"Buried. A periscope of moss keeps half an eye."},
+ {t:"CHAOS",x:"Replace all stairs with negotiations.",m:"🌀",jA:"Stairs replaced. Going upstairs now takes consensus.",jD:"The stairs remain stairs. Boring. Reliable. Fine.",jC:"Composted. One step negotiates quietly at night."},
+ {t:"COMPOST",x:"Bury a failed claim and grow a smaller truth.",m:"🌱",jA:"A smaller truth sprouts. It fits in your hand.",jD:"The failed claim stays unburied and smug.",jC:"Double-composted. The truth is now pocket-sized."}];
+function makeState(){return{seq:0,garden:[],compost:0,pending:null,receipts:[],kernel:[],log:[],ev:[],
+ goal:null,hiveAligned:0,hiveAdmits:0,denied:{}}}
+function logJ(S,j){S.log.push(j);if(S.log.length>40)S.log=S.log.slice(-40)}
+function dispatch(S,e){
+ switch(e.k){
+  case "goal":{const G=["BUILD","RITUAL","ECONOMY","BEAUTY","DEFENSE","CHAOS","COMPOST",null];
+   if(e.g!==null&&G.indexOf(e.g)<0)return false;
+   S.goal=e.g;logJ(S,e.g?("🐝 the hive turns toward "+e.g+" — goblins dream accordingly (goal ⊬ authority)"):"🐝 the hive disbands its goal. freelance weirdness resumes");return true}
+  case "next":{if(S.pending)return false;
+   // SMART: goal-aligned dreaming + receipt-memory (avoid twice-denied types)
+   let pool=PROPOSALS.filter(p=>(S.denied[p.t]||0)<2);
+   if(!pool.length)pool=PROPOSALS;
+   if(S.goal){const g=pool.filter(p=>p.t===S.goal);if(g.length&&h32("hive"+S.seq)%4!==0)pool=g}
+   const p=pool[h32("p"+S.seq)%pool.length];
+   S.pending={id:"r"+S.seq,t:p.t,x:p.x,m:p.m,jA:p.jA,jD:p.jD,jC:p.jC};S.seq++;return true}
+  case "stamp":{const p=S.pending;if(!p)return false;
+   if(e.v==="ADMIT"){S.garden.push(p.m);logJ(S,"✔ "+p.jA);
+    S.hiveAdmits++;if(S.goal&&p.t===S.goal){S.hiveAligned++;logJ(S,"🐝 the hive hums — aligned bloom ("+S.hiveAligned+"/"+S.hiveAdmits+")")}
+    S.denied[p.t]=0;
+    S.receipts.push({id:p.id,x:p.x,m:p.m,stamp:"ADMIT",claim:"NO_CLAIM"})}
+   else if(e.v==="DENY"){S.compost++;S.denied[p.t]=(S.denied[p.t]||0)+1;logJ(S,"✘ "+p.jD);
+    if(S.denied[p.t]>=2)logJ(S,"🧠 GOBLIN remembers: no more "+p.t+" for a while. the dirt takes notes")}
+   else if(e.v==="COMPOST"){S.compost++;S.garden.push("🌱");logJ(S,"🟤 "+p.jC)}
+   else return false;
+   S.pending=null;return true}
+  case "kernel":{const i=S.receipts.findIndex(r=>r.id===e.id);if(i<0)return false;
+   const r=S.receipts.splice(i,1)[0];
+   if(e.v==="ADMIT"){S.kernel.push(r.x);logJ(S,"🏛 KERNEL ADMITS: "+r.x+" (now boring, therefore true)")}
+   else{S.compost++;logJ(S,"🟤 claim composted — the Garden keeps the joke, the Kernel keeps its silence")}
+   return true}
+ }return false}
+function replay(evs){const S=makeState();evs.forEach(e=>{if(dispatch(S,e))S.ev.push(e)});return S}
+/* ===== REDUCER-END ===== */
+let S=makeState(),EV=[];
+function act(e){if(dispatch(S,e)){EV.push(e);sync()}}
+function ui(v){act({k:"stamp",v});act({k:"next"})}
+function uiK(id,v){act({k:"kernel",id,v})}
+function sync(){
+ document.getElementById("prop").innerHTML=S.pending?("<b style='color:#e0a83c'>["+S.pending.t+"]</b> "+S.pending.x):"…";
+ document.getElementById("garden").textContent=S.garden.join(" ")||"— bare earth, waiting for your stamp —";
+ document.getElementById("b-ev").textContent=S.receipts.length;
+ document.getElementById("b-bl").textContent=S.garden.length;
+ document.getElementById("b-co").textContent=S.compost;
+ document.getElementById("b-k").textContent=S.kernel.length;
+ document.getElementById("tray").innerHTML=S.receipts.length?S.receipts.map(r=>
+  "<div class='receipt'>"+r.m+" "+r.x+"<br><span style='color:#8a86a0'>stamped ADMIT · claim="+r.claim+"</span><br>"+
+  "<button style='font-size:9px;padding:3px 6px' onclick=\"uiK('"+r.id+"','ADMIT')\">→ KERNEL</button>"+
+  "<button style='font-size:9px;padding:3px 6px' onclick=\"uiK('"+r.id+"','COMPOST')\">🟤</button></div>").join(""):"no claimable actions yet";
+ document.getElementById("truths").innerHTML=S.kernel.length?S.kernel.map(t=>"<div class='truth'>"+t+"</div>").join(""):"nothing admitted. correct.";
+ document.getElementById("log").innerHTML=S.log.slice().reverse().map(j=>"<div>"+j+"</div>").join("");
+ document.getElementById("hive").textContent=S.goal?
+  ("hive goal: "+S.goal+" · alignment "+S.hiveAligned+"/"+S.hiveAdmits+" — the goal shapes dreams, never verdicts"):
+  "no goal — goblins dream freelance";
+ const R=replay(EV); // the law-line is not decoration:
+ if(JSON.stringify(R.kernel)!==JSON.stringify(S.kernel))document.getElementById("law").textContent="REPLAY MISMATCH — WITNESS THIS";
+}
+window.onload=()=>{act({k:"next"})};
+</script>
+</body>
+</html>

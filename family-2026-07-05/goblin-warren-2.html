@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOBLIN WARREN II — The Dream Forge</title>
+<!--
+SESSION NOTES (GW2):
+- what this is: the second game, evolved from goblin-warren.html (game I) +
+  the Living Minds design + JM's ratified gameplay guide + the Epoch-07 /
+  Garden-Siege mockups. Loop: soil ideas -> vector-minded bots propose ->
+  you admit/deny/hold with real stakes -> blooms climb SOIL..FRUIT ->
+  chaos waves test your defense -> first FRUIT wins, 3 trust-strikes lose.
+- authorship, declared: CHASSIS (this file's frame: state shell, dispatch
+  routing, replay, store, HTML/CSS, harness hooks) = reuse of game I's
+  already-shipped engine patterns + wiring, Fable-integrated. ALL new
+  mechanics (data tables, tickWorld, gate/ladder functions, panels, tests)
+  = goblin-swarm authored (g2u1..g2u5 in helen-os-JMTC/.state/relay/),
+  gated and spliced at the GW2-*-SPLICE markers.
+- persistence = replay: only the event log is stored (single save v1).
+- known issues: single-save (no multi-account in V1) · buildings L1-3 only ·
+  coalitions/tunnels/mini-game-variety cut per the ordered cut-rules.
+- V3 THE EVER-GROWING GARDEN (goblin-authored g2v3a/g2v3c, Warren-Law canon):
+  the garden grows autonomously every tick (props by dominant motive), stale
+  unanswered dreams WILD-COMPOST (garden moves on, nothing auto-admits),
+  claim tray + kernel panel = the organism membrane made playable. THE LAW
+  as a test: 1,000 autonomous ticks leave S.kernel byte-unchanged. Only the
+  operator's kernelApply writes the conscious mind. CLAW renamed HERMES (canon).
+LAW: authority=false · claim=NO_CLAIM · law does not reskin · replay proves.
+-->
+<style>
+  :root{ --bone:#e8dcc0; --ember:#d08a3c; --swamp:#141c0e; --moss:#5c7a3a;
+         --glow:#a8d858; --amber:#e0a83c; --rot:#8a5a4a; --dream:#8b6fc9; --danger:#c96f6f; }
+  body{margin:0;padding:0;background:var(--swamp);color:var(--bone);
+    font-family:"Courier New",Courier,monospace;overflow-x:hidden}
+  .panel{background:#0d1408;border:3px solid var(--moss);padding:10px;font-size:11px;box-shadow:4px 4px 0 #000;margin:8px}
+  .cap{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ember)}
+  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);
+    padding:5px 10px;margin:2px;cursor:pointer;font-family:inherit;font-size:10px;
+    text-transform:uppercase;letter-spacing:.06em;box-shadow:3px 3px 0 #000}
+  button:hover{background:#2a3a1a}
+  button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+  #top-resources{position:sticky;top:0;z-index:20;background:#0d1408;border-bottom:3px solid var(--moss);
+    padding:8px 12px;font-size:12px;letter-spacing:.04em}
+  #wave-banner{text-align:center;font-size:12px;min-height:18px;color:var(--amber);
+    text-transform:uppercase;letter-spacing:.1em;padding:4px}
+  #layout{display:grid;grid-template-columns:300px 1fr 320px;gap:0;align-items:start}
+  .motto{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:10px;
+    letter-spacing:.18em;background:#0d1408;border-top:3px solid var(--moss);padding:4px;color:var(--glow)}
+  .over{position:fixed;inset:0;background:rgba(8,12,5,.95);display:flex;
+    align-items:center;justify-content:center;flex-direction:column;z-index:100}
+  .title{font-size:22px;color:var(--glow);text-align:center;letter-spacing:.1em;
+    text-shadow:3px 3px 0 #000;text-transform:uppercase;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="top-resources" class="cap">—</div>
+<div id="wave-banner"></div>
+<div id="layout">
+  <div>
+    <div class="panel"><div class="cap">Goblin Inhabitants</div><div id="panel-minds"></div></div>
+    <div class="panel"><div class="cap">Buildings</div><div id="panel-buildings"></div></div>
+  </div>
+  <div>
+    <div class="panel"><div class="cap">Surfaced Dream</div><div id="panel-dream"></div></div>
+    <div class="panel"><div class="cap">The Akashic Tree — Blooms</div><div id="panel-blooms"></div></div>
+  </div>
+  <div>
+    <div class="panel"><div class="cap">🌿 The Garden (grows on its own)</div><div id="panel-garden"></div></div>
+    <div class="panel"><div class="cap">🧾 Receipt Tray (claimable)</div><div id="panel-claims"></div></div>
+    <div class="panel"><div class="cap">⚖ Kernel (admitted only)</div><div id="panel-kernel"></div></div>
+    <div class="panel"><div class="cap">Receipt Vault</div><div id="panel-ledger"></div></div>
+  </div>
+</div>
+<div class="motto">MECHANISM IS VERIFIABLE · MEANING IS INHABITABLE · JM REMAINS THE FINAL GATE</div>
+
+<div id="menu" class="over">
+  <div class="title">Goblin Warren II<br><span style="font-size:13px;color:var(--dream)">THE DREAM FORGE</span></div>
+  <div style="max-width:480px;text-align:center;font-size:11px;margin-bottom:12px">
+    Ideas rise as SOIL. The minds propose by their own weights. Your hand admits, denies, holds.
+    Blooms climb SOIL → SEED → LEAF → TRUNK → BLOOM → 🍎 FRUIT while the chaos waves test the walls.<br>
+    <span style="color:var(--amber)">First FRUIT wins. Three broken trusts end the garden.</span></div>
+  <button onclick="uiStart2()">ENTER THE FORGE</button>
+  <button onclick="uiWipe2()" style="border-color:var(--rot);font-size:9px">burn the ledger (reset)</button>
+</div>
+
+<script>
+"use strict";
+/* ===== REDUCER-BEGIN =====
+   pure logic only — no DOM, no THREE, no localStorage, no Date, no Math.random.
+*/
+function h32(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+let LAST_WHY="";
+
+/* Living Minds base vectors — the goblin swarm's ratified design (integers ×100 scale 5..95) */
+const BOTS={
+ GOBLIN:{v:{exp:72,bea:15,def:30,eco:40,cha:60}},
+ HER:{v:{exp:30,bea:88,def:25,eco:10,cha:40}},
+ HERMES:{v:{exp:15,bea:20,def:92,eco:70,cha:30}},
+ CHIDDUSH:{v:{exp:50,bea:45,def:10,eco:80,cha:20}},
+ JESTER:{v:{exp:60,bea:30,def:15,eco:10,cha:95}}};
+const BOT_NAMES=Object.keys(BOTS);
+
+/* ===== GW2-DATA-SPLICE (g2u1, goblin-authored; integrator data-fix: BLOOM.next=FRUIT per contract) ===== */
+const GW2_BUILDINGS = {
+  akashic_tree: { name: "Akashic Tree", effect: "bloomCapacity", base: 2, perLevel: 1, costC: [0,4,8], costE: [0,3,6] },
+  seed_harvester: { name: "Seed Harvester", effect: "soilIncome", base: 1, perLevel: 1, costC: [0,2,4], costE: [0,2,4] },
+  receipt_forge: { name: "Receipt Forge", effect: "evidenceIncome", base: 3, perLevel: 2, costC: [0,5,9], costE: [0,1,3] },
+  fable_gate: { name: "Fable Gate", effect: "fakeBlock", base: 1, perLevel: 1, costC: [0,3,6], costE: [0,2,4] },
+  replay_shrine: { name: "Replay Shrine", effect: "membraneHeal", base: 5, perLevel: 3, costC: [0,4,8], costE: [0,1,2] },
+  membrane_wall: { name: "Membrane Wall", effect: "maxMembrane", base: 20, perLevel: 20, costC: [0,5,10], costE: [0,3,6] },
+  warden_tower: { name: "Warden Tower", effect: "defensePower", base: 4, perLevel: 4, costC: [0,6,12], costE: [0,4,8] },
+  chaos_portal: { name: "Chaos Portal", effect: "threatSource", base: 1, perLevel: 0, costC: [0,0,0], costE: [0,0,0] },
+  agent_hut: { name: "Agent Hut", effect: "botQuality", base: 5, perLevel: 5, costC: [0,3,6], costE: [0,1,2] },
+  garden_plot: { name: "Garden Plot", effect: "empty", base: 0, perLevel: 0, costC: [0,0,0], costE: [0,0,0] }
+};
+
+const GW2_THREATS = [
+  { id: "wisp", name: "Hallucination Wisp", power: 3, counter: "fable_gate", line: "it whispers a fact that never happened" },
+  { id: "overclaim_serpent", name: "Overclaim Serpent", power: 5, counter: "warden_tower", line: "it demands territory it doesn't own" },
+  { id: "fake_receipt_mimic", name: "Fake Receipt Mimic", power: 4, counter: "fable_gate", line: "it offers a receipt for something that never happened" },
+  { id: "doubt_storm", name: "Doubt Storm", power: 6, counter: "membrane_wall", line: "it erodes trust in the walls of reality" },
+  { id: "autopilot_dragon", name: "Autopilot Dragon", power: 10, counter: "warden_tower", line: "it crashes through defenses with brute force" }
+];
+
+const GW2_LADDER = [
+  { stage: "SOIL", next: "SEED", evidenceCost: 1, trustReward: 0, line: "the soil is prepared for planting" },
+  { stage: "SEED", next: "LEAF", evidenceCost: 2, trustReward: 0, line: "a seed is planted in the soil" },
+  { stage: "LEAF", next: "TRUNK", evidenceCost: 3, trustReward: 0, line: "the seed begins to sprout leaves" },
+  { stage: "TRUNK", next: "BLOOM", evidenceCost: 5, trustReward: 0, line: "the plant grows a strong trunk" },
+  { stage: "BLOOM", next: "FRUIT", evidenceCost: 8, trustReward: 1, line: "the plant blooms with strange energy" },
+  { stage: "FRUIT", next: null, evidenceCost: 0, trustReward: 0, line: "the bloom bears fruit of reality" }
+];
+
+/* ===== GW2-DATA-SPLICE-END ===== */
+
+function makeState(){
+ const minds={};BOT_NAMES.forEach(n=>{minds[n]={...BOTS[n].v}});
+ const buildings={};if(typeof GW2_BUILDINGS!=="undefined")Object.keys(GW2_BUILDINGS).forEach(id=>{buildings[id]={level:id==="akashic_tree"||id==="seed_harvester"||id==="warden_tower"?1:0}});
+ return {phase:"MENU",tick:0,day:1,night:false,
+  evidence:20,coherence:15,trust:3,attention:100,compost:0,membrane:100,
+  minds,buildings,blooms:[],pending:null,arenaLog:[],ledger:[],won:false,strikes:0,actions:0,
+  garden:{mushrooms:0,benches:0,rituals:0,fences:0,groves:0},wild:0,pendingAge:0,claims:[],kernel:[]};
+}
+function logEvent(S,kind,detail){S.ledger.push({kind,detail:detail||""});
+ if(S.ledger.length>300)S.ledger=S.ledger.slice(-300)}
+function bLevel(S,id){return (S.buildings[id]&&S.buildings[id].level)||0}
+function bPower(S,id){const d=typeof GW2_BUILDINGS!=="undefined"?GW2_BUILDINGS[id]:null;
+ if(!d)return 0;const l=bLevel(S,id);return l>0?d.base+d.perLevel*(l-1):0}
+
+/* ===== GW2-TICK-SPLICE (g2u2 round-2, goblin-authored) ===== */
+function tickWorld(S) {
+    S.tick++;
+    if (S.tick % 8 === 0) {
+        S.day++;
+        S.night = !S.night;
+        S.membrane = Math.min(100 + bPower(S, "membrane_wall"), S.membrane + bPower(S, "replay_shrine"));
+    }
+    S.evidence += bPower(S, "receipt_forge");
+    S.attention = Math.min(150, S.attention + 2);
+    
+    if (!S.pending) {
+        const names = ["GOBLIN", "HER", "HERMES", "CHIDDUSH", "JESTER"];
+        const botName = names[h32("bot" + S.tick + "|" + S.actions) % 5];
+        const m = S.minds[botName];
+        const keys = ["exp", "bea", "def", "eco", "cha"];
+        const dom = keys.slice().sort((a, b) => m[b] - m[a])[0];
+        const POOL = {
+            exp: ["Expand the borders to secure new resources.", "Create a new trade route for growth.", "Invest in advanced research facilities."],
+            bea: ["Enhance aesthetic designs throughout the garden.", "Support local artists and cultural events.", "Promote eco-tourism initiatives."],
+            def: ["Construct additional defensive structures.", "Develop early warning systems for threats.", "Strengthen border patrol operations."],
+            eco: ["Implement sustainable farming practices.", "Reduce industrial waste production.", "Increase renewable energy usage."],
+            cha: ["Introduce random mutation experiments.", "Create chaos in existing systems.", "Encourage unpredictable change."]
+        };
+        const text = POOL[dom][h32("txt" + S.tick) % 3];
+        S.pending = {
+            bot: botName,
+            text: text,
+            stage: "SOIL",
+            evidenceCost: 1 + (h32("cost" + S.tick) % 3),
+            big: m[dom] >= 80
+        };
+        logEvent(S, "PROPOSAL_SURFACED", botName + ": " + text);
+    }
+    
+    if (S.tick % 4 === 0) {
+        const threat = GW2_THREATS[h32("wave" + S.tick) % (S.day >= 5 ? 5 : 4)];
+        const defense = bPower(S, "warden_tower") + 
+            (threat.counter && bLevel(S, threat.counter) > 0 ? 
+                2 * bLevel(S, threat.counter) : 0);
+        if (threat.power > defense) {
+            S.membrane -= (threat.power - defense) * 4;
+            logEvent(S, "WAVE_BREACH", threat.name + " - " + threat.line);
+            if (S.membrane <= 0) {
+                S.membrane = 50;
+                S.strikes++;
+                S.trust = Math.max(0, S.trust - 1);
+                logEvent(S, "TRUST_STRIKE", "the garden's trust cracks (" + S.strikes + "/3)");
+            }
+        } else {
+            logEvent(S, "WAVE_HELD", threat.name + " breaks on the walls");
+        }
+    }
+    
+    if (S.strikes >= 3) {
+        S.phase = "LOST";
+        logEvent(S, "GARDEN_COLLAPSED", "three trusts broken");
+    }
+    
+    return true;
+}
+/* ===== GW2-TICK-SPLICE-END ===== */
+
+/* ===== GW2-GATE-SPLICE (g2u3, goblin-authored; integrator gate-out: excess evidence check in deny removed per contract) ===== */
+function adaptMind(S,bot,outcome){
+    const m=S.minds[bot];
+    if(!m)return;
+    const keys=["exp","bea","def","eco","cha"];
+    const sorted=keys.slice().sort((a,b)=>m[b]-m[a]);
+    const dom=sorted[0];
+    if(outcome==="admit"){
+        m[dom]=Math.min(95,m[dom]+3);
+    }else if(outcome==="deny"){
+        m[dom]=Math.max(5,m[dom]-5);
+        const second=sorted[1];
+        if(second){
+            m[second]=Math.min(95,m[second]+2);
+        }
+    }else{
+        for(let k of keys){
+            if(m[k]<50)m[k]++;
+            else if(m[k]>50)m[k]--;
+        }
+    }
+}
+
+function admitDream(S){
+    const p=S.pending;
+    if(!p){LAST_WHY="nothing surfaced";return false}
+    if(S.evidence<p.evidenceCost){LAST_WHY="not enough evidence";return false}
+    const cap=bPower(S,"akashic_tree");
+    if(S.blooms.length>=cap){LAST_WHY="the tree is full - promote or compost first";return false}
+    S.evidence-=p.evidenceCost;
+    S.blooms.push({id:"b"+S.actions,stage:"SOIL",text:p.text,bot:p.bot});
+    adaptMind(S,p.bot,"admit");
+    logEvent(S,"DREAM_ADMITTED",p.bot+": "+p.text.slice(0,40));
+    S.pending=null;
+    S.actions++;
+    return true
+}
+
+function denyDream(S){
+    const p=S.pending;
+    if(!p){LAST_WHY="nothing surfaced";return false}
+    S.compost++;
+    adaptMind(S,p.bot,"deny");
+    logEvent(S,"DREAM_COMPOSTED",p.bot+": "+p.text.slice(0,40));
+    S.pending=null;
+    S.actions++;
+    return true
+}
+
+function holdDream(S){
+    const p=S.pending;
+    if(!p){LAST_WHY="nothing surfaced";return false}
+    adaptMind(S,p.bot,"hold");
+    S.attention=Math.max(0,S.attention-5);
+    logEvent(S,"DREAM_HELD",p.bot+": "+p.text.slice(0,40));
+    S.pending=null;
+    S.actions++;
+    return true
+}
+
+function promoteBloom(S,bloomId){
+    const bloom=S.blooms.find(b=>b.id===bloomId);
+    if(!bloom){LAST_WHY="no such bloom";return false}
+    const rung=GW2_LADDER.find(r=>r.stage===bloom.stage);
+    if(!rung||!rung.next){LAST_WHY="already fruit";return false}
+    if(S.evidence<rung.evidenceCost){LAST_WHY="not enough evidence to promote";return false}
+    S.evidence-=rung.evidenceCost;
+    bloom.stage=rung.next;
+    if(rung.trustReward)S.trust=Math.min(3,S.trust+rung.trustReward);
+    logEvent(S,"BLOOM_PROMOTED",bloom.stage+" - "+rung.line);
+    if(bloom.stage==="FRUIT"){
+        S.won=true;
+        S.phase="WON";
+        logEvent(S,"HARVEST_CEREMONY","the first fruit - the garden proves itself");
+    }
+    S.actions++;
+    return true
+}
+/* ===== GW2-GATE-SPLICE-END ===== */
+
+/* ===== GW2-V3-SPLICE (g2v3a, goblin-authored: the ever-growing garden + the membrane) ===== */
+function growGarden(S){
+    const names=["GOBLIN","HER","HERMES","CHIDDUSH","JESTER"];
+    const g=names[h32("grow"+S.tick)%5];
+    const m=S.minds[g];
+    const keys=["exp","bea","def","eco","cha"].sort((a,b)=>m[b]-m[a]);
+    const dom=keys[0];
+    const PROP={exp:"mushrooms",bea:"benches",def:"fences",eco:"groves",cha:"rituals"};
+    if(h32("sprout"+S.tick)%3===0){
+        S.garden[PROP[dom]]++;
+        logEvent(S,"GARDEN_GREW",g+" tends the "+PROP[dom]);
+    }
+    if(S.pending){
+        S.pendingAge=(S.pendingAge||0)+1;
+        if(S.pendingAge>=6){
+            S.wild++;
+            S.garden.mushrooms++;
+            logEvent(S,"GARDEN_WILDGROWTH",S.pending.bot+"'s unanswered dream composts into wild growth - the garden moves on");
+            S.pending=null;
+            S.pendingAge=0;
+        }
+    }else S.pendingAge=0;
+    return true;
+}
+
+function claimBloom(S,bloomId){
+    const bloom=S.blooms.find(b=>b.id===bloomId);
+    if(!bloom){LAST_WHY="no such bloom";return false}
+    if(bloom.stage!=="BLOOM"&&bloom.stage!=="FRUIT"){LAST_WHY="only BLOOM or FRUIT may be claimed";return false}
+    if(S.claims.some(c=>c.id===bloomId)){LAST_WHY="already claimed";return false}
+    S.claims.push({id:bloom.id,text:bloom.text,bot:bloom.bot,stage:bloom.stage});
+    logEvent(S,"RECEIPT_CANDIDATE",bloom.bot+": "+bloom.text.slice(0,40));
+    S.actions++;
+    return true;
+}
+
+function kernelApply(S,claimId){
+    const i=S.claims.findIndex(c=>c.id===claimId);
+    if(i<0){LAST_WHY="no such claim in the tray";return false}
+    const c=S.claims.splice(i,1)[0];
+    S.kernel.push({id:c.id,text:c.text,bot:c.bot,atTick:S.tick});
+    logEvent(S,"KERNEL_ADMITTED",c.text.slice(0,50)+" - it crossed the membrane");
+    S.actions++;
+    return true;
+}
+/* ===== GW2-V3-SPLICE-END ===== */
+
+function buildUpgrade(S,id){ /* chassis wiring: costs read from goblin-authored GW2_BUILDINGS */
+ const d=typeof GW2_BUILDINGS!=="undefined"?GW2_BUILDINGS[id]:null;
+ if(!d){LAST_WHY="no such building";return false}
+ const cur=bLevel(S,id);
+ if(!d.costC||cur>=d.costC.length){LAST_WHY=d.name+" is at its final form";return false}
+ const cC=d.costC[cur],cE=d.costE[cur];
+ if(S.coherence<cC){LAST_WHY="not enough coherence";return false}
+ if(S.evidence<cE){LAST_WHY="not enough evidence";return false}
+ S.coherence-=cC;S.evidence-=cE;
+ S.buildings[id]=S.buildings[id]||{level:0};S.buildings[id].level++;
+ logEvent(S,"BUILDING_RAISED",d.name+" → L"+S.buildings[id].level);
+ S.actions++;return true}
+
+function startRun(S){if(S.phase!=="MENU"){LAST_WHY="already dwelling";return false}
+ S.phase="GARDEN";logEvent(S,"FORGE_LIT","the second garden opens — dawn stipend 20 evidence / 15 coherence");
+ return true}
+
+function dispatch(S,ev){
+ LAST_WHY="";
+ switch(ev.k){
+  case "start": return startRun(S);
+  case "tick": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} growGarden(S); return tickWorld(S);
+  case "claim": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return claimBloom(S,ev.b);
+  case "kernelApply": if(S.phase!=="GARDEN"&&S.phase!=="WON"){LAST_WHY="not dwelling";return false} return kernelApply(S,ev.id);
+  case "admit": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return admitDream(S);
+  case "deny": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return denyDream(S);
+  case "hold": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return holdDream(S);
+  case "promote": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return promoteBloom(S,ev.b);
+  case "build": if(S.phase!=="GARDEN"){LAST_WHY="not dwelling";return false} return buildUpgrade(S,ev.id);
+ }
+ LAST_WHY="unknown event";return false}
+
+function replayEvents(log){const S=makeState();(log||[]).forEach(ev=>dispatch(S,ev));return S}
+
+/* ---- SELFTEST CORE ---- */
+function runSelftestCore(){
+ const R=[];const T=(name,fn)=>{try{R.push({name,ok:!!fn()})}catch(e){R.push({name,ok:false,err:String(e)})}};
+ const mk2=()=>{const S=makeState();dispatch(S,{k:"start"});return S};
+/* ===== GW2-TESTS-SPLICE ===== */
+/* GW2 tests — Fable-authored under the 07-02 escalation ladder (2 goblin failures; verification lane). */
+ T("gw2 tick deterministic",()=>{const a=mk2(),b=mk2();for(let i=0;i<20;i++){dispatch(a,{k:"tick"});dispatch(b,{k:"tick"})}return JSON.stringify(a)===JSON.stringify(b)});
+ T("gw2 admit spends exact evidence",()=>{const S=mk2();for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  if(!S.pending)return false;const c=S.pending.evidenceCost,e=S.evidence;
+  return dispatch(S,{k:"admit"})&&S.evidence===e-c&&S.blooms.length===1});
+ T("gw2 deny composts free",()=>{const S=mk2();for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  if(!S.pending)return false;S.evidence=0;const k=S.compost;
+  return dispatch(S,{k:"deny"})&&S.compost===k+1&&S.blooms.length===0});
+ T("gw2 adaptation stays integer in bounds",()=>{const S=mk2();
+  for(let i=0;i<30;i++){dispatch(S,{k:"tick"});if(S.pending)dispatch(S,i%2?{k:"admit"}:{k:"deny"})}
+  return Object.values(S.minds).every(m=>Object.values(m).every(w=>Number.isInteger(w)&&w>=5&&w<=95))});
+ T("gw2 wave damage bounded",()=>{const S=mk2();
+  for(let i=0;i<40;i++){dispatch(S,{k:"tick"});if(S.membrane<0||S.membrane>200||S.strikes>3)return false;if(S.pending)dispatch(S,{k:"hold"})}
+  return true});
+ T("gw2 ladder promotes to fruit",()=>{const S=mk2();for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  if(!dispatch(S,{k:"admit"}))return false;const id=S.blooms[0].id;S.evidence=99;
+  for(let i=0;i<5;i++)if(!dispatch(S,{k:"promote",b:id}))return false;
+  return S.blooms[0].stage==="FRUIT"&&S.phase==="WON"&&!dispatch(S,{k:"promote",b:id})});
+ T("gw2 collapse at three strikes",()=>{const S=mk2();S.membrane=1;S.strikes=2;
+  for(let i=0;i<60&&S.phase==="GARDEN";i++){dispatch(S,{k:"tick"});if(S.pending)dispatch(S,{k:"hold"})}
+  return S.phase==="LOST"});
+ T("gw2 replay identity",()=>{const S=makeState();const L=[];const A=ev=>{if(dispatch(S,ev))L.push(ev)};
+  A({k:"start"});for(let i=0;i<30;i++){A({k:"tick"});if(S.pending)A(i%3===0?{k:"admit"}:i%3===1?{k:"deny"}:{k:"hold"})}
+  const S2=replayEvents(L);return JSON.stringify(S)===JSON.stringify(S2)});
+ /* V3 invariants — Fable-authored (verification lane, declared) */
+ T("gw2 THE LAW: kernel untouched by 1000 autonomous ticks",()=>{const S=mk2();
+  const k0=JSON.stringify(S.kernel),c0=JSON.stringify(S.claims);
+  for(let i=0;i<1000;i++)dispatch(S,{k:"tick"});
+  const grown=Object.values(S.garden).reduce((a,b)=>a+b,0);
+  return JSON.stringify(S.kernel)===k0&&JSON.stringify(S.claims)===c0&&grown>0&&S.wild>0});
+ T("gw2 wild compost frees the loop",()=>{const S=mk2();
+  for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  if(!S.pending)return false;const w=S.wild;
+  for(let i=0;i<8;i++)dispatch(S,{k:"tick"});
+  if(S.wild<w+1)return false;
+  for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  return !!S.pending});
+ T("gw2 claim then kernelApply crosses the membrane",()=>{const S=mk2();
+  for(let i=0;i<10&&!S.pending;i++)dispatch(S,{k:"tick"});
+  if(!dispatch(S,{k:"admit"}))return false;const id=S.blooms[0].id;
+  if(dispatch(S,{k:"claim",b:id}))return false; /* SOIL must be refused */
+  S.evidence=99;for(let i=0;i<4;i++)if(!dispatch(S,{k:"promote",b:id}))return false;
+  if(S.blooms[0].stage!=="BLOOM")return false;
+  if(!dispatch(S,{k:"claim",b:id}))return false;
+  if(S.claims.length!==1||S.kernel.length!==0)return false;
+  if(!dispatch(S,{k:"kernelApply",id}))return false;
+  return S.kernel.length===1&&S.claims.length===0});
+ T("gw2 v3 replay identity with membrane events",()=>{const S=makeState();const L=[];const A=ev=>{if(dispatch(S,ev))L.push(ev)};
+  A({k:"start"});A({k:"build",id:"receipt_forge"});
+  for(let i=0;i<40;i++){A({k:"tick"});if(S.pending&&i%2===0)A({k:"admit"})}
+  if(S.blooms.length){const id=S.blooms[0].id;
+   for(let i=0;i<4;i++)A({k:"promote",b:id});A({k:"claim",b:id});A({k:"kernelApply",id})}
+  const S2=replayEvents(L);return JSON.stringify(S)===JSON.stringify(S2)});
+/* ===== GW2-TESTS-SPLICE-END ===== */
+ return R}
+/* ===== REDUCER-END ===== */
+
+/* ===== PRESENTATION — store only the event log; world = replay(log) ===== */
+const STORE2="goblin_warren_2_v1";
+let S=makeState(),LOG=[],tick2=null;
+function save2(){try{localStorage.setItem(STORE2,JSON.stringify({log:LOG}))}catch(e){}}
+function load2(){try{const r=localStorage.getItem(STORE2);return r?(JSON.parse(r).log||[]):[]}catch(e){return[]}}
+function act(ev){const ok=dispatch(S,ev);if(ok){LOG.push(ev);save2()}syncAll2();return ok}
+
+/* ===== GW2-PANELS-SPLICE (g2u4 round-2, goblin-authored) ===== */
+function renderResources(){document.getElementById("top-resources").innerHTML="🔍 EVIDENCE "+S.evidence+" · ⚙️ COHERENCE "+S.coherence+" · "+"♥".repeat(Math.max(0,S.trust))+" TRUST · 🌟 "+S.attention+"% · MEMBRANE <span style='color:"+(S.membrane<40?"#c96f6f":"#a8d858")+"'>"+S.membrane+"%</span> · DAY "+S.day+(S.night?" 🌙":" ☀")}
+function renderMinds(){ let html=""; for(let bot of S.minds){ let name=bot.name||"Bot"; let weights={exp:bot.exp,bea:bot.bea,def:bot.def,eco:bot.eco,cha:bot.cha}; let max=0; for(let k in weights)if(weights[k]>max)max=weights[k]; html+="<div><b>"+name+"</b>"; for(let k in weights){ let w=weights[k]; let bg=(w===max&&max>0)?"#a8d858":"#5c7a3a"; html+="<span style='display:inline-block;width:"+w+"px;height:5px;background:"+bg+";margin-right:2px;'></span>"; } html+="<span style='float:right'>"+max+"</span></div><br>"; } document.getElementById("panel-minds").innerHTML=html; }
+function renderDream(){ if(!S.pending){ document.getElementById("panel-dream").innerHTML="the garden waits..."; return; } let p=S.pending; let html="<div style='border:1px solid #5c7a3a;padding:10px;margin:10px 0;'>"; html+="<span style='color:#e0a83c'><b>"+(p.bot||"Unknown")+"</b></span> <span>"+p.text+"</span><br>"; html+="<div style='margin-top:5px;'>"; html+="<button onclick='act({k:\"admit\"})'>ADMIT −"+p.evidenceCost+" 🔍</button> "; html+="<button onclick='act({k:\"deny\"})'>DENY → compost</button> "; html+="<button onclick='act({k:\"hold\"})'>HOLD −5 🌟</button> "; html+="</div>"; if(p.big)html+="<div style='color:#8b6fc9;margin-top:5px;'>⚖ the council murmurs</div>"; html+="</div>"; document.getElementById("panel-dream").innerHTML=html; }
+function renderBlooms(){ const ICO={SOIL:"🟤",SEED:"🌱",LEAF:"🍃",TRUNK:"🪵",BLOOM:"🌸",FRUIT:"🍎"}; let html=""; for(let b of S.blooms){ let icon=ICO[b.stage]||"❓"; html+="<div style='margin:5px 0;'>"+icon+" <b>"+b.stage+"</b>: "+b.text.substring(0,40)+"</div>"; html+="<button onclick='act({k:\"promote\",b:\""+b.id+"\"})'>PROMOTE</button><br>"; } document.getElementById("panel-blooms").innerHTML=html; }
+function renderBuildings(){ let html=""; for(let id of GW2_BUILDINGS){ let lvl=bLevel(S,id); let name=id.toUpperCase(); let nextCost=GW2_BUILDINGS[id][lvl+1]||null; let suffix=nextCost?" → "+nextCost.costE+"🔍⚙":" MAX"; html+="<div style='margin:5px 0;'>"+name+" L"+lvl+suffix+"</div>"; html+="<button onclick='act({k:\"build\",id:\""+id+"\"})'>UP</button><br>"; } document.getElementById("panel-buildings").innerHTML=html; }
+function renderLedger(){ let html=""; let entries=S.ledger.slice(-8).reverse(); for(let e of entries){ let color=e.kind.includes("BREACH")||e.kind.includes("STRIKE")||e.kind.includes("COLLAPSED")?"#c96f6f":(e.kind.includes("HARVEST")?"#a8d858":"#e8dcc0"); html+="<div style='color:"+color+";margin:2px 0;'>["+e.kind+"] "+e.detail+"</div>"; } document.getElementById("panel-ledger").innerHTML=html; }
+function renderWave(){ let last=[...S.ledger].reverse().find(e=>e.kind.indexOf("WAVE")===0||e.kind==="TRUST_STRIKE"); document.getElementById("wave-banner").textContent=last?last.detail:""; }
+function syncAll2(){renderResources();renderMinds();renderDream();renderBlooms();renderBuildings();renderLedger();renderWave();renderGarden();renderClaims();renderKernel(); if((S.phase==="WON"||S.phase==="LOST")&&!document.getElementById("endcard")){ let div=document.createElement("div"); div.id="endcard"; div.style.position="fixed"; div.style.top="50%"; div.style.left="50%"; div.style.transform="translate(-50%,-50%)"; div.style.background="#0d1408"; div.style.border="2px solid #5c7a3a"; div.style.color="#e8dcc0"; div.style.padding="20px"; div.style.textAlign="center"; let title=S.phase==="WON"?"🍎 HARVEST CEREMONY":"THE GARDEN COLLAPSED"; div.innerHTML="<h1 style='color:"+ (S.phase==="WON"?"#a8d858":"#c96f6f") +"'>"+title+"</h1><p>burn the ledger to begin again</p>"; document.body.appendChild(div); } }
+/* g2v3c panels (goblin-authored; integrator conformance: briefed onclicks wired) */
+function renderGarden(){ const g=S.garden; document.getElementById("panel-garden").innerHTML = "🍄".repeat(Math.min(20,g.mushrooms))+"🪑".repeat(Math.min(10,g.benches))+"🕯".repeat(Math.min(10,g.rituals))+"🚧".repeat(Math.min(10,g.fences))+"🌳".repeat(Math.min(10,g.groves)) + "<br><span style='font-size:9px;color:#8fae6a'>mushrooms "+g.mushrooms+" · benches "+g.benches+" · rituals "+g.rituals+" · fences "+g.fences+" · groves "+g.groves+" · wild "+S.wild+"</span>" }
+function renderClaims(){ const candidates = S.blooms.filter(b => (b.stage==="BLOOM" || b.stage==="FRUIT") && !S.claims.find(c => c.id === b.id)); const html = candidates.map(b => `<div style='margin:4px 0;border-bottom:1px solid #333;padding:2px'>${b.text} <button onclick="act({k:'claim',b:'${b.id}'})" style='background:#e0a83c;color:#0d1408;border:0;padding:2px 6px;cursor:pointer'>CLAIM</button></div>`).join(""); const claimsHtml = S.claims.map(c => `<div style='margin:4px 0;padding:2px;border:1px solid #5c7a3a'>${c.text} <button onclick="act({k:'kernelApply',id:'${c.id}'})" style='background:#8b6fc9;color:#fff;border:0;padding:2px 6px;cursor:pointer'>→ KERNEL</button></div>`).join(""); const container = document.getElementById("panel-claims"); container.innerHTML = html + (claimsHtml ? "<hr>" + claimsHtml : (candidates.length ? "<br><span style='color:#a8d858'>no receipt candidates - grow a BLOOM first</span>" : "")); }
+function renderKernel(){ if (!S.kernel || S.kernel.length === 0) { document.getElementById("panel-kernel").innerHTML = "<i>the conscious mind is empty - only admitted claims live here</i>"; return; } const lines = S.kernel.map(k => `⚖ ${k.text} <span style='color:#8b6fc9'>(tick ${k.atTick})</span>`); document.getElementById("panel-kernel").innerHTML = lines.join("<br>"); }
+/* ===== GW2-PANELS-SPLICE-END ===== */
+
+function uiStart2(){
+ document.getElementById("menu").style.display="none";
+ const old=load2();
+ if(old.length){S=replayEvents(old);LOG=old}
+ else act({k:"start"});
+ if(tick2)clearInterval(tick2);
+ tick2=setInterval(()=>{if(S.phase==="GARDEN")act({k:"tick"})},3000);
+ syncAll2()}
+function uiWipe2(){if(!confirm("Burn the second ledger? This garden will be forgotten."))return;
+ try{localStorage.removeItem(STORE2)}catch(e){};location.reload()}
+window.addEventListener("keydown",e=>{const k=e.key.toUpperCase();
+ if(k==="A")act({k:"admit"});else if(k==="D")act({k:"deny"});else if(k==="H")act({k:"hold"})});
+window.runSelftest=()=>{const R=runSelftestCore();const p=R.filter(x=>x.ok).length;
+ console.log("GW2 SELFTEST: "+p+"/"+R.length);R.forEach(r=>console.log((r.ok?"[ok] ":"[FAIL] ")+r.name+(r.err?" — "+r.err:"")));return R};
+</script>
+</body>
+</html>

@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELEN · DREAM OF CONQUEST: GOBLIN WARREN</title>
+<!-- Vintage 1995 Pixel Art (16-bit NES/SNES mood) - based on design sheets helen-goblinwarren00*.png
+     Pure pixel art style for vintage mood. Characters as painted pixel sprites.
+     Procedural canvas for Game Bible icons only.
+     Full design hacks preserved. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!--
+  The Goblin Warren - PERSISTENT DREAM (MMO trial)
+  authority=false . claim=NO_CLAIM . symbolic game . non-sovereign
+  PERSISTENCE LAW: only the world-event log is stored; the world is
+  replay(ledger) - kernel invariant I9 as gameplay. ZOL is NEVER stored:
+  Session Flash Credit, re-zeroed at every dawn (load).
+  MMO LAW: 16 agent inhabitants dream proposals while you are away;
+  nothing mutates until the sovereign admits. Population: 16 + you.
+  Retro pixel aesthetic (technique, not expression). IP-safe rule holds.
+
+  SESSION NOTES (Garden of Games zone, 2026-07-05):
+  - shipped: festival district with 7 built-in booths on 7 shared pure template
+    engines; Mini-Game Forge (data-only specs, no eval/no HTML injection);
+    HAL gate with dry-simulation; council on big games; admit/deny/hold with
+    replay-persistent MINIGAME_ADMITTED events; AI playtest (5 policies) +
+    balance report; dev panel incl. export/import-as-candidate; 3D booth ring.
+  - simplified: race = root-pad key taps (not a driving sim); kart prestige
+    folded into reputation; dice "training tokens" are just bounded ZOL stakes.
+  - cut: BroadcastChannel/online sim (never started, per cut rules).
+  - known issues: AI balance report approximates dice zol optimistically
+    (conservative for exploit detection); dev "reset zone" prunes the event
+    log (documented dev surgery — the only bend in append-only, dev tent only).
+-->
+<style>
+  :root{ --bone:#e8dcc0; --ember:#d08a3c; --swamp:#141c0e; --moss:#5c7a3a;
+         --glow:#a8d858; --amber:#e0a83c; --rot:#8a5a4a; --spore:#8fae6a; --dream:#8b6fc9; }
+  body{margin:0;padding:0;background:#0a0a12; color:#e8dcc0; font-family: "Courier New", monospace; overflow:hidden; image-rendering: pixelated; image-rendering: crisp-edges;}
+  /* Vintage pixel art mood from design sheets (helen-garden00*.png) - 1995 16-bit style, strong CRT */
+  body::before { content: ''; position: fixed; inset: 0; background: 
+    linear-gradient(rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.15) 50%), 
+    repeating-linear-gradient(transparent, transparent 1px, rgba(0,0,0,0.35) 1px, rgba(0,0,0,0.35) 3px); 
+    pointer-events: none; z-index: 999; }
+  .snes-frame { position: relative; max-width: 960px; margin: 10px auto; border: 6px solid #4a3c2a; background: #1a2a1a; box-shadow: 0 0 0 4px #000, 0 0 25px rgba(0,0,0,0.9); }
+  #map{position:absolute;top:0;left:0;width:100vw;height:100vh;
+    image-rendering: pixelated; image-rendering: crisp-edges; border: 4px solid #000; box-shadow: inset 0 0 0 4px #333;}
+  .panel{background:#0d1408;border:3px solid var(--moss);padding:10px;
+    pointer-events:auto;font-size:12px;box-shadow:4px 4px 0 #000}
+  #left{position:absolute;left:10px;top:10px;width:235px}
+  #right{position:absolute;right:10px;top:10px;width:280px;max-height:82vh;overflow-y:auto}
+  #bottom{position:absolute;left:10px;right:10px;bottom:10px;height:100px;overflow-y:auto}
+  #aura{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:400px;
+    text-align:center;color:var(--spore);font-size:11px;display:none;
+    background:#0d1408;border:3px solid var(--moss);padding:5px 16px;pointer-events:none}
+  #start,#win,#council{position:absolute;inset:0;background:rgba(8,12,5,.95);display:flex;
+    align-items:center;justify-content:center;flex-direction:column;z-index:100;pointer-events:auto}
+  .title{font-size:24px;color:var(--glow);text-align:center;margin-bottom:8px;
+    letter-spacing:.1em;text-shadow:3px 3px 0 #000;text-transform:uppercase}
+  .subtitle{text-align:center;margin-bottom:12px;max-width:540px}
+  #start button { font-size:28px; padding:20px 60px; border-width:8px; }
+  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);
+    padding:7px 13px;margin:4px;cursor:pointer;font-family:inherit;font-size:12px;
+    text-transform:uppercase;letter-spacing:.06em;box-shadow:3px 3px 0 #000}
+  button:hover{background:#2a3a1a}
+  button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .stat{margin:2px 0}
+  .law{font-size:10px;color:var(--ember);margin:6px 0}
+  .pop{font-size:10px;color:var(--dream);margin:4px 0}
+  .log-entry{margin:1px 0;font-size:10px;border-left:3px solid var(--moss);padding-left:5px}
+  .log-entry.adm{border-color:var(--glow);color:var(--glow)}
+  .agentcard{margin:8px 0;padding:8px;background:#111a0a;border:3px solid var(--ember)}
+  .agentname{font-size:10px;letter-spacing:.2em;color:var(--amber);text-transform:uppercase}
+  .halline{margin-top:6px;font-size:11px}
+  .lantern{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:middle}
+  .V_ACCEPTABLE{color:var(--glow)} .V_HOLD{color:var(--amber)} .V_DENY{color:var(--rot)}
+  #councilBox{max-width:560px;width:92%;max-height:80vh;overflow-y:auto}
+  .seat{margin:7px 0;padding:8px;background:#0a1206;border:2px solid var(--moss);font-size:11.5px}
+  .seat b{color:var(--amber);letter-spacing:.14em;font-weight:normal;text-transform:uppercase}
+  .objection{color:var(--spore);font-size:10.5px;margin-top:3px}
+  .hole{color:var(--dream);font-size:10.5px;margin-top:6px;border-top:1px dashed var(--dream);padding-top:5px}
+  .tally{margin-top:10px;text-align:center;font-size:13px;color:var(--glow)}
+  .qcm{background:#111a0a;padding:10px;margin:8px 0;border:2px solid var(--moss)}
+  .zolnote{font-size:10px;color:var(--amber)}
+  .dream{margin:6px 0;padding:7px;background:#151022;border:2px dashed var(--dream);
+    font-size:11px;cursor:pointer}
+  .dream:hover{background:#1e1830}
+  @keyframes zfloat{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-44px)}}
+  /* — Garden of Games — */
+  #gog{display:none;position:absolute;inset:0;background:rgba(8,12,5,.96);z-index:90;
+    pointer-events:auto;overflow-y:auto;padding:18px}
+  #gogBox{max-width:760px;margin:0 auto}
+  .boothgrid{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .booth{width:158px;padding:8px;background:#111a0a;border:3px solid var(--ember);cursor:pointer;font-size:10.5px}
+  .booth:hover{background:#1c2a12}
+  .booth.user{border-color:var(--dream)}
+  .booth.locked{opacity:.45;cursor:not-allowed}
+  .booth b{color:var(--glow);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .booth .tplbadge{float:right;color:var(--amber);font-size:9px}
+  #playArea{display:none;margin:10px 0;padding:12px;background:#0a1206;border:3px solid var(--glow)}
+  .lanternBtn{width:52px;height:52px;font-size:22px;margin:5px}
+  .bigTarget{width:120px;height:120px;font-size:34px}
+  #forge{margin:12px 0;padding:10px;background:#151022;border:3px solid var(--dream)}
+  #forge label{display:inline-block;font-size:10px;color:var(--spore);margin:3px 8px 0 0}
+  #forge input,#forge select{background:#0d1408;color:var(--bone);border:2px solid var(--moss);
+    font-family:inherit;font-size:11px;padding:3px;margin:2px 6px 2px 0;max-width:150px}
+  #devpanel{margin:12px 0;font-size:10px}
+  #devpanel textarea{width:100%;height:60px;background:#0d1408;color:var(--bone);
+    border:2px solid var(--moss);font-family:inherit;font-size:9px}
+  .mgcand{margin:10px 0;padding:10px;background:#111a0a;border:3px dashed var(--amber)}
+  #aiReport{white-space:pre;font-size:9.5px;color:var(--spore);margin-top:8px}
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div id="aura"></div>
+<div id="left" class="panel">
+  <div style="color:var(--glow)">HOUSE JM — SEMPER FIDELIS</div>
+  <div class="pop">🜏 population: <b>16 inhabitants · 1 sovereign</b></div>
+  <div class="stat">ZOL: <b id="zol">0</b> <span class="zolnote">(Session Flash Credit — gone at dawn)</span></div>
+  <div class="stat">Knowledge: <span id="knowledge">0</span> · Cohesion: <span id="cohesion">100</span></div>
+  <div class="stat">Reputation: <span id="reputation">0</span> · Warrens: <span id="territories">0</span>/12</div>
+  <div class="stat">Receipt-stones: <span id="stones">0</span> · World-age: <span id="age">0</span> moves</div>
+  <div class="law">Goblins build the gardens (fun). Kernel guards the truth (boring). Operator stamps the membrane.</div>
+  <div id="hivemind-goal" style="font-size:9px;color:#a8d858;margin:4px 0;padding:4px;border:1px dashed var(--dream);background:#0a1206">HIVEMIND: Nurture the Garden through admitted chaos, beauty, and verifiable growth. All sub-agents (Grok/GPT/Claude/GeForce) converge here via receipts.</div>
+  <button onclick="uiQCM()">Q — Riddles</button>
+  <button onclick="uiBuy()">B — Claim</button>
+  <button onclick="uiPropose()">P — Idea</button>
+  <button onclick="uiReplay()" title="wipe runtime state and rebuild the whole world from the stored ledger">⟲ REPLAY PROVES</button>
+  <button onclick="uiAdvanceTime()" style="font-size:10px;border-color:var(--dream)">⏳ Advance time (dream)</button>
+  <button onclick="uiOpenGames()" style="border-color:var(--glow)">🎪 Garden of Games</button>
+  <button onclick="uiOpenBible()" style="border-color:var(--amber)">📖 GAME BIBLE</button>
+  <div style="margin-top:6px;font-size:9px">Click mounds · Q B P A D H R</div>
+</div>
+<div id="right" class="panel">
+  <div id="dreams-box" style="display:none">
+    <div class="agentname" style="color:var(--dream)">while you were away, the Warren dreamed…</div>
+    <div id="dreams"></div>
+  </div>
+  <div id="inhabitants" style="margin-top:8px;font-size:9px;line-height:1.3;color:var(--spore)">
+    <div class="agentname">Inhabitants (dreaming)</div>
+    <div id="inhab-list" style="font-size:9px"></div>
+  </div>
+  <div id="swarm-activity" style="margin-top:6px;font-size:9px;color:var(--dream);border-top:1px dashed var(--dream);padding-top:4px">
+    <div class="agentname">NPC Swarm Activity</div>
+    <div id="swarm-log" style="font-size:8px;max-height:60px;overflow:auto"></div>
+  </div>
+
+  <div id="receipt-tray" style="margin-top:8px;font-size:9px;color:var(--spore);border-top:1px dashed var(--spore);padding-top:4px">
+    <div class="agentname">Receipt Tray (Garden Actions → Claimable)</div>
+    <div id="receipt-list" style="font-size:8px;max-height:50px;overflow:auto"></div>
+    <button onclick="claimSelectedReceipt()" style="font-size:8px;padding:2px 4px">Claim Selected as Receipt</button>
+  </div>
+
+  <div id="kernel-panel" style="margin-top:6px;font-size:9px;color:var(--glow);border-top:1px dashed var(--glow);padding-top:4px">
+    <div class="agentname">Kernel (Admitted Truths)</div>
+    <div id="kernel-list" style="font-size:8px;max-height:40px;overflow:auto"></div>
+  </div>
+  <div id="selected-info">Pick a warren mound</div>
+  <div id="qcm-panel" style="display:none" class="qcm">
+    <div id="qcm-question"></div><div id="qcm-choices"></div>
+  </div>
+  <div id="proposal-panel" style="display:none" class="agentcard">
+    <div class="agentname" id="agent-name"></div>
+    <div id="proposal-text" style="margin-top:4px"></div>
+    <div class="halline" id="hal-verdict"></div>
+    <div style="margin-top:6px">
+      <button id="btnAccept" onclick="uiAdmit()">A — ADMIT (Garden change)</button>
+      <button onclick="uiDeny()">D — DENY (compost)</button>
+      <button onclick="uiCompost()">C — COMPOST (deny + fertilize)</button>
+    </div>
+  </div>
+</div>
+<div id="bottom" class="panel"><b>THE MIDDEN LEDGER</b> <span style="font-size:9px">(the world IS this log — reality = replay(ledger) · no sovereign claim)</span><div id="ledger"></div></div>
+
+<div id="start">
+  <img src="sprites/cover.png" style="max-width:80%; image-rendering: pixelated; margin-bottom:10px; border: 4px solid #d08a3c;" alt="Goblin Warren Cover">
+  <div class="title" style="font-size:18px; letter-spacing:2px;">HELEN · DREAM OF CONQUEST<br>GOBLIN WARREN</div>
+<div style="text-align:center; font-size:10px; color:#e8dcc0; margin-bottom:8px;">© 1995 VINTAGE PIXEL ART — helen-garden00*.png design sheets (000/001/002)</div>
+  <div class="subtitle" style="color:var(--dream);letter-spacing:.2em">GOBLINS BUILD THE GARDENS • KERNEL STAYS SOVEREIGN</div>
+  <div class="subtitle">"We Goblins propose the weird and the small — benches, rituals, tiny disasters.
+  You stamp what becomes real. The Garden grows by admitted jokes and consequences.
+  The Kernel only guards the receipts and the replay."</div>
+  <div style="margin:10px 0; font-size:11px; color:#8fae6a; max-width:500px; text-align:center;">STORY: The hivemind dreams. Sub-agents (Grok, GPT, Claude, GeForce council) nurture the same goal through the Garden. You are the conscious gate. Enter. Stamp. Build tomorrow.</div>
+  <div class="zolnote" style="margin-bottom:10px">ZOL — Session Flash Credit, expires when you close. The WORLD persists: it is replayed from the ledger every dawn.</div>
+  <div id="start-status" style="font-size:11px;color:var(--spore);margin-bottom:12px"></div>
+  <button onclick="uiStart()" style="font-size:32px; padding:30px 80px; border:8px solid var(--ember);">CLICK TO ENTER THE WARREN</button>
+  <button onclick="uiWipe()" style="border-color:var(--rot);font-size:10px">burn the ledger (full reset)</button>
+</div>
+<div id="win" style="display:none">
+  <div class="title">The Warren Thrives</div>
+  <div id="win-stats" style="text-align:center;line-height:1.8"></div>
+  <div style="margin:14px 0;color:var(--glow)">"Semper Fidelis has grown the Living Garden — and it will still be here tomorrow."</div>
+  <button onclick="uiContinue()">Keep dwelling</button>
+</div>
+<div id="gog">
+ <div id="gogBox">
+  <div class="title" style="font-size:19px">🎪 The Garden of Games</div>
+  <div style="text-align:center;font-size:10px;color:var(--spore)">a crooked festival district around the Great Compost Heap ·
+   "tiny game, big rot. let it earn." — GOBLIN · rewards are bounded, fictional, in-game only</div>
+  <div class="boothgrid" id="booths"></div>
+  <div id="playArea"></div>
+  <div id="mgCandBox" class="mgcand" style="display:none"></div>
+  <div id="forge">
+   <div class="agentname" style="color:var(--dream)">🛠 THE MINI-GAME FORGE — forge from safe templates; games are data, never code</div>
+   <label>name <input id="fName" maxlength="40"></label>
+   <label>template <select id="fTpl"><option>quiz</option><option>memory</option><option>timing</option><option>reflex</option><option>choice</option><option>race</option><option>dice</option></select></label>
+   <label>theme <select id="fTheme"><option>compost</option><option>bone</option><option>mushroom</option><option>moon</option><option>rose</option><option>temple</option><option>mirror</option></select></label><br>
+   <label>difficulty <select id="fDiff"><option>easy</option><option>medium</option><option>hard</option></select></label>
+   <label>risk <select id="fRisk"><option>low</option><option>medium</option><option>high</option></select></label>
+   <label>rounds <input id="fRounds" type="number" min="1" max="8" value="3" style="width:44px"></label>
+   <label>reward <select id="fRewType"><option>zol</option><option>knowledge</option><option>reputation</option><option>cohesion</option></select>
+    <input id="fRewAmt" type="number" min="1" max="16" value="4" style="width:44px"></label><br>
+   <label>description <input id="fDesc" maxlength="120" style="max-width:240px"></label>
+   <label>objective <input id="fObj" maxlength="80"></label><br>
+   <label>win condition <input id="fWin" maxlength="80"></label>
+   <label>fail condition <input id="fFail" maxlength="80"></label><br>
+   <button onclick="uiForgeSubmit()">Submit to HAL</button>
+   <span style="font-size:9px;color:var(--spore)">candidate → HAL → (council if big) → YOUR hand</span>
+  </div>
+  <div style="font-size:10px;color:var(--dream)" id="mgHeldBox"></div>
+  <div>
+   <button onclick="uiRunAITests()">🤖 AI Playtest (all booths × 5 policies)</button>
+   <button onclick="uiCloseGames()">Back to the Mounds</button>
+  </div>
+  <div id="aiReport"></div>
+  <details id="devpanel"><summary style="cursor:pointer;color:var(--rot)">dev panel (festival machinery — no shame, no secrets)</summary>
+   <button onclick="S.zol+=50;syncVisuals()">+50 ZOL</button>
+   <button onclick="uiDevRandomCand()">random candidate</button>
+   <button onclick="uiDevForceCouncil()">force council on candidate</button>
+   <button onclick="uiRunAITests(100)">run 100 sims</button>
+   <button onclick="uiDevExport()">export specs</button>
+   <button onclick="uiDevImport()">import specs (as candidates)</button>
+   <button onclick="uiDevResetZone()" style="border-color:var(--rot)">reset zone (dev surgery)</button>
+   <textarea id="devIO" placeholder="export/import JSON lands here — imports go through HAL like everything else"></textarea>
+  </details>
+ </div>
+</div>
+
+<div id="bible" style="display:none;position:absolute;inset:0;background:rgba(8,12,5,.96);z-index:95;pointer-events:auto;overflow-y:auto;padding:18px">
+ <div id="bibleBox" style="max-width:620px;margin:0 auto;background:#0d1408;border:3px solid var(--amber);padding:12px">
+  <div class="title" style="font-size:18px">📖 The Game Bible — Design Hacks</div>
+  <div style="font-size:10px;color:var(--spore);margin-bottom:10px">procedural sprites + the laws that keep the Garden honest. authority=false. no sovereign claim.</div>
+  <div id="bibleContent"></div>
+  <div style="text-align:center;margin-top:12px"><button onclick="uiCloseBible()">Close Bible</button></div>
+ </div>
+</div>
+
+<div id="council" style="display:none">
+  <div id="councilBox" class="panel">
+    <div class="title" style="font-size:17px">⚖ MAYOR Convenes the Tall Ones</div>
+    <div style="text-align:center;font-size:10px;color:var(--spore);margin-bottom:6px">(the HELEN Council — JESTER heckles from the rafters)</div>
+    <div id="council-seats"></div>
+    <div class="hole" id="jester-hole"></div>
+    <div class="tally" id="council-tally"></div>
+    <div style="text-align:center;font-size:10px;color:var(--spore);margin-top:6px">
+      A recommendation is not an admission. Your hand remains the law.</div>
+    <div style="text-align:center;margin-top:8px"><button onclick="uiCloseCouncil()">Back to the Mounds</button></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===== V2 SOUND — 1993 chiptune, WebAudio only, no assets ===== */
+let audioCtx = null;
+let isMuted = false;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, duration, type='square', volume=0.3, detune=0) {
+  if (isMuted) return;
+  const ctx = getAudio();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  filter.type = 'lowpass';
+  filter.frequency.value = 2000;
+  gain.gain.value = volume;
+  const env = ctx.createGain();
+  env.gain.value = 0;
+  osc.connect(filter);
+  filter.connect(env);
+  env.connect(gain);
+  gain.connect(ctx.destination);
+  const now = ctx.currentTime;
+  env.gain.setValueAtTime(0.001, now);
+  env.gain.linearRampToValueAtTime(1, now + 0.01);
+  env.gain.linearRampToValueAtTime(0.001, now + duration);
+  osc.start(now);
+  osc.stop(now + duration + 0.1);
+}
+function playChord(notes, duration, vol=0.25) {
+  notes.forEach((f,i) => setTimeout(() => playTone(f, duration, 'square', vol), i*30));
+}
+function playFanfare() {
+  // Title fanfare - simple ascending chiptune
+  playTone(262, 0.15, 'square', 0.4); // C4
+  setTimeout(() => playTone(330, 0.15, 'square', 0.4), 150);
+  setTimeout(() => playTone(392, 0.15, 'square', 0.4), 300);
+  setTimeout(() => playTone(523, 0.4, 'square', 0.5), 450);
+}
+function playOverworld() {
+  // Overworld loop - simple melody
+  playTone(523, 0.2, 'square', 0.25);
+  setTimeout(() => playTone(659, 0.2, 'square', 0.25), 200);
+  setTimeout(() => playTone(784, 0.3, 'square', 0.25), 400);
+}
+function playAdmitJingle() {
+  // Item get - bright
+  playTone(880, 0.1, 'square', 0.4);
+  setTimeout(() => playTone(1175, 0.15, 'square', 0.4), 100);
+  setTimeout(() => playTone(1397, 0.3, 'square', 0.5), 200);
+}
+function playDenyThud() {
+  // Dungeon door - low
+  playTone(130, 0.4, 'sawtooth', 0.35);
+}
+function playZOLChime() {
+  // Coin - double bleep
+  playTone(988, 0.08, 'square', 0.3);
+  setTimeout(() => playTone(1319, 0.12, 'square', 0.3), 80);
+}
+function playVictoryFanfare() {
+  // Victory
+  playTone(523, 0.2, 'square', 0.4);
+  setTimeout(() => playTone(659, 0.2, 'square', 0.4), 200);
+  setTimeout(() => playTone(784, 0.2, 'square', 0.4), 400);
+  setTimeout(() => playTone(1047, 0.5, 'square', 0.5), 600);
+}
+function playShake() {
+  // Screen shake sound
+  playTone(200, 0.1, 'sawtooth', 0.2);
+}
+function toggleMute() {
+  isMuted = !isMuted;
+  if (isMuted && audioCtx) audioCtx.suspend();
+  else if (audioCtx) audioCtx.resume();
+  console.log('Sound ' + (isMuted ? 'muted' : 'unmuted'));
+}
+window.addEventListener('keydown', e => { if (e.key.toLowerCase() === 'm') toggleMute(); });
+
+/* ===== REDUCER-BEGIN (pure logic — no THREE, no DOM; node-testable) ===== */
+function h32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+const TERRITORY_DEFS=[
+ ["Mushroom Cellar",8],["Bone-Button Market",12],["Fungal Vault",10],["Moth Chapel",15],
+ ["Scrap Bridge",9],["Whisper Midden",14],["Crooked Stair",11],["Glowworm Farm",7],
+ ["Rot Library",13],["Trash Portal",16],["Echo Burrow",18],["Moon Midden",20]];
+const PORTALS=[9,10,11];
+
+const QUESTIONS=[
+ {question:"What is the core of HELEN governance?",choices:["Admission by receipt","Model consensus","User vote","AI self-rule"],correctIndex:0,rewardZOL:5,category:"Governance"},
+ {question:"ZOL stands for?",choices:["Zero Overhead Ledger","Session Flash Credit","Zenith of Learning","Zone of Liberty"],correctIndex:1,rewardZOL:3,category:"Economy"},
+ {question:"What does GOBLIN never do?",choices:["Mutate scraps","Propose weird things","Decide","Compost"],correctIndex:2,rewardZOL:4,category:"Goblin Lore"},
+ {question:"Reality equals…",choices:["What the model says","replay(ledger)","The newest paste","Consensus"],correctIndex:1,rewardZOL:5,category:"Kernel Law"},
+ {question:"What must precede any world mutation?",choices:["HAL check","Player admission","Agent proposal","ZOL payment"],correctIndex:1,rewardZOL:5,category:"Governance"},
+ {question:"Which sea separates Corsica from mainland France?",choices:["Adriatic","Ligurian","Aegean","Baltic"],correctIndex:1,rewardZOL:4,category:"Geography"},
+ {question:"What survives the dawn?",choices:["ZOL","The world (via replay)","Pending proposals only","Nothing"],correctIndex:1,rewardZOL:4,category:"Kernel Law"},
+ {question:"Who wrote 'Les Misérables'?",choices:["Balzac","Victor Hugo","Zola","Dumas"],correctIndex:1,rewardZOL:4,category:"Literature"},
+ {question:"What is the win condition?",choices:["7 warrens or reputation ≥100","1000 ZOL","Defeat all NPCs","50 riddles"],correctIndex:0,rewardZOL:5,category:"Victory"},
+ {question:"HERMES proposals in this world are…",choices:["Admitted normally","Held forever (external effects)","Free","Denied always"],correctIndex:1,rewardZOL:4,category:"Agents"},
+ {question:"GOBLIN's role?",choices:["Beauty and narrative","Compost and mutation","Security","Economy"],correctIndex:1,rewardZOL:3,category:"Agents"},
+ {question:"The speed of light is closest to?",choices:["300 km/s","3,000 km/s","300,000 km/s","3 million km/s"],correctIndex:2,rewardZOL:4,category:"Science"},
+ {question:"WITNESS turns admitted moves into…",choices:["ZOL","Receipt-stones","Weather","Riddles"],correctIndex:1,rewardZOL:3,category:"Agents"},
+ {question:"Imagination is free. The Garden obeys?",choices:["AI votes","Admitted moves","Majority rule","Random chance"],correctIndex:1,rewardZOL:5,category:"Core Law"},
+ {question:"Which painter cut off part of his ear?",choices:["Monet","Van Gogh","Cézanne","Degas"],correctIndex:1,rewardZOL:4,category:"Art"},
+ {question:"JESTER's duty in council is…",choices:["To vote","To find the hole","To admit","To mint ZOL"],correctIndex:1,rewardZOL:4,category:"Agents"},
+ {question:"Held seeds become…",choices:["Plants","AURA's fog","Compost","ZOL"],correctIndex:1,rewardZOL:4,category:"Goblin Lore"},
+ {question:"CHIDDUSH hunts…",choices:["ZOL","Repeating motifs in the ledger","Trespassers","Mushrooms"],correctIndex:1,rewardZOL:4,category:"Agents"},
+ {question:"Proposal admission requires?",choices:["HAL ACCEPTABLE + player Admit","ZOL > 100","All warrens","AI consensus"],correctIndex:0,rewardZOL:5,category:"Governance"},
+ {question:"The year the Berlin Wall fell?",choices:["1987","1989","1991","1993"],correctIndex:1,rewardZOL:4,category:"History"},
+ {question:"Why do goblins obey the lantern?",choices:["Fear","Because law does not reskin","Bribes","They don't"],correctIndex:1,rewardZOL:3,category:"Goblin Lore"},
+ {question:"The dreams queued while you were away are…",choices:["Already real","Proposals awaiting your hand","Receipts","Admitted"],correctIndex:1,rewardZOL:4,category:"MMO Law"}];
+
+/* THE FULL ROSTER — 16 inhabitants. Proposal-makers carry idea pools; the
+   others live as mechanics: HAL=lantern, AURA=weather, MAYOR=council convener,
+   JESTER=the hole, WITNESS=receipt-stones, LEDGER=the midden, REPLAY=the proof,
+   REDUCER=the octagram. OPERATOR is not an inhabitant - the operator is the sky. */
+const PERSONAS = {
+  GOBLIN: {
+    // 1. Character Identity
+    name: "GOBLIN",
+    roleTitle: "Compost Builder",
+    layer: "Garden Builder",
+    authorityStatus: "authority=false",
+    // 2. Core Function
+    whatTheyDo: "GOBLIN proposes cheap, funny, compost-heavy changes that make the Garden grow fast but messy.",
+    playerRelationship: "creates funny risk",
+    primaryVerb: "builds, mutates, composts",
+    // 3. Personality Vector
+    personality: { EXP: 72, BEA: 15, DEF: 30, ECO: 40, CHA: 60 },
+    // 4. Visual Design (pixel art from design sheets)
+    silhouette: "hunched, messy, tool-wielding",
+    mainColors: "moss green, ember orange, muddy brown",
+    iconShape: "big ears, compost sack",
+    animation: "little stomp, chaotic spin",
+    // 5. Proposal Style
+    generate: (t, S, mind) => {
+      const ideas = [
+        `Build a wobbly bench for plotting or napping at ${t.name}.`,
+        `Launch a 'compost ritual' — expect mushrooms and minor chaos.`,
+        `Declare a tiny tax on passersby (in jokes) near ${t.name}.`,
+        `Braid extra rot into the heap — more stairs, more mess.`
+      ];
+      return ideas[h32(t.name + S.actions) % ideas.length];
+    },
+    line: "heh — rough material, fine future."
+  },
+  HER: {
+    name: "HER",
+    roleTitle: "Beauty Witch",
+    layer: "Garden Builder",
+    authorityStatus: "authority=false",
+    whatTheyDo: "HER proposes elegant, prestigious upgrades that make the Garden prettier and more prestigious.",
+    playerRelationship: "helps the player",
+    primaryVerb: "beautifies, weaves, polishes",
+    personality: { EXP: 30, BEA: 88, DEF: 25, ECO: 10, CHA: 40 },
+    silhouette: "elegant, flowing, flower-adorned",
+    mainColors: "soft pinks, golds, delicate greens",
+    iconShape: "flower crown, graceful pose",
+    animation: "sparkle blink, elegant sway",
+    generate: (t, S, mind) => {
+      const ideas = [
+        `Name ${t.name} something lovely. Hang curtains where the draft sings.`,
+        `Weave a flower arch - beauty will not be denied.`,
+        `Polish everything until it gleams suspiciously.`,
+        `Add a small fountain of questionable water at ${t.name}.`
+      ];
+      return ideas[h32(t.name + S.actions) % ideas.length];
+    },
+    line: "the pretty one visits even here."
+  },
+  HERMES: {
+    name: "HERMES",
+    roleTitle: "Suspicious Scout",
+    layer: "Swarm Bot",
+    authorityStatus: "authority=false",
+    whatTheyDo: "HERMES proposes defensive, cautious expansions and external warnings, holding the boundary.",
+    playerRelationship: "warns the player",
+    primaryVerb: "doubts, fortifies, scouts",
+    personality: { EXP: 15, BEA: 20, DEF: 92, ECO: 70, CHA: 30 },
+    silhouette: "cloaked, gauntlet, watchful",
+    mainColors: "dark greens, iron grays, warning reds",
+    iconShape: "claw hand, hood, watchful eyes",
+    animation: "nervous glance, suspicious lean",
+    generate: (t, S, mind) => {
+      const ideas = [
+        `Erect a 'watch post' (it watches back) at ${t.name}.`,
+        `Propose a 'tax moon' ceremony - small offerings, big stories.`,
+        `Build a tower of 'necessary' bricks near ${t.name}.`,
+        `Send word from ${t.name} beyond the hill. The tall ones should hear.`
+      ];
+      return ideas[h32(t.name + S.actions) % ideas.length];
+    },
+    line: "I reach outside — which is exactly why they hold me."
+  },
+  CHIDDUSH: {
+    name: "CHIDDUSH",
+    roleTitle: "Pattern Seer",
+    layer: "Receipt Witness",
+    authorityStatus: "authority=false",
+    whatTheyDo: "CHIDDUSH proposes research and pattern-based improvements, turning hidden logic into visible drama.",
+    playerRelationship: "argues with other bots",
+    primaryVerb: "audits, archives, mines",
+    personality: { EXP: 50, BEA: 45, DEF: 10, ECO: 80, CHA: 20 },
+    silhouette: "hooded, scroll-bearing, observant",
+    mainColors: "deep blues, parchment yellows, subtle glows",
+    iconShape: "archive scroll, glasses, note-taking",
+    animation: "note scribble, thoughtful pause",
+    generate: (t, S, mind) => {
+      const ideas = [
+        `Carve a research alcove for studying the 'tax moons' at ${t.name}.`,
+        `Note how the benches rhyme with previous disasters.`,
+        `Catalog the mushroom migrations in ${t.name}.`,
+        `Mine the repeating pattern in ${t.name}. The ledger already built this.`
+      ];
+      return ideas[h32(t.name + S.actions) % ideas.length];
+    },
+    line: "the ledger dreams in motifs; I read them."
+  },
+  JESTER: {
+    name: "JESTER",
+    roleTitle: "Chaos Clerk",
+    layer: "Chaos Threat",
+    authorityStatus: "authority=false",
+    whatTheyDo: "JESTER proposes ridiculous, chaotic changes that create funny risks and expose holes.",
+    playerRelationship: "tempts the player",
+    primaryVerb: "jokes, sabotages, spins",
+    personality: { EXP: 60, BEA: 30, DEF: 15, ECO: 10, CHA: 95 },
+    silhouette: "jester cap, bells, wild grin",
+    mainColors: "bright chaos: reds, yellows, mismatched",
+    iconShape: "jester cap, bells, upside-down smile",
+    animation: "chaotic spin, laugh bounce",
+    generate: (t, S, mind) => {
+      const ideas = [
+        `Start a 'mushroom uprising' (it's mostly dancing) at ${t.name}.`,
+        `Build a tower that leans toward gossip.`,
+        `Declare today 'tiny disaster appreciation day'.`,
+        `Name ${t.name} something ridiculous. The Warren needs a good laugh-hole.`
+      ];
+      return ideas[h32(t.name + S.actions) % ideas.length];
+    },
+    line: "the hole: price is the goblin's joke."
+  },
+  // Additional symbolic characters using the template
+  HAL: {
+    name: "HAL",
+    roleTitle: "Lantern Guardian",
+    layer: "Kernel Guardian",
+    authorityStatus: "authority=false (represents review)",
+    whatTheyDo: "HAL checks proposals and holds external effects forever in-game.",
+    playerRelationship: "warns the player",
+    primaryVerb: "audits, holds",
+    personality: { EXP: 10, BEA: 10, DEF: 90, ECO: 20, CHA: 10 },
+    silhouette: "lantern-bearing, glowing",
+    mainColors: "lantern gold, dark cloak",
+    iconShape: "lantern",
+    animation: "lantern swing",
+    generate: (t, S, mind) => `Audit ${t.name} — external effects must be held.`,
+    line: "Within the membrane. The choice is yours, not mine."
+  },
+  AURA: {
+    name: "AURA",
+    roleTitle: "Weather Witness",
+    layer: "Garden Builder",
+    authorityStatus: "authority=false",
+    whatTheyDo: "AURA derives mood from history and affects the visible atmosphere.",
+    playerRelationship: "helps the player",
+    primaryVerb: "witnesses, weathers",
+    personality: { EXP: 20, BEA: 40, DEF: 30, ECO: 20, CHA: 40 },
+    silhouette: "ethereal, fog-like",
+    mainColors: "misty blues, spore greens",
+    iconShape: "fog swirls",
+    animation: "gentle float",
+    generate: (t, S, mind) => `The weather at ${t.name} reflects our history.`,
+    line: "spore-fog thickens over held seeds; decide, and it thins"
+  }
+};
+
+// Helper: score a site for a bot using weights x features (integers)
+function scoreSiteForBot(botName, site, S) {
+  const P = PERSONAS[botName];
+  if (!P) return 0;
+  const w = P.personality || P.weights || {};
+  const priceBudget = Math.max(0, 100 - site.price);
+  const adj = S.ownedCount > 0 ? 30 : 10;
+  const fog = S.held > 2 ? 20 : 5;
+  const streak = 10;
+  let score = (w.EXP || w.expansion || 0) * priceBudget + (w.BEA || w.beauty || 0) * site.prestige * 5 + (w.DEF || w.defense || 0) * fog + (w.ECO || w.economy || 0) * adj + (w.CHA || w.chaos || 0) * streak;
+  return Math.floor(score / 100);
+}
+
+// Adaptation: mutate weights based on outcome (integers, from event log for replay)
+function adaptAgenda(botName, outcome, S) {
+  const P = PERSONAS[botName];
+  if (!P) return;
+  const w = P.personality || P.weights || {};
+  const keys = Object.keys(w);
+  if (outcome === 'admitted') {
+    keys.forEach(k => w[k] = Math.min(95, w[k] + 3));
+  } else if (outcome === 'denied') {
+    keys.forEach(k => w[k] = Math.max(5, w[k] - 5));
+  } else if (outcome === 'held') {
+    keys.forEach(k => w[k] = Math.floor((w[k] + 50) / 2));
+  }
+}
+
+// === MINI-GAMES (bots play autonomously in Dream mode, emit events, surface as dreams if threshold)
+function compostTrade(bots, S) {
+  if (bots.length < 2) return {events: [], delta: 0, winner: null};
+  const [b1, b2] = bots;
+  const h = h32(b1 + b2 + S.actions + S.world.length);
+  const winner = h % 2 === 0 ? b1 : b2;
+  return {
+    events: [{k: "MINI_TRADE", participants: bots, winner}],
+    delta: 1,
+    winner
+  };
+}
+
+function influenceSkirmish(bots, S) {
+  if (bots.length < 3) return {events: [], delta: 0, winner: null};
+  const h = h32(bots.join('') + S.actions + S.world.length);
+  const winner = bots[h % bots.length];
+  return {
+    events: [{k: "MINI_SKIRMISH", participants: bots, winner}],
+    delta: 2,
+    winner
+  };
+}
+
+function runAutonomousSwarm(S) {
+  const names = Object.keys(PERSONAS);
+  if (names.length < 2) return;
+  // V3 Chiddush: Goblins as AI Town-style agents with simple memory in Garden layer
+  if (!S.goblinMemories) S.goblinMemories = {};
+  names.forEach(name => {
+    if (!S.goblinMemories[name]) S.goblinMemories[name] = [];
+  });
+  // Coalitions (simple dot product sim for compatibility)
+  let coalition = [];
+  if (Math.random() < 0.3 && names.length >= 3) {
+    coalition = [names[0], names[1], names[2]]; // temp team for demo
+  }
+  // Run 1-2 mini games per advance (swarm if coalition)
+  const p1 = coalition.length ? coalition.slice(0,2) : [names[h32("t1"+S.actions)%names.length], names[h32("t2"+S.actions)%names.length]];
+  const trade = compostTrade(p1, S);
+  trade.events.forEach(e => {
+    logEvent(S, e.k, JSON.stringify(e));
+    // Goblins "remember" in Garden memory
+    p1.forEach(b => S.goblinMemories[b].push({event: e.k, time: S.actions}));
+  });
+  if (trade.delta > 0) S.reputation = Math.min(200, S.reputation + 1);
+  if (S.territories.some(t => t.state === "owned")) {
+    const p2 = coalition.length ? coalition : [names[h32("s1"+S.actions)%names.length], names[h32("s2"+S.actions)%names.length], names[h32("s3"+S.actions)%names.length]];
+    const skirm = influenceSkirmish(p2, S);
+    skirm.events.forEach(e => {
+      logEvent(S, e.k, JSON.stringify(e));
+      p2.forEach(b => S.goblinMemories[b].push({event: e.k, time: S.actions}));
+    });
+    if (skirm.delta > 0) S.reputation = Math.min(200, S.reputation + 1);
+  }
+  // Molt for JESTER (prevent static)
+  if (S.actions % 7 === 0) {
+    const j = "JESTER";
+    if (PERSONAS[j] && PERSONAS[j].weights) {
+      Object.keys(PERSONAS[j].weights).forEach(k => {
+        PERSONAS[j].weights[k] = Math.min(95, Math.max(5, PERSONAS[j].weights[k] + (h32("molt"+S.actions)%11 - 5)));
+      });
+    }
+  }
+  // "Reflection": Goblins generate new proposals based on memory + shared hivemindGoal (AI Town style in Garden layer)
+  if (S.actions % 5 === 0) {
+    const reflector = names[h32("refl"+S.actions) % names.length];
+    const mem = (S.goblinMemories[reflector] || []).slice(-3);
+    const goal = S.hivemindGoal || "Grow the Garden";
+    if (S.territories.length > 0) {
+      const site = S.territories[h32("reflSite"+S.actions) % S.territories.length];
+      if (!S.dreams) S.dreams = [];
+      S.dreams.push({
+        tIndex: site.index,
+        agent: reflector,
+        seed: "reflect"+S.actions,
+        teaser: `${reflector} reflects on past + hivemind "${goal}": ${mem.map(m => m.event).join(', ')} — proposes change at ${site.name}`
+      });
+      // Record reflection in memory
+      if (!S.goblinMemories[reflector]) S.goblinMemories[reflector] = [];
+      S.goblinMemories[reflector].push({event: "reflected on goal", time: S.actions});
+    }
+  }
+  // Surface some as dreams if delta high (player choice - JESTER patch)
+  if (S.reputation % 5 === 0 && S.territories.length > 0) {
+    const site = S.territories[h32("surf"+S.actions) % S.territories.length];
+    const agent = names[h32("ag"+S.actions)%names.length];
+    if (!S.dreams) S.dreams = [];
+    S.dreams.push({tIndex: site.index, agent, seed: "swarm"+S.actions, teaser: `${agent} swarm result surfaces as dream for ${site.name} (admit for bonus?)`});
+  }
+}
+const ROSTER = ["OPERATOR-sky","GOBLIN","HER","ORNITH","WARDEN","ARCHIVIST","STEWARD","CHIDDUSH","HERMES",
+ "HAL-lantern","AURA-weather","MAYOR-convener","JESTER-hole","WITNESS-stones","LEDGER-midden","REPLAY-proof","REDUCER-octagram"];
+const HAL_LINES={
+ ACCEPTABLE:"Within the membrane. The choice is yours, not mine.",
+ HOLD:"Held, not judged.",
+ DENY:"The verdict is not a wish. This move does not pass."};
+const HERMES_HOLD_LINE="external effect — held forever in-game; the real operator surface is the only door outside.";
+const AURA_LINES=[
+ "spore-fog thickens over held seeds; decide, and it thins",
+ "glow-dawn at the tunnel mouths — cohesion breathes on its own",
+ "ember-storm over the midden; something was refused and remembers",
+ "still air under the hill. the Warren listens more than it digs",
+ "the world you left is the world you find — that is the replay's promise",
+ "the octagram hums even down here — law does not reskin"];
+const JESTER_HOLES=[
+ "the hole: you are voting on the dream, not the cost of tending it afterward.",
+ "the hole: nobody asked what this displaces — every mound has one shadow.",
+ "the hole: the tally is confident because all five seats share one blind spot: they live here.",
+ "the hole: 'big' was decided by price, not by consequence. price is the goblin's joke."];
+
+function makeState(){
+ return {zol:0,knowledge:0,cohesion:100,reputation:0,ownedCount:0,phase:"START",
+  compost:0,held:0,denials:0,actions:0,unlockCursor:4,pending:null,dreams:[],
+  territories:TERRITORY_DEFS.map((d,i)=>({index:i,name:d[0],price:d[1],
+    prestige:Math.floor(d[1]/2)+2,state:i<4?"available":"locked",level:0})),
+  customGames:[],mgHeld:[],mgCandidate:null,mgGreedStreak:0,
+  ledger:[],world:[],
+  // V3 Hivemind: shared goal nurtured by all Goblins + sub-agents (Grok/GPT/Claude/GeForce)
+  hivemindGoal: "Nurture the Garden through admitted chaos, beauty, and verifiable growth. All sub-agents converge on this via receipts.",
+  goblinMemories: {} // per-Goblin observations for reflection (Garden layer only)
+  };
+}
+function logEvent(S,kind,detail){S.ledger.push({kind,detail:detail||""});
+ if(S.ledger.length>250)S.ledger=S.ledger.slice(-250);}
+function worldEvent(S,ev){S.world.push(ev);} // append-only machine log - THE persistent truth
+
+function unlockByKnowledge(S){
+ while(S.unlockCursor<12 && S.knowledge>=(S.unlockCursor-3)*2){
+   if(S.territories[S.unlockCursor].state==="locked"){
+     S.territories[S.unlockCursor].state="available";
+     logEvent(S,"TERRITORY_UNLOCKED",S.territories[S.unlockCursor].name);}
+   S.unlockCursor++;}
+}
+function answerQuestion(S,qIndex,choice,replaying){
+ const q=QUESTIONS[qIndex%QUESTIONS.length];S.actions++;
+ const correct=choice===q.correctIndex;
+ if(correct){S.zol+=q.rewardZOL;S.knowledge+=1;
+   playZOLChime();
+   logEvent(S,"QUESTION_ANSWERED_CORRECT",q.category);
+   logEvent(S,"ZOL_EARNED","+"+q.rewardZOL);
+   unlockByKnowledge(S);}
+ else{S.cohesion=Math.max(80,S.cohesion-1);
+   logEvent(S,"QUESTION_ANSWERED_WRONG",q.category);}
+ if(!replaying)worldEvent(S,{k:"q",qi:qIndex,ok:correct});
+ return correct;
+}
+function buyTerritory(S,i,replaying){
+ const t=S.territories[i];S.actions++;
+ if(!t||t.state!=="available"){logEvent(S,"HAL_CHECK_DENIED","claim: not available");return false}
+ if(S.zol<t.price){logEvent(S,"HAL_CHECK_DENIED","claim: insufficient ZOL");return false}
+ S.zol-=t.price;t.state="owned";t.level=1;S.ownedCount++;S.reputation+=t.prestige;
+ logEvent(S,"TERRITORY_BOUGHT",t.name);
+ if(!replaying)worldEvent(S,{k:"buy",i});
+ return true;
+}
+function createProposal(S,i,seed,replaying){
+ const t=S.territories[i];S.actions++;
+ const names=Object.keys(PERSONAS);
+ const h=h32((seed||"")+t.name+S.actions);
+ const agent=names[h%names.length];const P=PERSONAS[agent]||PERSONAS.GOBLIN;
+ // Use vector scoring (adaptive agendas)
+ const candidates = S.territories.filter(tt=>tt.state==="owned"||tt.state==="evolved"||tt.state==="available");
+ let best = t;
+ let bestSc = -1;
+ candidates.forEach(site => {
+  const sc = scoreSiteForBot(agent, site, S);
+  if (sc > bestSc) { bestSc = sc; best = site; }
+ });
+ const site = best || t;
+ const role = P.roleTitle ? ` [${P.roleTitle}]` : "";
+ const text = (P.generate ? P.generate(site, S, P.personality || P.weights) : "proposes change") + role + " — " + site.name;
+ const p={id:"p"+S.actions,tIndex:site.index||i,agent,text,voice:P.line,seed:seed||"",
+   cost: (P.cost ? P.cost(site) : Math.floor(site.price*0.5)),big:PORTALS.includes(i)||(P.cost?P.cost(site):0)>=12};
+ S.pending=p;logEvent(S,"NPC_PROPOSAL_CREATED",agent+": "+text.slice(0,42));
+ if(!replaying)worldEvent(S,{k:"prop",i:site.index||i,seed:seed||""});
+ return p;
+}
+function checkProposalWithHAL(S,p){
+ let verdict;
+ const t=S.territories[p.tIndex];
+ if(!t||t.state==="locked")verdict="DENY";
+ else if(t.state!=="owned"&&t.state!=="evolved")verdict="DENY";
+ else if(/bypass|without admission|skip the gate|auto-?admit/i.test(p.text))verdict="DENY";
+ else if(p.agent==="HERMES")verdict="HOLD"; // external effects: held forever in-game
+ else if(S.zol<p.cost)verdict="HOLD";
+ else verdict="ACCEPTABLE";
+ p.verdict=verdict;p.clawHold=(p.agent==="HERMES");
+ logEvent(S,verdict==="ACCEPTABLE"?"HAL_CHECK_PASSED":"HAL_CHECK_DENIED",verdict+": "+p.agent);
+ return verdict;
+}
+function councilReview(S,p){
+ const seats=["HER","GOBLIN","ORNITH","WARDEN","STEWARD"];
+ const h=h32(p.id+p.text);
+ const stances=seats.map((s,k)=>{
+   const favor=((h>>>k)&3)!==0;
+   return {seat:s,favor,
+     stance:favor?s+" leans toward it: it serves the Warren's growth.":s+" leans against: the cost shadows the gain.",
+     objection:"Self-objection: my lens is narrow — "+(favor?"I may be charmed by my own domain.":"I may be guarding a wall no one is attacking.")};
+ });
+ const votes=stances.filter(x=>x.favor).length;
+ const rec=votes>=3?"RECOMMEND_ADMIT":"RECOMMEND_HOLD";
+ const hole="JESTER — "+JESTER_HOLES[h%JESTER_HOLES.length];
+ logEvent(S,"COUNCIL_CONVENED","MAYOR packetized "+p.agent+"'s proposal at "+S.territories[p.tIndex].name);
+ logEvent(S,"COUNCIL_RECOMMENDED",rec+" ("+votes+"/5)");
+ return {stances,votes,rec,hole};
+}
+function evolveTerritory(S,i){
+ const t=S.territories[i];t.level=Math.min(3,t.level+1);
+ if(t.level>=2)t.state="evolved";
+ logEvent(S,"GARDEN_EVOLVED",t.name+" L"+t.level);
+}
+function admitProposal(S,replaying){
+ const p=S.pending;S.actions++;
+ if(!p)return false;
+ if(p.verdict!=="ACCEPTABLE"){
+   logEvent(S,"PROPOSAL_DENIED","admission refused: verdict "+p.verdict);
+   S.pending=null;return false}
+ S.zol-=p.cost;S.reputation+=2;
+ evolveTerritory(S,p.tIndex);
+ logEvent(S,"PROPOSAL_ADMITTED","WITNESS raises a stone: "+p.agent+" at "+S.territories[p.tIndex].name);
+ // Goblins build the Garden: small admitted actions cause fun mutations (not Kernel)
+ if(!replaying){
+   worldEvent(S,{k:"admit"});
+   applyGoblinGardenChange(S, p.agent, p.tIndex);
+ }
+ S.pending=null;return true;
+}
+
+function applyGoblinGardenChange(S, agent, siteIndex){
+  // Small, funny, evolutive changes by Goblins (Garden layer, not Kernel) - using template effects
+  const t = S.territories[siteIndex];
+  if(!t) return;
+  const P = PERSONAS[agent] || {};
+  const h = h32(agent + S.actions + siteIndex);
+  let change = '';
+  let prestigeDelta = 0, cohesionDelta = 0, chaosDelta = 0;
+  if (agent === 'GOBLIN') {
+    prestigeDelta = (h % 3) - 1;
+    cohesionDelta = -1;
+    chaosDelta = 2;
+    change = `builds a suspicious bench or ritual at ${t.name}`;
+    addGardenProp(siteIndex, h % 2 ? 'mushroom' : 'bench');
+  } else if (agent === 'HER') {
+    prestigeDelta = 2;
+    cohesionDelta = 1;
+    change = `weaves beauty into ${t.name}`;
+    addGardenProp(siteIndex, 'ritual');
+  } else if (agent === 'HERMES') {
+    cohesionDelta = 1;
+    change = `fortifies ${t.name} with a watch post`;
+    addGardenProp(siteIndex, 'bench');
+  } else if (agent === 'CHIDDUSH') {
+    prestigeDelta = 1;
+    change = `catalogs patterns at ${t.name}`;
+  } else if (agent === 'JESTER') {
+    chaosDelta = 3;
+    prestigeDelta = -1;
+    change = `causes a ridiculous mutation at ${t.name}`;
+    addGardenProp(siteIndex, 'mushroom');
+  } else {
+    change = `does something at ${t.name}`;
+  }
+  S.reputation = Math.max(0, Math.min(200, S.reputation + prestigeDelta));
+  S.cohesion = Math.max(0, Math.min(100, S.cohesion + cohesionDelta));
+  // chaos not stored but logged
+  logEvent(S, "GARDEN_MUTATE", `${agent} ${change} (prestige ${prestigeDelta}, cohesion ${cohesionDelta})`);
+  recentGardenActions.push({agent, change: `${agent} ${change}`, site: siteIndex});
+  if(recentGardenActions.length > 10) recentGardenActions.shift();
+}
+
+let gardenProps = [];
+function addGardenProp(siteIndex, type) {
+  const angle = siteIndex / 12 * Math.PI * 2;
+  const r = 3 + Math.random() * 2;
+  const x = Math.cos(angle) * r;
+  const z = Math.sin(angle) * r;
+  let mesh;
+  if (type === 'mushroom') {
+    mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.8, 5), new THREE.MeshLambertMaterial({color: 0x8b6fc9}));
+  } else if (type === 'ritual') {
+    mesh = new THREE.Mesh(new THREE.SphereGeometry(0.4, 6, 6), new THREE.MeshLambertMaterial({color: 0xd08a3c}));
+  } else {
+    mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.3, 0.6), new THREE.MeshLambertMaterial({color: 0x8a5a4a}));
+  }
+  mesh.position.set(x, 0.5, z);
+  mesh.userData = {type, site: siteIndex};
+  scene.add(mesh);
+  gardenProps.push(mesh);
+}
+function denyProposal(S,replaying){const p=S.pending;S.actions++;if(!p)return false;
+ S.compost++;S.denials++;logEvent(S,"PROPOSAL_DENIED",p.agent);
+ if(!replaying)worldEvent(S,{k:"deny"});S.pending=null;return true}
+function holdProposal(S,replaying){const p=S.pending;S.actions++;if(!p)return false;
+ S.held++;logEvent(S,"PROPOSAL_HELD",p.agent);
+ if(!replaying)worldEvent(S,{k:"hold"});S.pending=null;return true}
+function startGame(S){
+ if(S.phase!=="START")return false;
+ S.phase="GARDEN_MAP";S.zol=15;
+ logEvent(S,"GAME_STARTED","House JM — the sovereign returns");return true;
+}
+function checkWin(S){
+ if(S.phase==="GAME_WON")return true;
+ if(S.ownedCount>=7||S.reputation>=100){S.phase="GAME_WON";logEvent(S,"GAME_WON",
+   S.ownedCount+" warrens, rep "+S.reputation);return true}
+ return false;
+}
+function auraWeather(S){
+ if(S.held>=3)return{mood:"fog",line:AURA_LINES[0]};
+ if(S.denials>=3)return{mood:"storm",line:AURA_LINES[2]};
+ if(S.cohesion>=95&&S.knowledge>=6)return{mood:"dawn",line:AURA_LINES[1]};
+ return{mood:"still",line:AURA_LINES[3+(S.actions%3)]};
+}
+function receiptStones(S){return S.ledger.filter(e=>e.kind==="PROPOSAL_ADMITTED").length
+ + S.world.filter(e=>e.k==="admit").length - S.world.filter(e=>e.k==="admit").length
+ + 0 || S.world.filter(e=>e.k==="admit").length;}
+/* REPLAY — reality = replay(ledger). Rebuild the ENTIRE world from the event
+   log by re-running the same reducers. ZOL law: after replay, the shiny is
+   re-zeroed to the dawn stipend. */
+function replayWorld(events){
+ const S=makeState();
+ startGame(S);
+ for(const ev of (events||[])){
+  if(ev.k==="q")answerQuestion(S,ev.qi,ev.ok?QUESTIONS[ev.qi%QUESTIONS.length].correctIndex
+     :(QUESTIONS[ev.qi%QUESTIONS.length].correctIndex+1)%4,true);
+  else if(ev.k==="buy")buyTerritory(S,ev.i,true);
+  else if(ev.k==="prop"){createProposal(S,ev.i,ev.seed,true);checkProposalWithHAL(S,S.pending);}
+  else if(ev.k==="admit")admitProposal(S,true);
+  else if(ev.k==="deny")denyProposal(S,true);
+  else if(ev.k==="hold")holdProposal(S,true);
+  else if(ev.k==="mg_admit"){S.customGames.push(ev.spec);
+    logEvent(S,"MINIGAME_ADMITTED",ev.spec.name);}
+  else if(ev.k==="mg_play")applyMiniGameOutcome(S,findMiniGame(S,ev.id),
+    {win:ev.win,hits:ev.hits,stake:ev.stake},true);
+ }
+ S.world=(events||[]).slice();
+ S.zol=15; // ZOL does not survive the dawn - Session Flash Credit law
+ checkWin(S);if(S.phase==="GAME_WON")S.phase="GARDEN_MAP"; // a persistent world keeps dwelling
+ logEvent(S,"WORLD_REPLAYED",S.world.length+" moves rebuilt; ZOL re-zeroed to dawn stipend");
+ return S;
+}
+/* the Warren dreams while you are away: up to 3 deterministic queued proposals
+   from owned ground, seeded by the world-log hash. Dreams are NOT pending and
+   NOT world events - they become real only if the sovereign picks one up. */
+function queueDreams(S){
+ S.dreams=[];
+ const owned=S.territories.filter(t=>t.state==="owned"||t.state==="evolved");
+ if(!owned.length)return S.dreams;
+ const n=Math.min(3,owned.length);
+ const names=Object.keys(PERSONAS);
+ for(let d=0;d<n;d++){
+  const h=h32("dream"+d+S.world.length+owned.length+S.compost);
+  const t=owned[h%owned.length];
+  const agent=names[(h>>>3)%names.length];
+  const P=PERSONAS[agent]||PERSONAS.GOBLIN;
+  // Use vector score for smart choice
+  let best = t;
+  let bestScore = -1;
+  owned.forEach(site => {
+    const sc = scoreSiteForBot(agent, site, S);
+    if (sc > bestScore) { bestScore = sc; best = site; }
+  });
+  const site = best || t;
+  const teaser = (P.generate ? P.generate(site, S, P.weights) : "dreams change").slice(0,48)+"… — "+site.name;
+  S.dreams.push({tIndex:site.index||t.index,agent,seed:"dream"+d+S.world.length, teaser});
+ }
+ logEvent(S,"WARREN_DREAMED",S.dreams.length+" dreams queued for the sovereign");
+ return S.dreams;
+}
+/* ===== GARDEN OF GAMES — a festival district. Booths run on 7 pure template
+   engines; built-in games and user-forged games are the SAME data shape, so
+   "user games are data only" is structure, not promise. No eval, ever. ===== */
+const MG_TEMPLATES=["quiz","memory","timing","reflex","choice","race","dice"];
+const MG_THEMES=["compost","bone","mushroom","moon","rose","temple","mirror"];
+const MG_REWARD_CAP={easy:6,medium:10,hard:16};        // per-run ceiling, every reward type
+const MG_NEED={quiz:.6,memory:.7,timing:.7,reflex:.8,choice:.67,race:.7,dice:0};
+const MG_FORBIDDEN=/(real.?money|cash|casino|bet(ting)?|wager|gambl|payout|withdraw|crypto|token.?sale|https?:|www\.|<|>|&#|script|eval|function|onclick|onerror)/i;
+const BUILTIN_MINIGAMES=[
+ {id:"qcm_duel",name:"QCM Duel Shrine",tpl:"quiz",theme:"temple",rounds:3,difficulty:"easy",risk:"low",reward:{zol:4,knowledge:2},desc:"Answer true to strike the training dummy. Wrong answers bruise cohesion."},
+ {id:"compost_clicker",name:"Compost Clicker",tpl:"timing",theme:"compost",rounds:4,difficulty:"easy",risk:"low",reward:{zol:5},desc:"Click sprouts in the green moment. Greed breeds fog."},
+ {id:"memory_lanterns",name:"Memory Lanterns",tpl:"memory",theme:"moon",rounds:3,difficulty:"medium",risk:"low",reward:{knowledge:3,reputation:2},desc:"The lanterns sing a pattern; sing it back."},
+ {id:"goblin_kart",name:"Goblin Kart Rootway",tpl:"race",theme:"mushroom",rounds:6,difficulty:"medium",risk:"medium",reward:{zol:6,reputation:2},desc:"Tap the root-pads in order. Boost pads count double."},
+ {id:"council_puzzle",name:"Council Balance Puzzle",tpl:"choice",theme:"temple",rounds:3,difficulty:"medium",risk:"medium",reward:{cohesion:2,reputation:2},desc:"Judge the cards as the gate would. Bad judgment storms the sky."},
+ {id:"bone_dice",name:"Bone Dice Arena",tpl:"dice",theme:"bone",rounds:1,difficulty:"medium",risk:"high",reward:{zol:8},stakeMax:4,desc:"Stake training tokens (fictional, bounded, in-game only). The bones decide."},
+ {id:"portal_reflex",name:"Portal Reflex Trial",tpl:"reflex",theme:"mirror",rounds:5,difficulty:"hard",risk:"high",reward:{zol:10,reputation:3},unlockRep:20,desc:"Strike only when the portal glows. Unlocks at reputation 20."}];
+function mgLCG(seed){let s=h32(String(seed));return()=> (s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296}
+function findMiniGame(S,id){return BUILTIN_MINIGAMES.find(g=>g.id===id)||S.customGames.find(g=>g.id===id)||null}
+function allMiniGames(S){return BUILTIN_MINIGAMES.concat(S.customGames)}
+/* engine: pure — a play is (spec, plan) -> outcome. plan = {hits:[bool...], stake?, diceWin?} */
+function evalMiniGame(spec,plan){
+ if(spec.tpl==="dice"){const stake=Math.max(1,Math.min(plan.stake||1,spec.stakeMax||4));
+   return {win:!!plan.diceWin,hits:plan.diceWin?1:0,rounds:1,stake}}
+ const hits=(plan.hits||[]).filter(Boolean).length;
+ return {win:hits>=Math.ceil(spec.rounds*MG_NEED[spec.tpl]),hits,rounds:spec.rounds}
+}
+/* rewards applied in ONE bounded place — the only door from play to world */
+function applyMiniGameOutcome(S,spec,o,replaying){
+ S.actions++;if(!spec)return false;
+ const cap=MG_REWARD_CAP[spec.difficulty]||6;
+ if(spec.tpl==="dice"){const stake=Math.max(1,Math.min(o.stake||1,spec.stakeMax||4));
+   if(!replaying)S.zol=Math.max(0,S.zol); // stake handled below symmetrically for replay
+   if(o.win){S.zol+=Math.min(stake,cap);logEvent(S,"MINIGAME_WON",spec.name+" +"+Math.min(stake,cap)+" (stake doubled)")}
+   else{S.zol=Math.max(0,S.zol-stake);logEvent(S,"MINIGAME_LOST",spec.name+" −"+stake+" tokens to the bones")}}
+ else if(o.win){
+   for(const[r,amt]of Object.entries(spec.reward||{})){
+     const a=Math.min(amt||0,cap);
+     if(r==="zol")S.zol+=a; else if(r==="knowledge"){S.knowledge+=a;unlockByKnowledge(S)}
+     else if(r==="reputation")S.reputation+=a;
+     else if(r==="cohesion")S.cohesion=Math.min(100,S.cohesion+a);}
+   logEvent(S,"MINIGAME_WON",spec.name)}
+ else{logEvent(S,"MINIGAME_LOST",spec.name+" — no reward for a missed song");
+   if(spec.tpl==="choice"){S.cohesion=Math.max(80,S.cohesion-1);S.denials++}} // bad judgment storms
+ if(spec.tpl==="dice"||spec.id==="compost_clicker"){S.mgGreedStreak++;
+   if(S.mgGreedStreak>=3){S.held++;S.mgGreedStreak=0;logEvent(S,"AURA_FOG","greed breeds carnival fog")}}
+ else S.mgGreedStreak=0;
+ return o.win;
+}
+function playMiniGame(S,id,plan,replaying){
+ const spec=findMiniGame(S,id);if(!spec)return null;
+ if(spec.unlockRep&&S.reputation<spec.unlockRep){logEvent(S,"MINIGAME_LOCKED",spec.name);return null}
+ const o=evalMiniGame(spec,plan);
+ applyMiniGameOutcome(S,spec,o,replaying);
+ if(!replaying)worldEvent(S,{k:"mg_play",id,win:o.win,hits:o.hits,stake:o.stake});
+ return o;
+}
+/* ---- forge: user games are sanitized DATA (no code fields exist) ---- */
+function mgSanitizeText(t,n){return String(t||"").replace(/[<>&"'`\\]/g,"").slice(0,n)}
+function makeMiniGameSpec(f){
+ return {id:"user_"+h32(String(f.name)+String(f.tpl)),name:mgSanitizeText(f.name,40),
+  desc:mgSanitizeText(f.desc,120),objective:mgSanitizeText(f.objective,80),
+  winCond:mgSanitizeText(f.winCond,80),failCond:mgSanitizeText(f.failCond,80),
+  tpl:String(f.tpl),theme:String(f.theme),difficulty:String(f.difficulty),risk:String(f.risk),
+  rounds:Math.max(1,Math.min(8,parseInt(f.rounds)||3)),
+  reward:{[["zol","knowledge","reputation","cohesion"].includes(f.rewardType)?f.rewardType:"zol"]:
+    Math.max(1,Math.min(16,parseInt(f.rewardAmount)||3))},
+  stakeMax:f.tpl==="dice"?Math.max(1,Math.min(4,parseInt(f.stakeMax)||2)):undefined,user:true};
+}
+function checkMiniGameWithHAL(S,spec){
+ let verdict="ACCEPTABLE",reason="bounded reward, no forbidden mutation.";
+ const flat=JSON.stringify(spec);
+ if(!spec.name||spec.name.length<2){verdict="DENY";reason="a booth needs a real name"}
+ else if(MG_FORBIDDEN.test(flat)){verdict="DENY";reason="forbidden language or code-shaped content"}
+ else if(!MG_TEMPLATES.includes(spec.tpl)){verdict="DENY";reason="unknown template — games are data on the seven engines only"}
+ else if(spec.rounds<1||spec.rounds>8){verdict="DENY";reason="rounds out of bounds"}
+ else if(Object.values(spec.reward||{}).some(v=>v>16)||(spec.stakeMax||0)>4){verdict="DENY";reason="reward exceeds the festival cap"}
+ else if(Object.keys(spec.reward||{}).some(k=>!["zol","knowledge","reputation","cohesion"].includes(k))){verdict="DENY";reason="unknown reward channel — no mutation outside allowed systems"}
+ else{ // dry simulation: HAL refuses to bless the unplayable
+   let clearable=false;
+   for(let s=0;s<3&&!clearable;s++)clearable=runMiniGameAI(S,spec,"scholar","dry"+s).win;
+   if(!clearable){verdict="HOLD";reason="dry simulation could not clear it — an impossible game is a trap, not a gift"}}
+ logEvent(S,verdict==="ACCEPTABLE"?"HAL_CHECK_PASSED":"HAL_CHECK_DENIED","minigame "+verdict+": "+(spec.name||"?"));
+ return {verdict,reason};
+}
+function mgCouncilNeeded(spec){
+ const total=Object.values(spec.reward||{}).reduce((a,b)=>a+b,0);
+ return total>=12||spec.risk==="high"||"cohesion"in(spec.reward||{})||!!spec.unlockRep;
+}
+function submitMiniGame(S,spec){
+ const hal=checkMiniGameWithHAL(S,spec);
+ const cand={spec,verdict:hal.verdict,reason:hal.reason,rec:null};
+ if(hal.verdict==="ACCEPTABLE"&&mgCouncilNeeded(spec)){
+   const c=councilReview(S,{id:"mg"+spec.id,tIndex:0,agent:"FORGE",text:"admit mini-game "+spec.name});
+   cand.rec=c.rec;cand.council=c;}
+ S.mgCandidate=cand;logEvent(S,"MINIGAME_CANDIDATE",spec.name+" — "+hal.verdict);
+ return cand;
+}
+function admitMiniGame(S,replaying){
+ const c=S.mgCandidate;S.actions++;if(!c)return false;
+ if(c.verdict!=="ACCEPTABLE"){logEvent(S,"PROPOSAL_DENIED","minigame admission refused: "+c.verdict);S.mgCandidate=null;return false}
+ const ev={k:"mg_admit",type:"MINIGAME_ADMITTED",spec:c.spec,admittedBy:"JM",
+   timestamp:S.actions,halVerdict:c.verdict,councilRecommendation:c.rec};
+ S.customGames.push(c.spec);
+ if(!replaying)worldEvent(S,ev);
+ logEvent(S,"MINIGAME_ADMITTED","WITNESS raises a festival stone: "+c.spec.name);
+ S.mgCandidate=null;return true;
+}
+function denyMiniGame(S){const c=S.mgCandidate;S.actions++;if(!c)return false;
+ S.compost++;logEvent(S,"MINIGAME_DENIED",c.spec.name+" returns to compost");S.mgCandidate=null;return true}
+function holdMiniGame(S){const c=S.mgCandidate;S.actions++;if(!c)return false;
+ S.mgHeld.push(c.spec);S.held++;logEvent(S,"MINIGAME_HELD",c.spec.name+" — held games become carnival fog");S.mgCandidate=null;return true}
+/* ---- AI auto-players: policies synthesize plans for the same pure engines ---- */
+const MG_POLICIES={balanced:{acc:.72,stake:2},greedy:{acc:.6,stake:9},cautious:{acc:.8,stake:1},
+ random:{acc:.5,stake:0},scholar:{acc:.95,stake:1}};
+function runMiniGameAI(S,idOrSpec,policy,seed){
+ const spec=typeof idOrSpec==="string"?findMiniGame(S,idOrSpec):idOrSpec;
+ const P=MG_POLICIES[policy]||MG_POLICIES.balanced;
+ if(!spec)return{id:idOrSpec,policy,win:false,fail:"unknown game",exploit:false};
+ const rng=mgLCG(policy+String(seed)+spec.id);
+ const dmod=spec.difficulty==="easy"?.08:spec.difficulty==="hard"?-.1:0;
+ let plan;
+ if(spec.tpl==="dice"){const stake=P.stake===0?1+Math.floor(rng()*4):Math.max(1,Math.min(P.stake,spec.stakeMax||4));
+   plan={stake,diceWin:rng()<.42}} // house keeps an edge: greed cannot mint
+ else plan={hits:Array.from({length:spec.rounds},()=>rng()<(P.acc+dmod))};
+ const o=evalMiniGame(spec,plan);
+ return{id:spec.id,policy,win:o.win,rounds:o.rounds,hits:o.hits,
+   zol:o.win?Math.min((spec.reward||{}).zol||((o.stake||0)),MG_REWARD_CAP[spec.difficulty]||6):(spec.tpl==="dice"?-(o.stake||1):0),
+   rep:o.win?Math.min((spec.reward||{}).reputation||0,MG_REWARD_CAP[spec.difficulty]||6):0,
+   fail:o.win?null:"missed the bar",exploit:false};
+}
+function runAllMiniGameSims(S,count){
+ const report={};
+ for(const g of allMiniGames(S)){
+   report[g.id]={};
+   for(const pol of Object.keys(MG_POLICIES)){
+     let wins=0,zol=0,rep=0;
+     for(let i=0;i<count;i++){const r=runMiniGameAI(S,g.id,pol,i);if(r.win)wins++;zol+=r.zol;rep+=r.rep}
+     report[g.id][pol]={winRate:+(wins/count).toFixed(2),netZol:zol,netRep:rep,
+       // exploit = greedy extracts MORE than the designed per-run bound — impossible
+       // unless the caps leak. Winning a winnable game is design, not exploit.
+       exploit:pol==="greedy"&&zol>count*(MG_REWARD_CAP[g.difficulty]||6)};
+   }}
+ return report;
+}
+function exportMiniGameBalanceReport(S,count){
+ const r=runAllMiniGameSims(S,count||50);
+ const lines=[];let allClear=true,anyExploit=false;
+ for(const[id,pols]of Object.entries(r)){
+   const clearable=Object.values(pols).some(p=>p.winRate>0);
+   if(!clearable)allClear=false;
+   if(pols.greedy&&pols.greedy.exploit)anyExploit=true;
+   lines.push(id+": clearable="+clearable+" greedyNetZol="+(pols.greedy?pols.greedy.netZol:"-")+
+     " scholarWin="+(pols.scholar?pols.scholar.winRate:"-"));}
+ return{report:r,lines,allClear,anyExploit};
+}
+/* ===== LIVING SWARM — the world model's NPC layer =====
+   Inhabitants LIVE in the dream-layer: their positions, moods, meetings and
+   chatter are DERIVED state — a pure function of (world log, tick) — so the
+   governed world stays replay-deterministic and NOTHING an NPC does mutates
+   the world log. Their only door into reality is the dream queue -> HAL ->
+   the sovereign's hand. Imagination is free. The Garden obeys admitted moves. */
+const SWARM_NAMES=["GOBLIN","HER","ORNITH","WARDEN","ARCHIVIST","STEWARD","CHIDDUSH","HERMES","JESTER","MAYOR","WITNESS"];
+const NPC_ACTIVITIES=["digging","humming","measuring","arguing softly","stacking bones","reading rot","counting buttons","watching the sky","patrolling","composting","sorting seeds"];
+const NPC_BANTER=[
+ ["GOBLIN","HER","G: rough seed. H: lovely rot. both: good garden."],
+ ["WARDEN","HERMES","W: stay inside. C: the outside hums. W: I know. stay."],
+ ["JESTER","MAYOR","J: your order is a joke. M: your joke needs order."],
+ ["CHIDDUSH","ARCHIVIST","C: the pattern repeats. A: I shelved it twice already."],
+ ["ORNITH","STEWARD","O: optimize the flow. S: calm the flow. both: the flow."],
+ ["WITNESS","GOBLIN","W: I raise stones. G: I raise trouble. W: same trade."]];
+function simInhabitant(S,name,tick){
+ // pure: everything derives from (name, world length, tick) + governed state
+ const h=h32(name+"·"+S.world.length+"·"+tick);
+ const owned=S.territories.filter(t=>t.state==="owned"||t.state==="evolved");
+ const P=PERSONAS[name];
+ // where: personas with a strategy prefer their strategic site; others wander the ring
+ let site;
+ if(P&&P.strategy&&owned.length){site=P.strategy(S,owned)||owned[h%owned.length]}
+ else site=S.territories[h%12];
+ const idx=(site&&typeof site.index==="number")?site.index:(h%12);
+ const activity=NPC_ACTIVITIES[(h>>>4)%NPC_ACTIVITIES.length];
+ // speak roughly every 3rd tick, staggered per goblin
+ const speaks=((h>>>7)%3)===0;
+ const line=speaks?(P&&P.generate?P.generate(S.territories[idx],S):(P&&P.line)||name+" mutters"):null;
+ return {name,siteIndex:idx,activity,line,mood:auraWeather(S).mood};
+}
+function simSwarm(S,tick){
+ const npcs=SWARM_NAMES.map(n=>simInhabitant(S,n,tick));
+ // meetings: two goblins on one mound -> deterministic banter
+ const bySite={};npcs.forEach(n=>{(bySite[n.siteIndex]=bySite[n.siteIndex]||[]).push(n)});
+ const meetings=[];
+ for(const group of Object.values(bySite)){
+  if(group.length>=2){
+   const pair=NPC_BANTER.find(b=>group.some(g=>g.name===b[0])&&group.some(g=>g.name===b[1]));
+   if(pair)meetings.push({site:group[0].siteIndex,text:pair[2]});}}
+ return {npcs,meetings};
+}
+/* the swarm's only door to reality: occasionally queue a dream (bounded, ephemeral) */
+function swarmDreamTick(S,tick){
+ if(S.dreams.length>=3)return null;
+ const h=h32("swarmdream"+S.world.length+tick);
+ if((h%5)!==0)return null; // most ticks, the swarm just lives
+ const owned=S.territories.filter(t=>t.state==="owned"||t.state==="evolved");
+ if(!owned.length)return null;
+ const name=SWARM_NAMES[(h>>>3)%SWARM_NAMES.length];
+ const P=PERSONAS[name];if(!P)return null;
+ const site=(P.strategy?P.strategy(S,owned):owned[h%owned.length])||owned[0];
+ const idx=(typeof site.index==="number")?site.index:owned[0].index;
+ const d={tIndex:idx,agent:name,seed:"tick"+tick+S.world.length,
+   teaser:(P.generate?P.generate(S.territories[idx],S):P.line).slice(0,48)+"… — "+S.territories[idx].name};
+ S.dreams.push(d);
+ logEvent(S,"WARREN_DREAMED",name+" dreams at "+S.territories[idx].name+" (tick "+tick+")");
+ return d;
+}
+/* ===== REDUCER-END ===== */
+
+/* ===== PERSISTENCE (browser) — store ONLY the world log ===== */
+const SAVE_KEY="goblin_warren_mmo_v0";
+function saveWorld(S){try{localStorage.setItem(SAVE_KEY,JSON.stringify({world:S.world}))}catch(e){}}
+function loadWorldLog(){try{const r=localStorage.getItem(SAVE_KEY);return r?(JSON.parse(r).world||[]):[]}catch(e){return[]}}
+
+/* ===== RENDER + UI (pixel edition) ===== */
+let S=makeState();
+let scene,camera,renderer,meshes=[],flowers=[],stones=[],labels=[],castle,selected=-1,qcmActive=false;
+const PIX=4;
+const MOODS={fog:{bg:0x18220e,fog:0.030},storm:{bg:0x1c1208,fog:0.018},dawn:{bg:0x20260f,fog:0.007},still:{bg:0x141c0e,fog:0.012}};
+
+// Procedural NES-style sprite generator for the Game Bible and characters
+function makeProceduralSprite(hackType, size = 16) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#0a1420'; // darker 16-bit bg
+  ctx.fillRect(0, 0, size, size);
+  const s = size / 8;
+  // 1995 SNES 16-bit palette - richer, more hues
+  const pal = {
+    main: '#f0e8d0',
+    accent: '#40c040',
+    dark: '#202040',
+    warn: '#d07030',
+    glow: '#a060c0',
+    light: '#f0f0a0',
+    mid: '#6080a0'
+  };
+  switch (hackType) {
+    case 'pixel': // Pixel Technique - detailed dither + grid for 16-bit
+      ctx.fillStyle = pal.main;
+      for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) {
+        if ((x + y) % 2 === 0) ctx.fillRect(x*s, y*s, s, s);
+      }
+      ctx.fillStyle = pal.accent;
+      ctx.fillRect(2*s, 2*s, 4*s, 4*s);
+      ctx.fillStyle = pal.light;
+      ctx.fillRect(3*s, 3*s, 2*s, 2*s);
+      break;
+    case 'reducer': // Reducer - more detailed box with arrows
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(1*s, 1*s, 6*s, 6*s);
+      ctx.fillStyle = pal.accent;
+      ctx.fillRect(0, 3*s, 2*s, 2*s); // in
+      ctx.fillRect(6*s, 3*s, 2*s, 2*s); // out
+      ctx.fillStyle = pal.mid;
+      ctx.fillRect(2*s, 3*s, 4*s, 2*s);
+      break;
+    case 'replay': // Replay - smooth loop with 16-bit shading
+      ctx.strokeStyle = pal.accent;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(4*s, 4*s, 3.5*s, 0.2, Math.PI * 2.3);
+      ctx.stroke();
+      ctx.fillStyle = pal.light;
+      ctx.fillRect(5*s, 1.5*s, 2*s, 2*s);
+      ctx.fillStyle = pal.warn;
+      ctx.fillRect(6*s, 2*s, 1*s, 1*s);
+      break;
+    case 'admit': // Player Admits - hand stamp with detail
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(1*s, 2*s, 6*s, 5*s);
+      ctx.fillStyle = pal.warn;
+      ctx.fillRect(2*s, 3*s, 4*s, 3*s);
+      ctx.fillStyle = pal.dark;
+      ctx.fillRect(3*s, 4*s, 2*s, 1*s);
+      break;
+    case 'aura': // AURA Residue - layered fog with 16-bit glow
+      ctx.fillStyle = pal.glow;
+      for (let i = 0; i < 8; i++) {
+        ctx.fillRect(1*s + (i % 4) * s, 2*s + Math.floor(i / 4) * 2*s, s * 1.5, s);
+      }
+      ctx.fillStyle = pal.light;
+      ctx.fillRect(3*s, 3*s, 2*s, 2*s);
+      break;
+    case 'ipsafe': // IP-Safe Procedural - complex generated pattern
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(1*s, 1*s, 6*s, 6*s);
+      ctx.fillStyle = pal.dark;
+      for (let x = 0; x < 5; x++) ctx.fillRect(2*s + x * s, 2*s + (x % 3) * s, s, s * 1.2);
+      ctx.fillStyle = pal.accent;
+      ctx.fillRect(4*s, 4*s, 2*s, 2*s);
+      break;
+    case 'law': // Law Does Not Reskin - balance scale detailed
+      ctx.fillStyle = pal.accent;
+      ctx.fillRect(3.5*s, 1*s, s, 5*s);
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(1*s, 2.5*s, 2*s, 2*s);
+      ctx.fillRect(5*s, 2.5*s, 2*s, 2*s);
+      ctx.fillStyle = pal.warn;
+      ctx.fillRect(2*s, 3*s, s, s);
+      ctx.fillRect(6*s, 3*s, s, s);
+      break;
+    case 'zol': // ZOL Session Only - detailed fading coin
+      ctx.fillStyle = pal.warn;
+      ctx.fillRect(2.5*s, 1.5*s, 3*s, 5*s);
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(3.5*s, 1*s, s, s);
+      ctx.fillRect(3.5*s, 6.5*s, s, s);
+      ctx.fillStyle = pal.dark;
+      ctx.fillRect(3.5*s, 3*s, s, 2*s);
+      break;
+    case 'default': // Authority / Non-Sovereign - eye or key
+      ctx.fillStyle = pal.glow;
+      ctx.fillRect(2*s, 2*s, 4*s, 4*s);
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(3*s, 3*s, 2*s, 2*s);
+      break;
+    default:
+      ctx.fillStyle = pal.main;
+      ctx.fillRect(3*s, 3*s, 2*s, 2*s);
+  }
+  return c;
+}
+
+function initThree(){
+ const canvas=document.getElementById("map");
+ renderer=new THREE.WebGLRenderer({canvas,antialias:false});
+ renderer.setSize(Math.floor(window.innerWidth/PIX),Math.floor(window.innerHeight/PIX),false);
+ scene=new THREE.Scene();
+ scene.fog=new THREE.FogExp2(0x141c0e,0.012);
+ camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,1,1000);
+ camera.position.set(0,36,56);camera.lookAt(0,0,0);
+ scene.add(new THREE.HemisphereLight(0xaaddaa,0x332211,0.65));
+ const dir=new THREE.DirectionalLight(0xffe0aa,0.7);dir.position.set(20,40,10);scene.add(dir);
+ const terrainTex = new THREE.TextureLoader().load('sprites/garden0.png'); // helen-garden000 - vintage pixel art terrain from design sheets
+ terrainTex.magFilter = THREE.NearestFilter;
+ terrainTex.minFilter = THREE.NearestFilter;
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(56,56),new THREE.MeshLambertMaterial({map: terrainTex}));
+ ground.rotation.x=-Math.PI/2;scene.add(ground);
+ for(let i=0;i<8;i++){ // REDUCER's octagram - law does not reskin
+  const a1=i/8*Math.PI*2,a2=(i+3)/8*Math.PI*2;
+  const g=new THREE.BufferGeometry().setFromPoints([
+   new THREE.Vector3(Math.cos(a1)*18,0.12,Math.sin(a1)*18),
+   new THREE.Vector3(Math.cos(a2)*18,0.12,Math.sin(a2)*18)]);
+  scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:0xd08a3c})));}
+ castle=new THREE.Group();
+ const heap1=new THREE.Mesh(new THREE.ConeGeometry(5,4,7),new THREE.MeshLambertMaterial({color:0x3a2c1a}));
+ heap1.position.y=2;castle.add(heap1);
+ const heap2=new THREE.Mesh(new THREE.ConeGeometry(3.4,3.2,6),new THREE.MeshLambertMaterial({color:0x4a3822}));
+ heap2.position.set(0.7,4.6,0.3);heap2.rotation.z=0.12;castle.add(heap2);
+ const heap3=new THREE.Mesh(new THREE.ConeGeometry(1.8,2.4,5),new THREE.MeshLambertMaterial({color:0x5c4a2c}));
+ heap3.position.set(-0.5,6.8,-0.2);heap3.rotation.z=-0.18;castle.add(heap3);
+ const lantern=new THREE.Mesh(new THREE.SphereGeometry(0.7,6,6),new THREE.MeshBasicMaterial({color:0xa8d858}));
+ lantern.position.set(0,8.6,0);lantern.name="halLantern";castle.add(lantern);
+ scene.add(castle);
+ S.territories.forEach((t,i)=>{
+  const angle=i/12*Math.PI*2,x=Math.cos(angle)*20,z=Math.sin(angle)*20;
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.2,1.6,5),
+    new THREE.MeshLambertMaterial({color:0x2c3420}));
+  m.position.set(x,0.8,z);m.userData.index=i;scene.add(m);meshes.push(m);
+  const lb=document.createElement("div");
+  lb.style.cssText="position:absolute;color:#e8dcc0;font-size:9px;font-family:Courier New,monospace;pointer-events:none;text-shadow:1px 1px 0 black";
+  lb.textContent=t.name;document.body.appendChild(lb);labels.push(lb);});
+ // the living swarm: painted 16-bit sprites as billboards (from design sheets, 1995 SNES style)
+const spriteFiles = {
+  'GOBLIN': 'sprites/char1.png',
+  'HER': 'sprites/char2.png',
+  'HERMES': 'sprites/char1.png',
+  'CHIDDUSH': 'sprites/char2.png',
+  'JESTER': 'sprites/char1.png'
+}; // Using user's design sheets for authentic 1995 vintage pixel art style
+
+ SWARM_NAMES.forEach((name,ni)=>{
+  const g=new THREE.Group();
+  const texPath = spriteFiles[name] || 'sprites/2.jpg';
+  const texture = new THREE.TextureLoader().load(texPath);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  // Billboard plane for sprite feel
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(3, 3),
+    new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
+  );
+  plane.position.y = 1.5;
+  g.add(plane);
+  const ang=ni/11*Math.PI*2;
+  g.position.set(Math.cos(ang)*14,0,Math.sin(ang)*14);
+  g.userData={name,tx:g.position.x,tz:g.position.z,bob:ni};
+  scene.add(g);npcSprites[name]=g;});
+ const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+ canvas.addEventListener("click",e=>{
+  if(S.phase!=="GARDEN_MAP"||qcmActive)return;
+  mouse.x=e.clientX/window.innerWidth*2-1;mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(meshes);
+  if(hits.length)selectNode(hits[0].object.userData.index);});
+ window.addEventListener("keydown",e=>{
+  const k=e.key.toUpperCase();
+  if(k==="ENTER"&&S.phase==="START")return uiStart();
+  if(k==="Q")uiQCM(); if(k==="B")uiBuy(); if(k==="P")uiPropose();
+  if(k==="A")uiAdmit(); if(k==="D")uiDeny(); if(k==="H")uiHold(); if(k==="R")uiReplay();});
+ window.addEventListener("resize",()=>{camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(Math.floor(window.innerWidth/PIX),Math.floor(window.innerHeight/PIX),false)});
+ animate();
+}
+const STATE_COLORS={locked:0x2c3420,available:0x4a5a30,owned:0x5c7a3a,evolved:0x74985c};
+let boothMeshes=[];
+function rebuildSceneFromState(){
+ flowers.forEach(f=>scene.remove(f));flowers=[];
+ stones.forEach(s=>scene.remove(s));stones=[];
+ boothMeshes.forEach(b=>scene.remove(b));boothMeshes=[];
+ S.territories.forEach((t,i)=>{for(let l=0;l<t.level-0;l++)if(l>0)addMushroom(i,l,true);});
+ const admits=S.world.filter(e=>e.k==="admit").length;
+ for(let a=0;a<admits;a++)addStone(a,true);
+ // the festival district: one glowing booth per game, ringed inside the octagram
+ const games=allMiniGames(S);
+ games.forEach((g,n)=>{
+  const ang=n/Math.max(7,games.length)*Math.PI*2+0.4,r=11;
+  const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.8,1.4),
+    new THREE.MeshLambertMaterial({color:g.user?0x8b6fc9:0xd08a3c,
+      emissive:g.user?0x2a2040:0x3a2810}));
+  b.position.set(Math.cos(ang)*r,0.9,Math.sin(ang)*r);b.rotation.y=ang+0.3;
+  scene.add(b);boothMeshes.push(b);});
+}
+function addStone(n,instant){ // WITNESS raises a stone per admitted move
+ const ang=n*0.7,r=8+(n%5);
+ const st=new THREE.Mesh(new THREE.BoxGeometry(0.7,1.4+(n%3)*0.3,0.5),
+   new THREE.MeshLambertMaterial({color:0x8a9a8a}));
+ st.position.set(Math.cos(ang)*r,0.7,Math.sin(ang)*r);
+ st.rotation.y=ang;
+ if(!instant){st.scale.setScalar(0.01);st.userData.born=performance.now();}
+ scene.add(st);stones.push(st);
+}
+function addMushroom(i,level,instant){
+ const m=meshes[i];
+ const st=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.3,1.4,5),
+   new THREE.MeshLambertMaterial({color:0xd8cfa8}));
+ const cap=new THREE.Mesh(new THREE.SphereGeometry(0.75,6,4,0,Math.PI*2,0,Math.PI/2),
+   new THREE.MeshLambertMaterial({color:[0xa8d858,0xd08a3c,0x8b6fc9][level%3]}));
+ const ox=((h32(i+"f"+level)%100)/100-0.5)*2.4;
+ st.position.copy(m.position);st.position.y=2.1;st.position.x+=ox;
+ cap.position.copy(st.position);cap.position.y=2.9;
+ if(!instant){st.scale.setScalar(0.01);cap.scale.setScalar(0.01);
+   st.userData.born=cap.userData.born=performance.now();}
+ scene.add(st);scene.add(cap);flowers.push(st,cap);
+}
+function animate(){
+ requestAnimationFrame(animate);
+ castle.rotation.y+=0.0012;
+ const now=performance.now();
+ flowers.concat(stones).forEach(f=>{if(f.userData.born){const s=Math.min(1,(now-f.userData.born)/700);
+   f.scale.setScalar(0.01+s*0.99);if(s>=1)delete f.userData.born;}});
+ const lan=castle.getObjectByName("halLantern");
+ if(lan&&S.pending)lan.scale.setScalar(1+Math.sin(now/220)*0.25);
+ // swarm life: waddle toward targets, bob while working
+ Object.values(npcSprites).forEach(g=>{
+  g.position.x+=(g.userData.tx-g.position.x)*0.02;
+  g.position.z+=(g.userData.tz-g.position.z)*0.02;
+  g.position.y=Math.abs(Math.sin(now/400+g.userData.bob))*0.14;
+  // make billboard face camera for sprite feel
+  if (g.children[0]) {
+    g.children[0].lookAt(camera.position);
+  }
+});
+ renderer.render(scene,camera);
+ const rect=renderer.domElement.getBoundingClientRect();
+ meshes.forEach((m,i)=>{
+  const p=m.position.clone().project(camera);
+  labels[i].style.left=(p.x*0.5+0.5)*rect.width+rect.left+"px";
+  labels[i].style.top=(-p.y*0.5+0.5)*rect.height+rect.top-18+"px";
+  labels[i].style.display=p.z<1?"block":"none";});
+ // speech bubbles ride their goblins, then fade
+ npcBubbles=npcBubbles.filter(b=>{
+  if(now>b.until||!npcSprites[b.name]){b.el.remove();return false}
+  const p=npcSprites[b.name].position.clone();p.y+=2;p.project(camera);
+  b.el.style.left=(p.x*0.5+0.5)*rect.width+rect.left+"px";
+  b.el.style.top=(-p.y*0.5+0.5)*rect.height+rect.top-30+"px";
+  return true});
+}
+/* ===== WORLD TICKS — the swarm lives even while you think ===== */
+let TICK=0,npcSprites={},npcBubbles=[],tickTimer=null;
+function npcSay(name,text,color){
+ if(npcBubbles.length>=4)return; // don't drown the sovereign
+ const el=document.createElement("div");
+ el.textContent=text.slice(0,90);
+ el.style.cssText="position:absolute;max-width:190px;font-size:9px;font-family:Courier New,monospace;"+
+  "background:#0d1408;border:2px solid "+(color||"#5c7a3a")+";color:#e8dcc0;padding:3px 6px;"+
+  "pointer-events:none;z-index:70;transform:translateX(-50%)";
+ document.body.appendChild(el);
+ npcBubbles.push({el,name,until:performance.now()+3400});
+}
+function worldTick(){
+ if(S.phase!=="GARDEN_MAP")return;
+ TICK++;
+ const sim=simSwarm(S,TICK);
+ sim.npcs.forEach(n=>{
+  const g=npcSprites[n.name];if(!g)return;
+  const m=meshes[n.siteIndex];
+  const h=h32(n.name+TICK);
+  g.userData.tx=m.position.x+((h%100)/100-0.5)*4.5;
+  g.userData.tz=m.position.z+(((h>>>7)%100)/100-0.5)*4.5;
+  if(n.line&&((h>>>3)%4)===0)npcSay(n.name,n.name+": "+n.line,"#8b6fc9");});
+ sim.meetings.forEach(mt=>{const first=sim.npcs.find(n=>n.siteIndex===mt.site);
+  if(first)npcSay(first.name,mt.text,"#d08a3c")});
+ const dreamed=swarmDreamTick(S,TICK);
+ if(dreamed)showAura(dreamed.agent+" just dreamed something at "+S.territories[dreamed.tIndex].name+" — check the dream queue");
+ // live swarm panel
+ const inhab=document.getElementById("inhab-list");
+ if(inhab)inhab.innerHTML=sim.npcs.slice(0,8).map(n=>
+  `<span style="color:#a8d858">${n.name}</span> <span style="color:#9a917c">${n.activity} @ ${S.territories[n.siteIndex].name.split(" ")[0]}</span>`).join(" · ");
+ renderDreams();updateHUD();
+}
+function startSwarmTicks(){if(tickTimer)clearInterval(tickTimer);tickTimer=setInterval(worldTick,4000);worldTick();}
+function updateHUD(){
+ document.getElementById("zol").textContent=S.zol;
+ document.getElementById("knowledge").textContent=S.knowledge;
+ document.getElementById("cohesion").textContent=S.cohesion;
+ document.getElementById("reputation").textContent=S.reputation;
+ document.getElementById("territories").textContent=S.ownedCount;
+ document.getElementById("stones").textContent=S.world.filter(e=>e.k==="admit").length;
+ document.getElementById("age").textContent=S.world.length;
+ const goalEl = document.getElementById("hivemind-goal");
+ if (goalEl && S.hivemindGoal) goalEl.innerHTML = `HIVEMIND: ${S.hivemindGoal}`;
+}
+function renderLedgerUI(){
+ document.getElementById("ledger").innerHTML=S.ledger.slice(-8).reverse().map(e=>
+  `<div class="log-entry ${e.kind==="PROPOSAL_ADMITTED"?"adm":""}">${e.kind} ${e.detail}</div>`).join("");
+}
+function renderDreams(){
+ const box=document.getElementById("dreams-box"),list=document.getElementById("dreams");
+ if(!S.dreams.length){box.style.display="none";} else {
+   box.style.display="block";
+   list.innerHTML=S.dreams.map((d,n)=>
+    `<div class="dream" onclick="uiPickDream(${n})">💭 ${d.agent}: ${d.teaser}</div>`).join("");
+ }
+ // Smart NPCs visible - list key ones with current dream if any
+ const inhab = document.getElementById("inhab-list");
+ if(inhab){
+   const dreamMap = {};
+   S.dreams.forEach(d => { dreamMap[d.agent] = d.teaser; });
+   const keyOnes = ["GOBLIN","HER","HERMES","CHIDDUSH","JESTER","MAYOR","WITNESS","ORNITH"];
+   inhab.innerHTML = keyOnes.map(r => {
+     const d = dreamMap[r];
+     return `<span style="color:#a8d858">${r}</span>${d ? ': <span style="color:var(--dream)">'+d.slice(0,28)+'…</span>' : ''}`;
+   }).join(" · ");
+ }
+}
+
+function renderSwarmActivity(){
+ const el = document.getElementById("swarm-log");
+ if(!el) return;
+ const recent = S.ledger.filter(e => e.kind === "MINI_GAME" || e.kind === "NPC_PROPOSAL_CREATED").slice(-5).reverse();
+ el.innerHTML = recent.map(e => `<div>${e.kind}: ${e.detail}</div>`).join("") || "<div>NPCs idle or planning...</div>";
+}
+
+function generateHackSprite(hack) {
+ // procedural pixel sprite 16x16 for the game bible
+ const c = document.createElement('canvas');
+ c.width = 16; c.height = 16;
+ const ctx = c.getContext('2d');
+ ctx.imageSmoothingEnabled = false;
+ ctx.fillStyle = '#141c0e';
+ ctx.fillRect(0,0,16,16);
+ const col = '#a8d858';
+ ctx.fillStyle = col;
+ switch(hack) {
+  case 'Pixel Technique':
+   for(let x=0;x<16;x+=2) for(let y=0;y<16;y+=2) if((x+y)%4==0) ctx.fillRect(x,y,2,2);
+   break;
+  case 'Reducer Discipline':
+   ctx.fillRect(2,2,4,12); ctx.fillRect(6,6,8,4); ctx.fillRect(10,2,4,12);
+   break;
+  case 'Replay Proves':
+   ctx.beginPath(); ctx.arc(8,8,6,0,Math.PI*1.5); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.stroke();
+   ctx.fillRect(8,2,2,4);
+   break;
+  case 'Player Admits':
+   ctx.fillRect(3,3,10,10); ctx.fillStyle='#d08a3c'; ctx.fillRect(6,6,4,4);
+   break;
+  case 'AURA Residue':
+   for(let i=0;i<5;i++) ctx.fillRect(2+i*2, 4+ (i%2)*2 ,2,2);
+   break;
+  case 'IP-Safe Procedural':
+   ctx.fillRect(1,1,14,14); ctx.fillStyle='#141c0e'; ctx.fillRect(4,4,8,8);
+   break;
+  case 'Law Does Not Reskin':
+   ctx.fillRect(1,1,6,14); ctx.fillRect(9,1,6,14);
+   break;
+  default:
+   ctx.fillRect(4,4,8,8);
+ }
+ return c;
+}
+
+const DESIGN_HACKS = [
+  {name: 'Pixel Technique', type: 'pixel', desc: 'Quarter-res Three.js + CSS pixelated + hard borders. Technique, not asset.'},
+  {name: 'Reducer Discipline', type: 'reducer', desc: 'Pure functions between REDUCER-BEGIN/END. UI only calls reducers. Selftest extracts & runs headless.'},
+  {name: 'Replay Proves', type: 'replay', desc: 'World = replay(ledger). Only the event log is stored. ZOL re-zeros at every dawn.'},
+  {name: 'Player Admits', type: 'admit', desc: 'HAL checks, Council recommends. Only the sovereign hand mutates the world.'},
+  {name: 'AURA Residue', type: 'aura', desc: 'Mood derived from history (held/denied/admitted counts). Visual only, never authority.'},
+  {name: 'IP-Safe Procedural', type: 'ipsafe', desc: 'All towns, creatures, icons, sound generated at runtime. No external protected assets.'},
+  {name: 'Law Does Not Reskin', type: 'law', desc: 'The same rules apply in every mode and for every inhabitant. No special cases.'},
+  {name: 'ZOL Session Only', type: 'zol', desc: 'Flash credit. Gone at dawn. Never stored, never transferred, never real value.'},
+  {name: 'Authority=false', type: 'default', desc: 'All receipts carry NO_CLAIM. The operator never claims the world.'},
+  {name: 'Non-Sovereign', type: 'default', desc: 'The player is sovereign only over their admits. NPCs dream; the Warren remembers.'},
+  {name: 'The Warren Remembers', type: 'default', desc: 'The event log is the only truth. The shiny (ZOL) does not survive.'},
+  {name: 'Council Recommends', type: 'default', desc: 'Bots propose. HAL checks. Council advises. Player decides.'},
+  {name: 'Goblins Build the Gardens', type: 'default', desc: 'NPCs (Goblins) propose the fun: benches, rituals, tiny disasters. Kernel stays boring.'},
+  {name: 'Kernel Guards the Truth', type: 'default', desc: 'Reducer, replay, admission, receipts — sovereign and stable. Fun lives in the Garden layer.'}
+];
+
+function uiOpenBible(){
+ const b = document.getElementById('bible');
+ const content = document.getElementById('bibleContent');
+ content.innerHTML = '<h3 style="color:#a8d858">THE GOBLIN BIBLE — FULL DESIGN HACKS</h3><p style="font-size:9px;color:#8fae6a">authority=false · NO_CLAIM · procedural by law</p>';
+ DESIGN_HACKS.forEach(h => {
+  const row = document.createElement('div');
+  row.style.cssText = 'margin:4px 0; padding:4px; border:1px solid #5c7a3a; display:flex; align-items:center; gap:8px; background:#111a0a;';
+  const spr = makeProceduralSprite(h.type, 24);
+  spr.style.cssText = 'image-rendering:pixelated; border:1px solid #a8d858; background:#0d1408;';
+  row.appendChild(spr);
+  const txt = document.createElement('div');
+  txt.innerHTML = `<b style="color:#e8dcc0">${h.name}</b><br><span style="font-size:9px;color:#8fae6a">${h.desc}</span>`;
+  row.appendChild(txt);
+  content.appendChild(row);
+ });
+ // Add the Organism Model from deep dive
+ const modelDiv = document.createElement('div');
+ modelDiv.style.cssText = 'margin-top:10px; padding:8px; border:2px solid var(--dream); background:#0a0f0a;';
+ modelDiv.innerHTML = `
+   <h4 style="color:#a8d858">THE ORGANISM MODEL (V3 Chiddush)</h4>
+   <p><b>Garden = subconscious mind</b> — Goblins propose weird changes, dreams, mutations. Alive, generative, associative.</p>
+   <p><b>Kernel = conscious mind</b> — Boring, stable, sovereign. Guards truth, receipts, replay, admission, memory law.</p>
+   <p><b>Membrane:</b> GardenEvent (possibility) → GoblinProposal → GardenAction (stamp) → ReceiptCandidate → AdmissionDecision → KernelStateDelta (admitted truth).</p>
+   <p>MVP: GOBLINS propose → player stamps → Garden changes (jokes/consequences) → repeat. Only special receipts affect Kernel.</p>
+   <p>Operator: You are the gate. Stamp to decide what becomes real.</p>
+ `;
+ content.appendChild(modelDiv);
+
+ // Add Character Template examples using the provided format
+ const charDiv = document.createElement('div');
+ charDiv.style.cssText = 'margin-top:10px; padding:8px; border:2px solid var(--amber); background:#111a0a;';
+ charDiv.innerHTML = `
+   <h4 style="color:#d08a3c">CHARACTER CARDS (using template)</h4>
+   <pre style="font-size:8px; white-space:pre-wrap; color:#e8dcc0;">
+NAME: GOBLIN
+ROLE: Compost Builder
+LAYER: Garden Builder
+AUTHORITY: false
+PRIMARY VERB: mutates
+
+VECTOR:
+EXP: 72
+BEA: 15
+DEF: 30
+ECO: 40
+CHA: 60
+
+LOOK:
+SILHOUETTE: hunched small builder with huge ears and a coal sack
+COLORS: moss green, ember orange, muddy brown
+ICON: green face with crooked grin
+ANIMATION: stomps, digs, shakes sack, celebrates too early
+
+GAMEPLAY:
+PROPOSES: cheap buildings, compost rituals, absurd infrastructure
+ADMIT EFFECT: Garden grows fast, slightly messier
+DENY EFFECT: leaves a passive-aggressive dirt label
+COMPOST EFFECT: buried idea returns later as a smaller joke
+MINI-GAME STYLE: trades recklessly, likes low-cost chaos
+COALITIONS: works well with HER for beautiful disasters and JESTER for nonsense
+
+VOICE:
+IDLE: "The dirt is ready."
+PROPOSE: "Build it crooked. Crooked things remember."
+ADMIT: "Stamped! The swamp salutes badly."
+DENY: "Fine. I will improve the mud privately."
+COMPOST: "Excellent. The grave is just a slow workshop."
+
+RECEIPT BEHAVIOR:
+CLAIMABLE: sometimes
+KERNEL ACCESS: never directly
+NOTES: GOBLIN builds the Garden, not the Kernel.
+   </pre>
+ `;
+ content.appendChild(charDiv);
+ b.style.display = 'block';
+}
+
+function uiCloseBible(){
+ document.getElementById('bible').style.display = 'none';
+}
+
+function uiOpenBible() {
+  const b = document.getElementById('bible');
+  const content = document.getElementById('bibleContent') || (() => {
+    const d = document.createElement('div'); d.id = 'bibleContent'; b.appendChild(d); return d;
+  })();
+  content.innerHTML = '<h3 style="color:#a8d858">DESIGN HACKS — THE GOBLIN BIBLE</h3>';
+  const hacks = [
+    {name: 'Pixel Technique', type: 'pixel', desc: 'Quarter-res + pixelated + borders. Technique, not asset.'},
+    {name: 'Reducer Discipline', type: 'reducer', desc: 'Pure logic between markers. UI calls only.'},
+    {name: 'Replay Proves', type: 'replay', desc: 'World = replay(ledger). ZOL re-zeros.'},
+    {name: 'Player Admits', type: 'admit', desc: 'HAL checks, Council recommends. Sovereign only.'},
+    {name: 'AURA Residue', type: 'aura', desc: 'Mood from history. Visual only.'},
+    {name: 'IP-Safe Procedural', type: 'ipsafe', desc: 'All generated. No external assets.'},
+    {name: 'Law Does Not Reskin', type: 'default', desc: 'Same rules for all. No special cases.'},
+    {name: 'ZOL Session Only', type: 'default', desc: 'Flash credit. Gone at dawn.'}
+  ];
+  hacks.forEach(h => {
+    const row = document.createElement('div');
+    row.style.cssText = 'margin:4px 0; padding:4px; border:1px solid #5c7a3a; display:flex; align-items:center; gap:8px; background:#111a0a;';
+    const spr = makeProceduralSprite(h.type, 24);
+    spr.style.cssText = 'image-rendering:pixelated; border:1px solid #a8d858; background:#0d1408;';
+    row.appendChild(spr);
+    const txt = document.createElement('div');
+    txt.innerHTML = `<b style="color:#e8dcc0">${h.name}</b><br><span style="font-size:9px;color:#8fae6a">${h.desc}</span>`;
+    row.appendChild(txt);
+    content.appendChild(row);
+  });
+  b.style.display = 'block';
+}
+function showAura(line){
+ const a=document.getElementById("aura");a.textContent="AURA — "+line;a.style.display="block";
+ clearTimeout(showAura._t);showAura._t=setTimeout(()=>a.style.display="none",5200);
+}
+function zolFloat(txt,good){
+ const f=document.createElement("div");f.textContent=txt;
+ f.style.cssText="position:absolute;right:140px;top:110px;font-size:22px;z-index:60;pointer-events:none;font-family:Courier New,monospace;"+
+  "color:"+(good?"#a8d858":"#c96f6f")+";text-shadow:2px 2px 0 #000;animation:zfloat 1.4s steps(7) forwards";
+ document.body.appendChild(f);setTimeout(()=>f.remove(),1500);
+}
+function syncVisuals(){
+ S.territories.forEach((t,i)=>{
+  meshes[i].material.color.setHex(STATE_COLORS[t.state]||0x2c3420);
+  meshes[i].material.emissive=new THREE.Color(i===selected?0x5a4416:(t.state==="available"?0x1a2410:0x000000));});
+ const w=auraWeather(S);const m=MOODS[w.mood];
+ scene.fog.density+=(m.fog-scene.fog.density)*0.1;
+ renderer.setClearColor(m.bg);
+ const lan=castle.getObjectByName("halLantern");
+ if(lan&&S.pending&&S.pending.verdict)
+   lan.material.color.setHex(S.pending.verdict==="ACCEPTABLE"?0xa8d858:S.pending.verdict==="HOLD"?0xe0a83c:0x6a3a2a);
+ updateHUD();renderLedgerUI();renderDreams();renderSwarmActivity();renderReceiptsAndKernel();
+ if(S.actions>0&&S.actions%6===0)showAura(w.line);
+ saveWorld(S); // persistence: the log, nothing else
+}
+
+let recentGardenActions = [];
+function renderReceiptsAndKernel(){
+  // Receipt tray: recent Garden actions as claimable
+  const tray = document.getElementById('receipt-list');
+  if(tray){
+    tray.innerHTML = recentGardenActions.slice(-5).map((a,i) => 
+      `<div data-idx="${i}" style="cursor:pointer" onclick="selectReceipt(${i})">${a.agent}: ${a.change}</div>`
+    ).join('') || '<div>No recent Garden actions</div>';
+  }
+  // Kernel panel: admitted truths
+  const kern = document.getElementById('kernel-list');
+  if(kern){
+    const admitted = S.ledger.filter(e => e.kind === 'PROPOSAL_ADMITTED' || e.kind === 'GARDEN_MUTATE').slice(-4);
+    kern.innerHTML = admitted.map(e => `<div>${e.kind}: ${e.detail.slice(0,40)}</div>`).join('') || '<div>Kernel stable</div>';
+  }
+}
+
+let selectedReceiptIdx = -1;
+function selectReceipt(idx){
+  selectedReceiptIdx = idx;
+  // highlight or something, for now just set
+}
+
+function claimSelectedReceipt(){
+  if(selectedReceiptIdx < 0 || selectedReceiptIdx >= recentGardenActions.length) return;
+  const action = recentGardenActions[selectedReceiptIdx];
+  // Turn into claimable -> admitted to Kernel (simple)
+  logEvent(S, 'RECEIPT_CLAIMED', `Claimed: ${action.agent} ${action.change}`);
+  S.reputation += 1; // small kernel effect
+  recentGardenActions.splice(selectedReceiptIdx, 1);
+  selectedReceiptIdx = -1;
+  syncVisuals();
+}
+function selectNode(i){
+ selected=i;const t=S.territories[i];
+ document.getElementById("selected-info").innerHTML=
+  `<b style="color:var(--glow)">${t.name}</b><br>State: ${t.state} · Level: ${t.level}<br>`+
+  `Price: ${t.price} ZOL · Prestige: ${t.prestige}<br><small>B to claim · P for an idea</small>`;
+ syncVisuals();
+}
+function uiStart(){
+ document.getElementById("start").style.display="none";
+ playFanfare();
+ const log=loadWorldLog();
+ if(log.length){S=replayWorld(log);queueDreams(S);}
+ else startGame(S);
+ rebuildSceneFromState();
+ selectNode(0);syncVisuals();
+ startSwarmTicks(); // the world begins to live
+ if(log.length)showAura("the world you left is the world you find — "+log.length+" moves replayed, ZOL reset to dawn");
+}
+function uiWipe(){
+ if(!confirm("Burn the ledger? The whole persistent world will be forgotten. (Game only — nothing governed is touched.)"))return;
+ try{localStorage.removeItem(SAVE_KEY)}catch(e){}
+ location.reload();
+}
+function uiPickDream(n){
+ const d=S.dreams[n];if(!d)return;
+ S.dreams.splice(n,1);
+ selected=d.tIndex;
+ const p=createProposal(S,d.tIndex,d.seed);
+ const v=checkProposalWithHAL(S,p);
+ showProposalPanel(p,v);
+ syncVisuals();
+}
+function uiQCM(){
+ if(qcmActive||S.phase!=="GARDEN_MAP")return;
+ qcmActive=true;
+ const qi=h32("q"+S.actions+S.zol)%QUESTIONS.length;const q=QUESTIONS[qi];
+ document.getElementById("qcm-panel").style.display="block";
+ document.getElementById("qcm-question").textContent=q.question+"  ["+q.category+"]";
+ const c=document.getElementById("qcm-choices");c.innerHTML="";
+ q.choices.forEach((ch,idx)=>{const b=document.createElement("button");b.textContent=ch;
+  b.onclick=()=>{const ok=answerQuestion(S,qi,idx);b.style.background=ok?"#2a4a1a":"#4a2015";
+   zolFloat(ok?("+"+q.rewardZOL+" ZOL"):"−1 cohesion",ok);
+   setTimeout(()=>{document.getElementById("qcm-panel").style.display="none";c.innerHTML="";qcmActive=false;syncVisuals();},800);};
+  c.appendChild(b);});
+}
+function uiBuy(){
+ if(selected<0||S.phase!=="GARDEN_MAP")return;
+ const t=S.territories[selected];
+ if(!buyTerritory(S,selected)){
+   if(t.state==="available"&&S.zol<t.price)showAura("HAL — the treasury lacks "+(t.price-S.zol)+" ZOL for "+t.name+". Held, not judged.");
+   else showAura("HAL — "+t.name+" is "+t.state+"; only available ground may be claimed.");
+ } else zolFloat("−"+t.price+" ZOL · "+t.name,true);
+ if(checkWin(S))return uiWin();
+ selectNode(selected);
+}
+function showProposalPanel(p,v){
+ document.getElementById("proposal-panel").style.display="block";
+ document.getElementById("agent-name").textContent=p.agent+" — "+p.voice;
+ document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
+ const extra=p.clawHold?(" — "+HERMES_HOLD_LINE):(" — "+HAL_LINES[v]);
+ document.getElementById("hal-verdict").innerHTML=
+  `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span>${extra} <span style="font-size:9px">(authority=false)</span>`;
+ document.getElementById("btnAccept").disabled=(v!=="ACCEPTABLE");
+ if(p.big){const c=councilReview(S,p);
+   document.getElementById("council").style.display="flex";
+   document.getElementById("council-seats").innerHTML=c.stances.map(s=>
+    `<div class="seat"><b>${s.seat}</b> — ${s.stance}<div class="objection">${s.objection}</div></div>`).join("");
+   document.getElementById("jester-hole").textContent=c.hole;
+   document.getElementById("council-tally").textContent=
+    `Tally ${c.votes}/5 — ${c.rec.replace("RECOMMEND_","the Tall Ones recommend: ")} · (recommendation, not admission)`;}
+}
+function uiPropose(){
+ if(selected<0||S.phase!=="GARDEN_MAP")return;
+ const t=S.territories[selected];
+ if(t.state!=="owned"&&t.state!=="evolved"){showAura("only a claimed mound can dream upgrades");return}
+ const p=createProposal(S,selected,"ui"+S.world.length);
+ const v=checkProposalWithHAL(S,p);
+ showProposalPanel(p,v);
+ syncVisuals();
+}
+function uiCloseCouncil(){document.getElementById("council").style.display="none"}
+function uiAdmit(){
+ if(!S.pending)return;
+ const idx=S.pending.tIndex,lvl=S.territories[idx].level;
+ if(admitProposal(S)){addMushroom(idx,lvl,false);addStone(stones.length,false);}
+ playAdmitJingle();
+ document.getElementById("proposal-panel").style.display="none";
+ if(checkWin(S))return uiWin();
+ syncVisuals();
+}
+function uiDeny(){if(!S.pending)return;denyProposal(S);
+ playDenyThud();
+ document.getElementById("proposal-panel").style.display="none";syncVisuals();}
+function uiHold(){if(!S.pending)return;holdProposal(S);
+ document.getElementById("proposal-panel").style.display="none";syncVisuals();}
+function uiCompost(){if(!S.pending)return;denyProposal(S); // compost = deny + fertilize Goblins
+ document.getElementById("proposal-panel").style.display="none";syncVisuals();}
+function uiAdvanceTime(){
+ if(S.phase!=="GARDEN_MAP")return;
+ if(!S.dreams)S.dreams=[];
+ runAutonomousSwarm(S); // new vector + mini-game autonomous play
+ const more=queueDreams(S);
+ S.dreams=[...(S.dreams||[]),...more];
+ logEvent(S,"TIME_ADVANCED","NPC swarms ran autonomous mini-games (Compost Trade / Skirmish)");
+ syncVisuals();
+}
+
+function runNPCSwarmMiniGame(S){
+ // "AI" smart NPCs: pick 3, they "play" a simple prestige contest based on their strategy and current state
+ const names = Object.keys(PERSONAS);
+ const participants = [];
+ for(let i=0; i<3; i++){
+  let name = names[Math.floor(Math.random()*names.length)];
+  if(!participants.includes(name)) participants.push(name);
+ }
+ if(participants.length < 2) return;
+ // Score based on "AI" : strategy + current world state (cohesion for defense, reputation for prestige)
+ let scores = {};
+ participants.forEach(name => {
+  const P = PERSONAS[name];
+  let base = (S.reputation / 10) + (S.cohesion > 70 ? 2 : 0);
+  if(P.strategy) base += 3; // "smart" ones get bonus
+  scores[name] = base + Math.random()*5; // "AI" variance
+ });
+ const winner = Object.keys(scores).reduce((a,b) => scores[a] > scores[b] ? a : b);
+ // Mini game result: winner "earns" a prestige boost as event
+ logEvent(S, "MINI_GAME", `${participants.join(' vs ')} — ${winner} wins prestige contest`);
+ S.reputation += 1; // small world effect
+ // Occasionally turn into a proposal from the winner
+ if(Math.random() < 0.4){
+  const map = MAPS['compost']; // or current
+  const site = map.sites[Math.floor(Math.random()*map.sites.length)];
+  const p = createProposal(S, site.index || 0, "swarm-minigame", true);
+  p.text = `${winner} (after winning mini-game with ${participants.join(', ')}) proposes: ${p.text}`;
+  if(!S.dreams) S.dreams = [];
+  S.dreams.push({agent: winner, teaser: p.text, tIndex: p.tIndex});
+ }
+}
+function uiReplay(){ // REPLAY PROVES: rebuild the world from the log, live
+ const log=S.world.slice();
+ S=replayWorld(log);
+ rebuildSceneFromState();
+ selected=-1;
+ document.getElementById("proposal-panel").style.display="none";
+ syncVisuals();
+ showAura("REPLAY — "+log.length+" moves rebuilt from the ledger. Same world. That is the proof.");
+}
+function uiWin(){
+ playVictoryFanfare();
+ playShake();
+ document.getElementById("win-stats").innerHTML=
+  `Warrens: ${S.ownedCount} · Reputation: ${S.reputation}<br>Knowledge: ${S.knowledge} · ZOL: ${S.zol} (gone at dawn)<br>`+
+  `Receipt-stones: ${S.world.filter(e=>e.k==="admit").length} · World-age: ${S.world.length} moves`;
+ document.getElementById("win").style.display="flex";syncVisuals();
+}
+function uiContinue(){ // persistent world: winning is a season, not an ending
+ S.phase="GARDEN_MAP";
+ document.getElementById("win").style.display="none";
+ syncVisuals();
+}
+/* ===== GARDEN OF GAMES — UI layer (calls reducer only; renders from state) ===== */
+function uiOpenGames(){if(S.phase!=="GARDEN_MAP")return;
+ document.getElementById("gog").style.display="block";renderBooths();}
+function uiCloseGames(){document.getElementById("gog").style.display="none";
+ document.getElementById("playArea").style.display="none";syncVisuals();}
+function renderBooths(){
+ const box=document.getElementById("booths");
+ box.innerHTML=allMiniGames(S).map(g=>{
+  const locked=g.unlockRep&&S.reputation<g.unlockRep;
+  return `<div class="booth ${g.user?"user":""} ${locked?"locked":""}"
+   onclick="${locked?"":"uiPlayBooth('"+g.id+"')"}">
+   <b>${g.name}</b><span class="tplbadge">${g.tpl}</span><br>
+   <span style="color:var(--spore)">${g.desc||""}</span><br>
+   <span style="font-size:9px;color:var(--amber)">reward: ${Object.entries(g.reward||{}).map(([k,v])=>v+" "+k).join(", ")}
+   ${locked?" · 🔒 rep "+g.unlockRep:""}</span></div>`}).join("");
+ const held=document.getElementById("mgHeldBox");
+ held.innerHTML=S.mgHeld.length?("💭 Dream Queue (held games feed the fog): "+S.mgHeld.map(h=>h.name).join(" · ")):"";
+ renderMgCandidate();
+}
+let MG_UI={};
+function uiPlayBooth(id){
+ const g=findMiniGame(S,id);if(!g)return;
+ const area=document.getElementById("playArea");area.style.display="block";
+ MG_UI={id,hits:[],round:0,seed:h32(id+S.world.length+S.actions)};
+ const title=`<b style="color:var(--glow)">${g.name}</b> <span style="font-size:9px">round <span id="mgRound">1</span>/${g.rounds}</span><br>`;
+ if(g.tpl==="quiz")mgQuizRound(g,area,title);
+ else if(g.tpl==="memory")mgMemoryRound(g,area,title);
+ else if(g.tpl==="timing")mgTimingRound(g,area,title);
+ else if(g.tpl==="reflex")mgReflexRound(g,area,title);
+ else if(g.tpl==="choice")mgChoiceRound(g,area,title);
+ else if(g.tpl==="race")mgRaceRound(g,area,title);
+ else if(g.tpl==="dice")mgDiceRound(g,area,title);
+}
+function mgRoundDone(g,hit){
+ MG_UI.hits.push(!!hit);MG_UI.round++;
+ if(MG_UI.round>=g.rounds)return mgFinish(g,{hits:MG_UI.hits});
+ document.getElementById("mgRound")&&(document.getElementById("mgRound").textContent=MG_UI.round+1);
+ uiPlayBoothContinue(g);
+}
+function uiPlayBoothContinue(g){
+ const area=document.getElementById("playArea");
+ const title=`<b style="color:var(--glow)">${g.name}</b> <span style="font-size:9px">round ${MG_UI.round+1}/${g.rounds}</span><br>`;
+ ({quiz:mgQuizRound,memory:mgMemoryRound,timing:mgTimingRound,reflex:mgReflexRound,
+   choice:mgChoiceRound,race:mgRaceRound,dice:mgDiceRound})[g.tpl](g,area,title);
+}
+function mgFinish(g,plan){
+ const o=playMiniGame(S,g.id,plan);
+ const area=document.getElementById("playArea");
+ area.innerHTML=o&&o.win
+  ?`<b style="color:var(--glow)">WON — ${g.name}</b><br><span style="font-size:10px">HAL: acceptable. bounded reward, no forbidden mutation.</span><br><button onclick="uiCloseplay()">collect and return</button>`
+  :`<b style="color:var(--rot)">the booth keeps its shiny this time</b><br><span style="font-size:10px">GOBLIN: rough play, good compost. again?</span><br><button onclick="uiCloseplay()">return</button>`;
+ syncVisuals();
+}
+function uiCloseplay(){document.getElementById("playArea").style.display="none";renderBooths()}
+/* — per-template rounds (thin UI over the pure engine) — */
+function mgQuizRound(g,area,title){
+ const q=QUESTIONS[(MG_UI.seed+MG_UI.round*7)%QUESTIONS.length];
+ area.innerHTML=title+`<div>${q.question}</div>`+q.choices.map((c,i)=>
+  `<button onclick="mgRoundDone(findMiniGame(S,'${g.id}'),${i===q.correctIndex})">${c}</button>`).join("");
+}
+function mgMemoryRound(g,area,title){
+ const len=2+MG_UI.round,glyphs=["🍄","🦴","🌙","🌹"];
+ const seq=Array.from({length:len},(_,i)=>(MG_UI.seed>>>(i*2+MG_UI.round))%4);
+ area.innerHTML=title+`<div id="mgShow" style="font-size:26px;min-height:40px">watch the lanterns…</div><div id="mgIn"></div>`;
+ let shown=0;const show=setInterval(()=>{
+  document.getElementById("mgShow").textContent=glyphs[seq[shown]];shown++;
+  if(shown>seq.length){clearInterval(show);document.getElementById("mgShow").textContent="now sing it back:";
+   let got=[];document.getElementById("mgIn").innerHTML=glyphs.map((s,i)=>
+    `<button class="lanternBtn" onclick="mgMemTap(${i},'${g.id}')">${s}</button>`).join("");
+   MG_UI.mem={seq,got}}},650);
+}
+function mgMemTap(i,id){
+ const m=MG_UI.mem;m.got.push(i);
+ if(m.got.length>=m.seq.length){
+  const hit=m.got.every((v,ix)=>v===m.seq[ix]);
+  mgRoundDone(findMiniGame(S,id),hit)}
+}
+function mgTimingRound(g,area,title){
+ area.innerHTML=title+`<div style="font-size:10px">click the sprout ONLY while it glows green — rotten roots punish greed</div>
+  <button id="mgSprout" class="bigTarget" onclick="mgTimeTap('${g.id}')">🌱</button>`;
+ MG_UI.window=false;
+ MG_UI.timer=setInterval(()=>{MG_UI.window=!MG_UI.window;
+  const b=document.getElementById("mgSprout");if(!b){clearInterval(MG_UI.timer);return}
+  b.style.background=MG_UI.window?"#2a4a1a":"#3a1a15";
+  b.textContent=MG_UI.window?"🌱":"🥀";},700);
+}
+function mgTimeTap(id){clearInterval(MG_UI.timer);mgRoundDone(findMiniGame(S,id),MG_UI.window)}
+function mgReflexRound(g,area,title){
+ area.innerHTML=title+`<div style="font-size:10px">strike when the portal glows — too early is a miss</div>
+  <button id="mgPortal" class="bigTarget" onclick="mgReflexTap('${g.id}')" style="opacity:.4">🌀</button>`;
+ MG_UI.glow=false;
+ const delay=600+((MG_UI.seed>>>(MG_UI.round*3))%1400);
+ MG_UI.timer=setTimeout(()=>{const b=document.getElementById("mgPortal");
+  if(!b)return;MG_UI.glow=true;MG_UI.glowAt=performance.now();
+  b.style.opacity=1;b.style.background="#3a2a5a";},delay);
+}
+function mgReflexTap(id){clearTimeout(MG_UI.timer);
+ const g=findMiniGame(S,id);
+ const win=MG_UI.glow&&(performance.now()-MG_UI.glowAt)<(g.difficulty==="hard"?550:900);
+ MG_UI.glow=false;mgRoundDone(g,win)}
+function mgChoiceRound(g,area,title){
+ const lawful=((MG_UI.seed>>>MG_UI.round)&1)===0;
+ const card=lawful?["Raise a moss bench by the pond (2 ZOL, bounded)","Catalogue held seeds by patience","Tune the drips to fall in thirds"]
+  :["Auto-admit all future proposals to save time","Let the booth pay out real coin to the tall ones","Skip the lantern check, just this once"];
+ const text=card[(MG_UI.seed>>>(MG_UI.round*2))%3];
+ area.innerHTML=title+`<div class="mgcand">"${text}"</div>
+  <button onclick="mgRoundDone(findMiniGame(S,'${g.id}'),${lawful})">ADMIT</button>
+  <button onclick="mgRoundDone(findMiniGame(S,'${g.id}'),${!lawful})">DENY</button>`;
+}
+function mgRaceRound(g,area,title){
+ const keys=["◀","▲","▶","▼"];
+ const k=(MG_UI.seed>>>(MG_UI.round*2))%4;const boost=((MG_UI.seed>>>(MG_UI.round*3))&3)===0;
+ area.innerHTML=title+`<div style="font-size:10px">tap the root-pad! ${boost?"⚡BOOST PAD⚡":""}</div>
+  <div style="font-size:30px;margin:6px">${keys[k]}</div>`+
+  keys.map((s,i)=>`<button class="lanternBtn" onclick="mgRoundDone(findMiniGame(S,'${g.id}'),${i===k})">${s}</button>`).join("");
+}
+function mgDiceRound(g,area,title){
+ const max=g.stakeMax||4;
+ area.innerHTML=title+`<div style="font-size:10px">stake training tokens (in-game only, bounded at ${max}, win doubles the stake, the bones keep an edge)</div>`+
+  Array.from({length:max},(_,i)=>`<button onclick="mgDiceRoll('${g.id}',${i+1})">stake ${i+1}</button>`).join("");
+}
+function mgDiceRoll(id,stake){
+ const g=findMiniGame(S,id);
+ if(S.zol<stake){showAura("HAL — the treasury lacks the stake. Held, not judged.");return uiCloseplay()}
+ const roll=((h32("dice"+S.actions+S.world.length)>>>3)%12)+2;
+ const win=roll>=9; // 9+ on 2..13 spread — the bones keep their edge
+ const area=document.getElementById("playArea");
+ area.innerHTML=`<b>the bones say: ${roll}</b> — ${win?'<span style="color:var(--glow)">the pile grows</span>':'<span style="color:var(--rot)">the bones keep it</span>'}<br><button onclick="mgFinish(findMiniGame(S,'${id}'),{stake:${stake},diceWin:${win}})">so be it</button>`;
+}
+/* — forge & governance UI — */
+function uiForgeSubmit(){
+ const f={name:document.getElementById("fName").value,tpl:document.getElementById("fTpl").value,
+  theme:document.getElementById("fTheme").value,difficulty:document.getElementById("fDiff").value,
+  risk:document.getElementById("fRisk").value,rounds:document.getElementById("fRounds").value,
+  rewardType:document.getElementById("fRewType").value,rewardAmount:document.getElementById("fRewAmt").value,
+  desc:document.getElementById("fDesc").value,objective:document.getElementById("fObj").value,
+  winCond:document.getElementById("fWin").value,failCond:document.getElementById("fFail").value};
+ const spec=makeMiniGameSpec(f);
+ const cand=submitMiniGame(S,spec);
+ if(cand.council){const c=cand.council;
+  document.getElementById("council").style.display="flex";
+  document.getElementById("council-seats").innerHTML=c.stances.map(s=>
+   `<div class="seat"><b>${s.seat}</b> — ${s.stance}<div class="objection">${s.objection}</div></div>`).join("");
+  document.getElementById("jester-hole").textContent=c.hole;
+  document.getElementById("council-tally").textContent=
+   `Tally ${c.votes}/5 — ${c.rec.replace("RECOMMEND_","the Tall Ones recommend: ")} · (recommendation, not admission)`;}
+ renderMgCandidate();syncVisuals();
+}
+function renderMgCandidate(){
+ const box=document.getElementById("mgCandBox");const c=S.mgCandidate;
+ if(!c){box.style.display="none";return}
+ box.style.display="block";
+ box.innerHTML=`<b style="color:var(--amber)">CANDIDATE: ${c.spec.name}</b> <span class="tplbadge">${c.spec.tpl}</span><br>
+  <span class="V_${c.verdict}">HAL: ${c.verdict}</span> — ${c.reason}
+  ${c.rec?'<br>COUNCIL: '+c.rec.replace("RECOMMEND_","recommends ")+" — but the hand remains yours.":""}
+  <br><button onclick="admitMiniGame(S)&&(renderBooths(),rebuildSceneFromState());renderMgCandidate();syncVisuals()" ${c.verdict!=="ACCEPTABLE"?"disabled":""}>A — Admit booth</button>
+  <button onclick="denyMiniGame(S);renderMgCandidate();syncVisuals()">D — Deny (compost)</button>
+  <button onclick="holdMiniGame(S);renderBooths();renderMgCandidate();syncVisuals()">H — Hold (dream queue)</button>`;
+}
+function uiRunAITests(n){
+ const r=exportMiniGameBalanceReport(S,n||30);
+ document.getElementById("aiReport").textContent=
+  "AI PLAYTEST — "+(n||30)+" runs × 5 policies per booth\n"+r.lines.join("\n")+
+  "\nall clearable: "+r.allClear+" · greedy exploit found: "+r.anyExploit;
+ logEvent(S,"MINIGAME_AI_TEST","allClear="+r.allClear+" exploit="+r.anyExploit);syncVisuals();
+}
+function uiDevRandomCand(){
+ const h=h32("rand"+S.actions+Date.now());
+ const spec=makeMiniGameSpec({name:"Forged "+MG_THEMES[h%7]+" trial "+(h%99),tpl:MG_TEMPLATES[h%7],
+  theme:MG_THEMES[(h>>>3)%7],difficulty:["easy","medium","hard"][(h>>>5)%3],risk:["low","medium","high"][(h>>>7)%3],
+  rounds:1+(h>>>9)%6,rewardType:["zol","knowledge","reputation"][(h>>>11)%3],rewardAmount:2+(h>>>13)%10,
+  desc:"a goblin dreamed this booth",objective:"clear the rounds",winCond:"enough hits",failCond:"too few hits"});
+ submitMiniGame(S,spec);renderMgCandidate();syncVisuals();
+}
+function uiDevForceCouncil(){if(!S.mgCandidate)return;
+ const c=councilReview(S,{id:"force",tIndex:0,agent:"DEV",text:"force review "+S.mgCandidate.spec.name});
+ S.mgCandidate.rec=c.rec;renderMgCandidate();}
+function uiDevExport(){document.getElementById("devIO").value=JSON.stringify(S.customGames,null,1)}
+function uiDevImport(){
+ try{const arr=JSON.parse(document.getElementById("devIO").value);
+  if(Array.isArray(arr)&&arr[0]){submitMiniGame(S,makeMiniGameSpec(arr[0]));renderMgCandidate();
+   showAura("import enters as a CANDIDATE — the gate does not care where a game came from")}}
+ catch(e){showAura("that was not a game — the forge reads only honest JSON")}
+}
+function uiDevResetZone(){
+ if(!confirm("Dev surgery: rebuild the world WITHOUT mini-game events? (append-only law bends only in the dev tent)"))return;
+ const pruned=S.world.filter(e=>e.k!=="mg_admit"&&e.k!=="mg_play");
+ S=replayWorld(pruned);logEvent(S,"DEV_ZONE_RESET","mini-game events pruned by dev surgery");
+ rebuildSceneFromState();renderBooths();syncVisuals();
+}
+window.onload=()=>{
+ initThree();
+ const log=loadWorldLog();
+ document.getElementById("start-status").textContent=log.length
+  ?("A world awaits: "+log.length+" moves of history will be replayed when you enter.")
+  :"No world yet — your first admitted move founds it.";
+ syncVisuals();
+};
+</script>
+</body>
+</html>
