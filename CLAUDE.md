@@ -9,10 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-node selftest.js index.html   # the entire test suite: 29 assertions, exit 1 on any failure
+# Run the full test suite (exit code 1 on any assertion failure)
+node selftest.js index.html
 ```
 
-There is no build, lint, or package.json. To play, open `index.html` in a browser (needs network once for the Three.js CDN). There is no way to run a single assertion — the selftest is one sequential script that walks the full game loop; run it whole.
+No build, lint, or package.json. The selftest cannot run individual assertions — it's a sequential script that preserves state; run it whole.
+
+To play: open `index.html` in any browser (one-time network access required for Three.js CDN).
+- Controls: click mounds · `Q` riddles · `B` claim site · `P` goblin proposal · `A`/`D`/`H` admit/deny/hold · `R` restart
+- ZOL (Session Flash Credit) is earned by answering riddles correctly and spent to buy territory
+- Win by owning 7 territories or reaching reputation ≥100
 
 ## Architecture: the reducer seam
 
@@ -26,6 +32,33 @@ Consequences:
 - `selftest.js` re-exports `QUESTIONS`, `PERSONAS`, `TERRITORY_DEFS` onto `globalThis` by name after eval; renaming those consts breaks the harness.
 - Determinism inside the reducer comes from the FNV hash `h32` seeded by state (`S.actions`, names) — no `Math.random`/`Date` in the reducer zone.
 
+### Game state (S object)
+
+Key properties modified by reducer functions:
+- `phase` — current game phase (`"START"`, `"GARDEN_MAP"`, `"GAME_WON"`)
+- `zol` — current Session Flash Credit balance (integer)
+- `knowledge` — how many riddles answered correctly (unlocks territories)
+- `cohesion` — starts at 100; wrong answers cost 1 point
+- `reputation` — earned from territory admission; win condition is ≥100
+- `ownedCount` — number of owned territories; win condition is ≥7
+- `territories` — array of 12 sites with state (`"available"`, `"locked"`, `"owned"`) and level (0–5)
+- `compost` — GOBLIN's accumulated denied proposals (raises proposal weight)
+- `held` — AURA's accumulated held proposals (affects mood via `auraWeather`)
+- `pending` — current proposal object being evaluated
+- `ledger` — array of event objects (capped at 250)
+
+### Test coverage (29 assertions)
+
+`selftest.js` validates:
+- **Boot**: 12 territories, 4 available initially, QCM ≥20 with correct shape
+- **Core loop**: `startGame`, `answerQuestion`, `buyTerritory` state mutations and event logging
+- **HAL verdicts**: DENY (locked/bypass), HOLD (insufficient ZOL), ACCEPTABLE (lawful)
+- **Admission gate**: `admitProposal` refuses non-ACCEPTABLE; only admits evolves territories
+- **Persona feedback**: denied proposals feed GOBLIN compost; held feed AURA fog
+- **Council mechanics**: 5 seats with forced self-objections; council mutates only ledger
+- **Win condition**: 7 territories triggers `GAME_WON`
+- **Determinism**: `auraWeather` derived purely from state
+
 ## Governance invariants (the point of the game — do not weaken)
 
 The selftest asserts these as law; any change must keep them true:
@@ -38,6 +71,33 @@ The selftest asserts these as law; any change must keep them true:
 - HAL text-denies bypass-shaped proposals (`/bypass|without admission|skip the gate|auto-?admit/i`).
 
 The header comment discipline (`authority=false · claim=NO_CLAIM · non-sovereign`) mirrors the wider HELEN project's receipt convention — keep it in place when editing.
+
+### Key constants
+
+- `TERRITORY_DEFS` — array of [name, startPrice] pairs; 12 territories total with escalating prices (7–20)
+- `PORTALS=[9,10,11]` — indices that trigger council review when targeted; part of tested design
+- `QUESTIONS` — array of QCM objects with required keys: `question`, `choices`, `correctIndex`, `rewardZOL`, `category`; minimum 20 required; tested on boot
+- `PERSONAS` — array of proposal-maker characters (GOBLIN, AURA, RUNT, THRALL, WREN); each carries different proposal themes and self-objections for council seats
+
+### Event ledger structure
+
+Events log all game moves via `logEvent(S, kind, data)`. Each entry has:
+- `kind` — event type (`GAME_STARTED`, `QUESTION_ANSWERED_CORRECT`, `QUESTION_ANSWERED_WRONG`, `TERRITORY_BOUGHT`, `PROPOSAL_ADMITTED`, `PROPOSAL_DENIED`, `PROPOSAL_HELD`, `COUNCIL_CONVENED`, `COUNCIL_RECOMMENDED`, `GAME_WON`, `ZOL_EARNED`, `GARDEN_EVOLVED`, `HAL_CHECK_PASSED`)
+- `data` — event-specific payload (e.g., territory index, amount, persona name)
+- timestamp (implicit from insertion order)
+
+Ledger is capped at 250 entries; oldest entries drop when new ones exceed limit. UI renders recent entries in "THE MIDDEN LEDGER" panel.
+
+## UI and debugging
+
+The Three.js renderer and UI (after `REDUCER-END`) follow a unidirectional pattern:
+- UI functions like `uiQCM()`, `uiBuy()`, `uiPropose()` collect user input and call reducer functions
+- Reducer always returns `true` (success) or `false` (rejected)
+- UI updates the DOM based on new state and rerenders the Three.js scene
+
+To debug game state: open browser console and inspect `window.S` to see current state, ledger, and pending proposal. Print to console is the primary debugging method (no debugger breakpoints work well with the render loop).
+
+To verify a change: always run `node selftest.js index.html` after editing reducer code; if it exits 0, the change is safe. If a test fails, the error message points to which invariant broke.
 
 ## Content rules
 
