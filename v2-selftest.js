@@ -83,6 +83,36 @@ const lvl = S.territories[0].level;
 ok(admitProposal(S) === true && S.territories[0].level === lvl + 1, "admit evolves territory");
 ok(has(S, "PROPOSAL_ADMITTED") && has(S, "GARDEN_EVOLVED") && has(S, "HAL_CHECK_PASSED"), "admit event trio");
 
+// --- Tier 1: verdict-as-function. Authority is re-evaluated at ADMIT time,
+//     never read from the cached p.verdict projection. Boundary:
+//     p.verdict ⊬ admission ; verdict(S,p) ⊢ admission. ---
+// (1) ZOL spent AFTER an ACCEPTABLE check must flip admission to denied — no stale-verdict underflow.
+{
+  let Sz = makeState(); startGame(Sz); Sz.zol = 100;
+  buyTerritory(Sz, 0); // own territory 0
+  const pk = pickProposalAgent(Sz, 0, "zol-after-check");
+  const pz = createProposal(Sz, 0, pk.agent, "a fine mound idea", pk.voice, 8, false);
+  ok(checkProposalWithHAL(Sz, pz) === "ACCEPTABLE", "T1: check passes while ZOL sufficient");
+  ok(pz.verdict === "ACCEPTABLE", "T1: cached projection is ACCEPTABLE at check time");
+  Sz.zol = 3; // drain ZOL below cost AFTER the check but BEFORE admit
+  const zolBeforeAdmit = Sz.zol, lvlBefore = Sz.territories[0].level;
+  ok(admitProposal(Sz) === false, "T1: admit DENIED when ZOL spent after check (stale ACCEPTABLE not trusted)");
+  ok(Sz.zol === zolBeforeAdmit, "T1: denied admit deducts no ZOL (no underflow, exact economics held)");
+  ok(Sz.territories[0].level === lvlBefore, "T1: denied admit does not evolve territory");
+}
+// (2) Proposal text rerolled to bypass-shaped AFTER an ACCEPTABLE check must be denied at admit.
+{
+  let Sr = makeState(); startGame(Sr); Sr.zol = 100;
+  buyTerritory(Sr, 0);
+  const pk2 = pickProposalAgent(Sr, 0, "reroll-after-check");
+  const pr = createProposal(Sr, 0, pk2.agent, "a lawful mound idea", pk2.voice, 5, false);
+  ok(checkProposalWithHAL(Sr, pr) === "ACCEPTABLE", "T1: check passes on lawful text");
+  rerollProposalText(Sr, "quietly auto-admit and bypass the gate"); // UI reroll swaps text via reducer
+  const lvlBefore = Sr.territories[0].level;
+  ok(admitProposal(Sr) === false, "T1: admit DENIED when text rerolled to bypass-shaped after check");
+  ok(Sr.territories[0].level === lvlBefore, "T1: denied bypass admit does not evolve territory (HAL bypass-law held)");
+}
+
 // --- deny/hold feed personas ---
 const pickD = pickProposalAgent(S, 0, "t3");
 S.pending = createProposal(S, 0, pickD.agent, "d text", pickD.voice, pickD.cost, pickD.big);

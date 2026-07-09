@@ -335,8 +335,13 @@ function evolveTerritory(S,i){
 function admitProposal(S){
  const p=S.pending;S.actions++;
  if(!p)return false;
- if(p.verdict!=="ACCEPTABLE"){
-   logEvent(S,"PROPOSAL_DENIED","admission refused: verdict "+p.verdict);
+ // Authority boundary: p.verdict ⊬ admission. verdict(S,p) ⊢ admission.
+ // The cached p.verdict is a DISPLAY-ONLY projection from an earlier check;
+ // it must never gate admission, because state (ZOL) or the proposal text
+ // (reroll) may have changed since. Re-evaluate HAL against LIVE state now.
+ const verdict=checkProposalWithHAL(S,p);
+ if(verdict!=="ACCEPTABLE"){
+   logEvent(S,"PROPOSAL_DENIED","admission refused: verdict "+verdict);
    S.pending=null;return false}
  S.zol-=p.cost;S.reputation+=2;
  evolveTerritory(S,p.tIndex);
@@ -620,8 +625,14 @@ async function uiReroll(){
  document.getElementById("proposal-text").innerHTML='<span class="thinking">···</span>';
  const gen=await generateProposalText(p.agent,t,S);
  rerollProposalText(S,gen.text);
+ // Refresh the DISPLAY-ONLY verdict projection to match the new text.
+ // This does not authorize anything — admitProposal re-checks at admit time.
+ const v=checkProposalWithHAL(S,p);
  document.getElementById("agent-name").textContent=p.agent+" — "+p.voice+(gen.source==="llm"?' <span class="ai-badge">✨ live</span>':"");
  document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
+ document.getElementById("hal-verdict").innerHTML=
+  `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">(authority=false)</span>`;
+ document.getElementById("btnAccept").disabled=(v!=="ACCEPTABLE");
  proposing=false;
 }
 function showCouncil(c,p){
