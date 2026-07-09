@@ -46,3 +46,15 @@ admission, not admission itself. No receipt → no ship.
 - Do not claim replayability until Tier 2 (event-sourced fold) lands. Until
   then V0/v2 are governed *projections*, not sovereign replay.
 - Cached verdict is display-only: `p.verdict ⊬ admission`; `verdict(S,move) ⊢ admission`.
+
+## Receipt log (append-only)
+
+**Protocol frozen: OPUS + SONNET AUTORESEARCH LOOP V0.**
+- Opus proposes truth — invariant compression, risks, category errors, forbidden morphisms.
+- Sonnet proves behavior — smallest patch, assertions, run tests, report diff.
+- Neither admits — human gate + receipt decide admission.
+- Cached verdicts are projections — admit-time predicate is sole authority.
+- Replay claims require replay receipts — until Tier 2: governed projection, not sovereign replay.
+
+**Receipts:**
+- `d5d06d3` — Tier 1 (verdict-as-function, v2). Tests green (selftest 29, v2-selftest 46). Diff reviewed by Opus: no kernel drift, no replay claim, no cached-verdict authority. Human admission: _pending_. Split applies from next turn.
