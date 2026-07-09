@@ -58,3 +58,4 @@ admission, not admission itself. No receipt → no ship.
 
 **Receipts:**
 - `d5d06d3` — Tier 1 (verdict-as-function, v2). Tests green (selftest 29, v2-selftest 46). Diff reviewed by Opus: no kernel drift, no replay claim, no cached-verdict authority. Human admission: _pending_. Split applies from next turn.
+- `efbb659` — Debug-sweep cycle, first full run of the split (Fable architect seat). Two Sonnet verifiers swept reducer+harness and UI zones (9 findings); Fable triaged; one Sonnet implementer applied 8 patches; failing-then-passing proven for the 4 new assertions (46+4 FAIL → 50 pass). Fable diff review: no kernel drift, no replay claim, no cached-verdict authority. Deferred: id-collision latency, stale council stances after reroll, quote hygiene. Human admission: _pending_.
