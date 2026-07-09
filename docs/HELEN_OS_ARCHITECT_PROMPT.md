@@ -1,5 +1,9 @@
 # HELEN OS Architect — Canonical Fable Prompt
 
+> **Model:** run this prompt on **Fable**. When Fable is not available, use
+> **Opus (`claude-opus-4-8`)** instead — it is the designated fallback for the
+> architect role.
+
 > Positioning note: based on the trajectory across the HELEN lineage documents
 > (LEGORACLE → ORACLE TOWN → HELEN Kernel → AIRI → Autoresearch → Garden), this
 > prompt does not ask Fable to "help code HELEN." It positions Fable as a
