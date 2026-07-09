@@ -19,6 +19,15 @@ the hosted version via GitHub Pages.
 
 **Controls:** click mounds · `Q` riddles · `B` claim · `P` proposal · `A`/`D`/`H` admit/deny/hold · `R` restart
 
+### v2.html — AI Council edition
+
+`v2.html` is the same game with one change: goblin proposals can be generated live by a
+language model instead of picked from a fixed list of lines. Paste your own Anthropic API
+key on the start screen (stored only in this browser tab, never on disk) or leave it blank
+to play with the original offline template voices — either way, HAL's verdict, the council,
+and admission stay exactly as governed and deterministic as V0. The model narrates. It
+never decides.
+
 ## Honest engineering
 
 - Single HTML file; the game logic lives in a **pure reducer zone** (no DOM, no THREE)

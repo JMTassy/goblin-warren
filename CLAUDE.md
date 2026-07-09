@@ -11,14 +11,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Run the full test suite (exit code 1 on any assertion failure)
 node selftest.js index.html
+
+# Run the v2 test suite
+node v2-selftest.js v2.html
 ```
 
-No build, lint, or package.json. The selftest cannot run individual assertions — it's a sequential script that preserves state; run it whole.
+No build, lint, or package.json. The selftests cannot run individual assertions — each is a sequential script that preserves state; run whole.
 
-To play: open `index.html` in any browser (one-time network access required for Three.js CDN).
+To play: open `index.html` (or `v2.html`) in any browser (one-time network access required for Three.js CDN).
 - Controls: click mounds · `Q` riddles · `B` claim site · `P` goblin proposal · `A`/`D`/`H` admit/deny/hold · `R` restart
 - ZOL (Session Flash Credit) is earned by answering riddles correctly and spent to buy territory
 - Win by owning 7 territories or reaching reputation ≥100
+
+## v2.html — the AI Council edition
+
+`v2.html` + `v2-selftest.js` are a **separate, parallel game** living alongside V0 canon, not a replacement — `index.html`/`selftest.js` stay byte-identical to the vault copy and untouched. v2 exists because static, hand-picked proposal templates ("24 possible proposal texts, forever") read as flat; v2 lets goblin-folk proposals be generated live by a language model instead.
+
+**What changed vs V0:**
+- Reducer's `createProposal(S,i,seed)` is split into two pure, still-node-testable functions: `pickProposalAgent(S,i,seed)` (deterministic — decides who proposes, cost, council-scale, and an offline fallback line, from state alone) and `createProposal(S,i,agent,text,voice,cost,big)` (deterministic — takes already-resolved text and finalizes the pending proposal + ledger entry). This lets the *source* of the text (template vs. live model call) live entirely outside the reducer while keeping admission/HAL/council fully deterministic and headlessly testable — `v2-selftest.js` never makes a network call, it hands canned strings to `createProposal` the same way the browser hands back whatever `generateProposalText()` resolved.
+- A new `rerollProposalText(S,text)` reducer function lets the UI swap pending proposal text (regenerate) without ever mutating `S.pending` directly from the UI zone — same "UI never mutates state directly" discipline as V0.
+- `generateProposalText(agent,t,S)` (UI zone, async, uses `fetch`) is the **only** place in v2 that talks to a network beyond the Three.js CDN. It calls the Anthropic Messages API directly from the browser (`anthropic-dangerous-direct-browser-access: true` header) using a **player-supplied API key stored only in `sessionStorage`** — never written to disk, never sent anywhere but the provider's API, cleared when the tab closes. No key present, or the call fails for any reason → falls back to the same offline persona template pool V0 used (`PERSONAS[agent].ideas`), so the game is always fully playable with zero network dependency beyond Three.js.
+- **The governance invariants are unchanged and still enforced by code, not by the model.** HAL's verdict (`checkProposalWithHAL`), the council's recommendation (`councilReview`), and the admission gate (`admitProposal`) never see or trust anything about *how* `p.text` was produced — a live-model-generated proposal is checked and admitted (or denied) by the exact same deterministic rules as a template one. The model may narrate; it never decides.
+
+```bash
+node v2-selftest.js v2.html   # 38 assertions, all offline, no API key needed
+```
 
 ## Architecture: the reducer seam
 
