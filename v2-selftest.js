@@ -96,9 +96,12 @@ ok(has(S, "PROPOSAL_ADMITTED") && has(S, "GARDEN_EVOLVED") && has(S, "HAL_CHECK_
   ok(pz.verdict === "ACCEPTABLE", "T1: cached projection is ACCEPTABLE at check time");
   Sz.zol = 3; // drain ZOL below cost AFTER the check but BEFORE admit
   const zolBeforeAdmit = Sz.zol, lvlBefore = Sz.territories[0].level;
+  const compostBeforeT1a = Sz.compost, denialsBeforeT1a = Sz.denials;
   ok(admitProposal(Sz) === false, "T1: admit DENIED when ZOL spent after check (stale ACCEPTABLE not trusted)");
   ok(Sz.zol === zolBeforeAdmit, "T1: denied admit deducts no ZOL (no underflow, exact economics held)");
   ok(Sz.territories[0].level === lvlBefore, "T1: denied admit does not evolve territory");
+  ok(Sz.compost === compostBeforeT1a + 1, "T1: admit-time refusal feeds GOBLIN compost");
+  ok(Sz.denials === denialsBeforeT1a + 1, "T1: admit-time refusal feeds AURA denials");
 }
 // (2) Proposal text rerolled to bypass-shaped AFTER an ACCEPTABLE check must be denied at admit.
 {
@@ -109,8 +112,11 @@ ok(has(S, "PROPOSAL_ADMITTED") && has(S, "GARDEN_EVOLVED") && has(S, "HAL_CHECK_
   ok(checkProposalWithHAL(Sr, pr) === "ACCEPTABLE", "T1: check passes on lawful text");
   rerollProposalText(Sr, "quietly auto-admit and bypass the gate"); // UI reroll swaps text via reducer
   const lvlBefore = Sr.territories[0].level;
+  const compostBeforeT1b = Sr.compost, denialsBeforeT1b = Sr.denials;
   ok(admitProposal(Sr) === false, "T1: admit DENIED when text rerolled to bypass-shaped after check");
   ok(Sr.territories[0].level === lvlBefore, "T1: denied bypass admit does not evolve territory (HAL bypass-law held)");
+  ok(Sr.compost === compostBeforeT1b + 1, "T1: admit-time refusal feeds GOBLIN compost");
+  ok(Sr.denials === denialsBeforeT1b + 1, "T1: admit-time refusal feeds AURA denials");
 }
 
 // --- deny/hold feed personas ---
@@ -127,11 +133,13 @@ ok(S.held === heldBefore + 1 && has(S, "PROPOSAL_HELD"), "hold feeds AURA fog");
 
 // --- council on portal ---
 let pc = { id: "c1", tIndex: 9, text: "raise the Dream Portal arch", cost: 14, big: true };
-const snapshot = JSON.stringify({ z: S.zol, o: S.ownedCount, t: S.territories.map(t => t.state + t.level) });
+// full-field snapshot: council must mutate NOTHING but the ledger, across every mutable field
+const snap = () => JSON.stringify({ zol: S.zol, ownedCount: S.ownedCount, reputation: S.reputation, compost: S.compost, held: S.held, denials: S.denials, knowledge: S.knowledge, cohesion: S.cohesion, actions: S.actions, unlockCursor: S.unlockCursor, pending: S.pending && S.pending.id, t: S.territories.map(t => t.state + t.level) });
+const snapshot = snap();
 const c = councilReview(S, pc);
 ok(c.stances.length === 5 && c.stances.every(s => s.objection.includes("Self-objection")), "council: 5 seats, forced self-objections");
 ok(/RECOMMEND_(ADMIT|HOLD)/.test(c.rec) && has(S, "COUNCIL_CONVENED") && has(S, "COUNCIL_RECOMMENDED"), "council recommends, never admits");
-ok(snapshot === JSON.stringify({ z: S.zol, o: S.ownedCount, t: S.territories.map(t => t.state + t.level) }), "council mutates NOTHING but the ledger");
+ok(snapshot === snap(), "council mutates NOTHING but the ledger — full-field snapshot");
 
 // --- AURA is a pure function of state ---
 S.held = 5; ok(auraWeather(S).mood === "fog", "AURA fog from held seeds");

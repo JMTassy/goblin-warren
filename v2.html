@@ -341,6 +341,7 @@ function admitProposal(S){
  // (reroll) may have changed since. Re-evaluate HAL against LIVE state now.
  const verdict=checkProposalWithHAL(S,p);
  if(verdict!=="ACCEPTABLE"){
+   S.compost++;S.denials++; // state must agree with the PROPOSAL_DENIED ledger entry below, same as denyProposal
    logEvent(S,"PROPOSAL_DENIED","admission refused: verdict "+verdict);
    S.pending=null;return false}
  S.zol-=p.cost;S.reputation+=2;
@@ -542,9 +543,10 @@ function updateHUD(){
  document.getElementById("reputation").textContent=S.reputation;
  document.getElementById("territories").textContent=S.ownedCount;
 }
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function renderLedgerUI(){
  document.getElementById("ledger").innerHTML=S.ledger.slice(-8).reverse().map(e=>
-  `<div class="log-entry ${e.kind==="PROPOSAL_ADMITTED"?"adm":""}">${e.kind} ${e.detail}</div>`).join("");
+  `<div class="log-entry ${e.kind==="PROPOSAL_ADMITTED"?"adm":""}">${e.kind} ${esc(e.detail)}</div>`).join("");
 }
 function showAura(line){
  const a=document.getElementById("aura");a.textContent="AURA — "+line;a.style.display="block";
@@ -606,10 +608,12 @@ async function uiPropose(){
  document.getElementById("proposal-text").innerHTML='<span class="thinking">···</span>';
  document.getElementById("hal-verdict").textContent="";
  document.getElementById("btnAccept").disabled=true;
+ const myS=S; // invariant: post-await code must re-validate the world it captured before the await — same-law as Tier 1's admit-time re-check
  const gen=await generateProposalText(pick.agent,t,S);
- const p=createProposal(S,selected,pick.agent,gen.text,gen.voice,pick.cost,pick.big);
+ if(S!==myS||S.phase!=="GARDEN_MAP"){proposing=false;return}
+ const p=createProposal(S,pick.tIndex,pick.agent,gen.text,gen.voice,pick.cost,pick.big);
  const v=checkProposalWithHAL(S,p);
- document.getElementById("agent-name").textContent=p.agent+" — "+p.voice+(gen.source==="llm"?' <span class="ai-badge">✨ live</span>':"");
+ document.getElementById("agent-name").innerHTML=p.agent+" — "+p.voice+(gen.source==="llm"?' <span class="ai-badge">✨ live</span>':"");
  document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
  document.getElementById("hal-verdict").innerHTML=
   `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">(authority=false)</span>`;
@@ -619,16 +623,18 @@ async function uiPropose(){
  syncVisuals();
 }
 async function uiReroll(){
- if(!S.pending||proposing)return;
+ if(!S.pending||proposing||S.phase!=="GARDEN_MAP")return;
  proposing=true;
  const p=S.pending;const t=S.territories[p.tIndex];
  document.getElementById("proposal-text").innerHTML='<span class="thinking">···</span>';
+ const myS=S; // invariant: post-await code must re-validate the world it captured before the await — same-law as Tier 1's admit-time re-check
  const gen=await generateProposalText(p.agent,t,S);
+ if(S!==myS||!S.pending){proposing=false;return}
  rerollProposalText(S,gen.text);
  // Refresh the DISPLAY-ONLY verdict projection to match the new text.
  // This does not authorize anything — admitProposal re-checks at admit time.
  const v=checkProposalWithHAL(S,p);
- document.getElementById("agent-name").textContent=p.agent+" — "+p.voice+(gen.source==="llm"?' <span class="ai-badge">✨ live</span>':"");
+ document.getElementById("agent-name").innerHTML=p.agent+" — "+p.voice+(gen.source==="llm"?' <span class="ai-badge">✨ live</span>':"");
  document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
  document.getElementById("hal-verdict").innerHTML=
   `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">(authority=false)</span>`;
@@ -644,18 +650,19 @@ function showCouncil(c,p){
 }
 function uiCloseCouncil(){document.getElementById("council").style.display="none"}
 function uiAdmit(){
- if(!S.pending||proposing)return;
+ if(!S.pending||proposing||S.phase!=="GARDEN_MAP")return;
  const idx=S.pending.tIndex,lvl=S.territories[idx].level;
  if(admitProposal(S)){addFlower(idx,lvl);}
  document.getElementById("proposal-panel").style.display="none";
  if(checkWin(S))return uiWin();
  syncVisuals();
 }
-function uiDeny(){if(!S.pending||proposing)return;denyProposal(S);
+function uiDeny(){if(!S.pending||proposing||S.phase!=="GARDEN_MAP")return;denyProposal(S);
  document.getElementById("proposal-panel").style.display="none";syncVisuals();}
-function uiHold(){if(!S.pending||proposing)return;holdProposal(S);
+function uiHold(){if(!S.pending||proposing||S.phase!=="GARDEN_MAP")return;holdProposal(S);
  document.getElementById("proposal-panel").style.display="none";syncVisuals();}
 function uiWin(){
+ document.getElementById("council").style.display="none";
  document.getElementById("win-stats").innerHTML=
   `Warrens: ${S.ownedCount} · Reputation: ${S.reputation}<br>Knowledge: ${S.knowledge} · ZOL left: ${S.zol} (gone at dawn)<br>`+
   `Admitted upgrades: ${S.ledger.filter(e=>e.kind==="PROPOSAL_ADMITTED").length}`;
