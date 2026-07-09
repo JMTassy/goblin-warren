@@ -179,6 +179,23 @@ const S2 = makeState(); startGame(S2); for (let i = 0; i < 5; i++) answerQuestio
 const pick1 = pickProposalAgent(S1, 0, "seedX"); const pick2 = pickProposalAgent(S2, 0, "seedX");
 ok(pick1.agent === pick2.agent && pick1.cost === pick2.cost && pick1.big === pick2.big, "pickProposalAgent is deterministic given identical state+seed");
 
+// --- sovereign ledger (operator-admitted): receipts never evicted ---
+// Effects must never outlive their receipts: after an early admission plus a
+// long flood of moves, the founding receipts still exist in the ledger.
+{
+  let Sl = makeState(); startGame(Sl); Sl.zol = 100;
+  buyTerritory(Sl, 0);
+  const pkl = pickProposalAgent(Sl, 0, "sovereign");
+  createProposal(Sl, 0, pkl.agent, "an early admitted move", pkl.voice, 5, false);
+  checkProposalWithHAL(Sl, Sl.pending);
+  ok(admitProposal(Sl) === true, "sovereign: early admission succeeds");
+  for (let i = 0; i < 300; i++) answerQuestion(Sl, i % QUESTIONS.length, 0);
+  ok(Sl.ledger.length > 250, "sovereign: ledger grows past the old cap (" + Sl.ledger.length + ")");
+  ok(has(Sl, "GAME_STARTED"), "sovereign: GAME_STARTED receipt survives a 300-move flood");
+  ok(has(Sl, "PROPOSAL_ADMITTED"), "sovereign: PROPOSAL_ADMITTED receipt survives (effects never outlive receipts)");
+  ok(has(Sl, "TERRITORY_BOUGHT"), "sovereign: TERRITORY_BOUGHT receipt survives");
+}
+
 // --- win ---
 S.ownedCount = 7;
 ok(checkWin(S) === true && S.phase === "GAME_WON" && has(S, "GAME_WON"), "win at 7 territories");

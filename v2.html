@@ -241,8 +241,12 @@ function makeState(epoch){
     prestige:Math.floor(d[1]/2)+2,state:i<4?"available":"locked",level:0})),
   ledger:[]};
 }
-function logEvent(S,kind,detail){S.ledger.push({kind,detail:detail||""});
- if(S.ledger.length>250)S.ledger=S.ledger.slice(-250);}
+function logEvent(S,kind,detail){S.ledger.push({kind,detail:detail||""});}
+// SOVEREIGN LEDGER (operator-admitted): append-only, never evicted. Receipts
+// must not expire before the effects they justify — no receipt, no ship, and
+// no ship outliving its receipt. (V0/index.html keeps its 250-cap: frozen
+// canon, waived. UI renders slice(-8) regardless of ledger size; cost of an
+// implausibly long 10k-event session measured at ~576KB/4ms.)
 
 function unlockByKnowledge(S){
  while(S.unlockCursor<12 && S.knowledge>=(S.unlockCursor-3)*2){

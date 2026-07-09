@@ -33,8 +33,10 @@ To play: open `index.html` (or `v2.html`) in any browser (one-time network acces
 - `generateProposalText(agent,t,S)` (UI zone, async, uses `fetch`) is the **only** place in v2 that talks to a network beyond the Three.js CDN. It calls the Anthropic Messages API directly from the browser (`anthropic-dangerous-direct-browser-access: true` header) using a **player-supplied API key stored only in `sessionStorage`** — never written to disk, never sent anywhere but the provider's API, cleared when the tab closes. No key present, or the call fails for any reason → falls back to the same offline persona template pool V0 used (`PERSONAS[agent].ideas`), so the game is always fully playable with zero network dependency beyond Three.js.
 - **The governance invariants are unchanged and still enforced by code, not by the model.** HAL's verdict (`checkProposalWithHAL`), the council's recommendation (`councilReview`), and the admission gate (`admitProposal`) never see or trust anything about *how* `p.text` was produced — a live-model-generated proposal is checked and admitted (or denied) by the exact same deterministic rules as a template one. The model may narrate; it never decides.
 
+- **v2's ledger is sovereign (append-only, never evicted)** — operator-admitted change. `logEvent` in v2 has no cap: receipts must never expire before the effects they justify. V0's 250-cap remains in `index.html` (frozen canon, waived). The UI renders only the last 8 entries either way; an implausibly long 10k-event session costs ~576KB.
+
 ```bash
-node v2-selftest.js v2.html   # 38 assertions, all offline, no API key needed
+node v2-selftest.js v2.html   # 61 assertions, all offline, no API key needed
 ```
 
 ## Architecture: the reducer seam
@@ -103,7 +105,7 @@ Events log all game moves via `logEvent(S, kind, data)`. Each entry has:
 - `data` — event-specific payload (e.g., territory index, amount, persona name)
 - timestamp (implicit from insertion order)
 
-Ledger is capped at 250 entries; oldest entries drop when new ones exceed limit. UI renders recent entries in "THE MIDDEN LEDGER" panel.
+**V0 (`index.html`): capped at 250 entries** — oldest drop when new ones exceed the limit (frozen canon; note this means V0 effects can outlive their receipts). **v2 (`v2.html`): sovereign, append-only, never evicted** — operator-admitted; the selftest asserts founding receipts survive a 300-move flood. UI renders recent entries in "THE MIDDEN LEDGER" panel in both.
 
 ## UI and debugging
 
