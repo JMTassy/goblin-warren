@@ -234,9 +234,9 @@ const AURA_LINES=[
  "roots drink in the dark; knowledge is the slow rain",
  "the octagram hums even down here — law does not reskin"];
 
-function makeState(){
+function makeState(epoch){
  return {zol:0,knowledge:0,cohesion:100,reputation:0,ownedCount:0,phase:"START",
-  compost:0,held:0,denials:0,actions:0,unlockCursor:4,pending:null,
+  compost:0,held:0,denials:0,actions:0,unlockCursor:4,pending:null,gameEpoch:epoch||0,
   territories:TERRITORY_DEFS.map((d,i)=>({index:i,name:d[0],price:d[1],
     prestige:Math.floor(d[1]/2)+2,state:i<4?"available":"locked",level:0})),
   ledger:[]};
@@ -290,7 +290,14 @@ function pickProposalAgent(S,i,seed){
  return {agent,cost,big,tIndex:i,fallbackText,voice:P.line};
 }
 function createProposal(S,i,agent,text,voice,cost,big){
- const p={id:"p"+S.actions,tIndex:i,agent,text,voice,cost,big};
+ const t=S.territories[i];
+ // Stable identity fields, stamped once at creation, revalidated at use time
+ // (checkProposalWithHAL) rather than trusted forever: proposal_id,
+ // territory_key (name of the target territory when proposed), gameEpoch
+ // (the world generation this proposal belongs to — bumped on restart),
+ // createdActions (S.actions at creation, for audit only).
+ const p={id:"p"+S.actions,tIndex:i,agent,text,voice,cost,big,
+   gameEpoch:S.gameEpoch,territoryKey:t&&t.name,createdActions:S.actions};
  S.pending=p;logEvent(S,"NPC_PROPOSAL_CREATED",agent+": "+text.slice(0,42));
  return p;
 }
@@ -303,7 +310,13 @@ function rerollProposalText(S,text){
 function checkProposalWithHAL(S,p){
  let verdict;
  const t=S.territories[p.tIndex];
- if(!t||t.state==="locked")verdict="DENY";
+ // Revalidate-at-use-time: a cached proposal is not a fresh admissible
+ // witness. Fields are optional (older/hand-built proposal objects in
+ // tests may omit them) — only enforced when stamped by createProposal.
+ if(p.gameEpoch!==undefined&&p.gameEpoch!==S.gameEpoch)verdict="DENY";
+ else if(S.phase==="GAME_WON")verdict="DENY";
+ else if(!t||t.state==="locked")verdict="DENY";
+ else if(p.territoryKey!==undefined&&t.name!==p.territoryKey)verdict="DENY";
  else if(t.state!=="owned"&&t.state!=="evolved")verdict="DENY";
  else if(/bypass|without admission|skip the gate|auto-?admit/i.test(p.text))verdict="DENY";
  else if(S.zol<p.cost)verdict="HOLD";
@@ -670,7 +683,8 @@ function uiWin(){
 }
 function uiRestart(){
  flowers.forEach(f=>scene.remove(f));flowers=[];
- S=makeState();selected=-1;qcmActive=false;proposing=false;
+ const nextEpoch=(S.gameEpoch||0)+1;
+ S=makeState(nextEpoch);selected=-1;qcmActive=false;proposing=false;
  document.getElementById("win").style.display="none";
  document.getElementById("council").style.display="none";
  document.getElementById("proposal-panel").style.display="none";

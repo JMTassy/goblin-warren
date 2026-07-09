@@ -119,6 +119,34 @@ ok(has(S, "PROPOSAL_ADMITTED") && has(S, "GARDEN_EVOLVED") && has(S, "HAL_CHECK_
   ok(Sr.denials === denialsBeforeT1b + 1, "T1: admit-time refusal feeds AURA denials");
 }
 
+// --- Epoch machinery: restart invalidates async continuations. A proposal
+//     carries gameEpoch + territoryKey stamped at creation; checkProposalWithHAL
+//     revalidates both against LIVE state, not the cached snapshot the async
+//     continuation captured before an await. ---
+{
+  // (1) epoch-mismatch proposal is DENIED, even if otherwise lawful and affordable.
+  let Se = makeState(); startGame(Se); Se.zol = 100;
+  buyTerritory(Se, 0);
+  ok(Se.gameEpoch === 0, "T2: makeState defaults gameEpoch to 0");
+  const pke = pickProposalAgent(Se, 0, "epoch-test");
+  const pe = createProposal(Se, 0, pke.agent, "a fine mound idea", pke.voice, 5, false);
+  ok(pe.gameEpoch === 0 && pe.territoryKey === "Mushroom Cellar", "T2: createProposal stamps gameEpoch + territoryKey");
+  ok(checkProposalWithHAL(Se, pe) === "ACCEPTABLE", "T2: sanity — unmutated epoch/territory still ACCEPTABLE");
+  Se.gameEpoch = 1; // simulate a restart happening under an in-flight async continuation
+  ok(checkProposalWithHAL(Se, pe) === "DENY", "T2: epoch-mismatch proposal is DENIED");
+  Se.gameEpoch = 0; // restore before the next sub-test in this block
+
+  // (2) territoryKey mismatch is DENIED — even at the SAME index, if the
+  //     territory there is no longer the one this proposal was made against.
+  Se.territories[0].name = "Renamed Mound (simulated respawn)";
+  ok(checkProposalWithHAL(Se, pe) === "DENY", "T2: territoryKey-mismatch proposal is DENIED");
+  Se.territories[0].name = "Mushroom Cellar"; // restore
+
+  // (3) restart via uiRestart's contract: next epoch = prior + 1, fresh state is epoch-stamped.
+  const nextEpochState = makeState(Se.gameEpoch + 1);
+  ok(nextEpochState.gameEpoch === 1, "T2: makeState(epoch) accepts explicit epoch (restart bumps it)");
+}
+
 // --- deny/hold feed personas ---
 const pickD = pickProposalAgent(S, 0, "t3");
 S.pending = createProposal(S, 0, pickD.agent, "d text", pickD.voice, pickD.cost, pickD.big);
@@ -134,7 +162,7 @@ ok(S.held === heldBefore + 1 && has(S, "PROPOSAL_HELD"), "hold feeds AURA fog");
 // --- council on portal ---
 let pc = { id: "c1", tIndex: 9, text: "raise the Dream Portal arch", cost: 14, big: true };
 // full-field snapshot: council must mutate NOTHING but the ledger, across every mutable field
-const snap = () => JSON.stringify({ zol: S.zol, ownedCount: S.ownedCount, reputation: S.reputation, compost: S.compost, held: S.held, denials: S.denials, knowledge: S.knowledge, cohesion: S.cohesion, actions: S.actions, unlockCursor: S.unlockCursor, pending: S.pending && S.pending.id, t: S.territories.map(t => t.state + t.level) });
+const snap = () => JSON.stringify({ zol: S.zol, ownedCount: S.ownedCount, reputation: S.reputation, compost: S.compost, held: S.held, denials: S.denials, knowledge: S.knowledge, cohesion: S.cohesion, actions: S.actions, unlockCursor: S.unlockCursor, phase: S.phase, gameEpoch: S.gameEpoch, pending: S.pending && S.pending.id, t: S.territories.map(t => t.state + t.level) });
 const snapshot = snap();
 const c = councilReview(S, pc);
 ok(c.stances.length === 5 && c.stances.every(s => s.objection.includes("Self-objection")), "council: 5 seats, forced self-objections");
