@@ -1,5 +1,22 @@
 # Dual-Model Governance Loop
 
+## Organ mapping (cost-law V0)
+
+The game's org chart, run by real models. Exploration moves downward,
+judgment moves upward; each tier is cheaper and more numerous than the
+one above it.
+
+| Organ | Model | Law |
+|---|---|---|
+| Goblin swarm | Haiku (many, cheap) | lateral thinkers, NO_CLAIM — insight → compost → chiddush |
+| HAL | Sonnet | routes and audits; checks admissibility; owns nothing |
+| Mayor gate | Fable (wakes once, sees only top-3 + score table, never the raw heap) | compression judge; verdict ⊬ admission |
+| Operator | JM | the only hand that admits; receipt only after green tests + reviewed diff |
+
+Cost law: goblins burn cycles · HAL verifies · Fable wakes once ·
+one survivor exits · expensive judgment ⊬ admission · ledger sleeps.
+Target ratio ≈ 95% goblin/local · 4% deterministic scripts · 1% Fable/Sonnet.
+
 The working protocol for evolving HELEN-lineage code (index.html V0 canon,
 v2.html AI-Council edition). Separates *proposing truth* from *proving
 behavior*, with a human admission gate. Mirrors the game's own constitution:
