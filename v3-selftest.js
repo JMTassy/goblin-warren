@@ -23,7 +23,8 @@ const EXPORTS = [
   "KNOWN_EVENT_KINDS", "FIELD_RANGES",
   "h32", "makeGardenState", "applyEvent", "deriveLuluMode", "deriveGoblinMemory", "zoneWeights",
   "computePredictedEffects", "computeFruitProgress", "startGame", "setHivemindGoal", "riseSignal",
-  "routeSignalAndShiftLulu", "generateGoblinProposal", "admitProposal", "denyProposal",
+  "routeSignalAndShiftLulu", "matureCompostIfDue", "pickGoblinProposal", "riseGoblinProposal",
+  "rerollGoblinProposalText", "generateGoblinProposal", "admitProposal", "denyProposal",
   "compostProposal", "checkEnd", "validateEventShape", "foldGardenLog", "serializeLedgerJSONL",
   "foldGardenLogFromJSONL", "computeStateHash"
 ];
@@ -349,11 +350,115 @@ console.log("\n--- 10-cycle headless playthrough trace ---");
   console.log(`  replay check: live hash=${liveHash} folded hash=${foldHash} match=${liveHash === foldHash}`);
   ok(liveHash === foldHash, "ACCEPTANCE: replay hash identical for the full 10-cycle playthrough");
 
-  // no external API anywhere in the shipped file
-  ok(!/fetch\s*\(/.test(html) && !/XMLHttpRequest/.test(html) && !/WebSocket/.test(html) && !/<script\s+src=/.test(html),
-    "ACCEPTANCE: zero network surface in garden.html (no fetch/XHR/WebSocket/external <script src>)");
+  // The REDUCER zone stays network-free -- the opt-in goblin-voice seam
+  // (generateGoblinText, fetch to api.anthropic.com) lives entirely in the
+  // UI zone, after REDUCER-END, exactly like v2.html's LLM call. So the
+  // whole-file check is scoped: reducerSource must have zero network
+  // surface; the FULL file must still have zero external <script src>
+  // (no CDN/build step beyond this one file).
+  ok(!/fetch\s*\(/.test(reducerSource) && !/XMLHttpRequest/.test(reducerSource) && !/WebSocket/.test(reducerSource),
+    "ACCEPTANCE: reducer zone has zero network surface (no fetch/XHR/WebSocket)");
+  ok(!/<script\s+src=/.test(html),
+    "ACCEPTANCE: zero external <script src> in garden.html (no CDN/build step)");
   ok(!/Math\.random/.test(reducerSource) && !/Date\.(now|getTime)/.test(reducerSource),
     "ACCEPTANCE: reducer zone has zero Math.random / Date usage (determinism law)");
+}
+
+// ============================================================
+// TEST 11 -- Live Goblin Voice mechanic: replay law for externally-supplied
+// proposal text (a), reducer stays network-free (b), Kernel untouched across
+// a game using external-text events (c), HTML-escaping of untrusted text (d)
+// ============================================================
+{
+  // (a) an event carrying arbitrary externally-supplied text (as if resolved
+  // by a live model call in the UI zone) replays to an identical state hash.
+  const externalText = "The far voice hums: braid the compost into a second moon. <img src=x onerror=alert(1)>";
+  const s = makeGardenState(0);
+  startGame(s);
+  riseSignal(s, "GARDEN_PLOTS", "SIGNAL", 2, "t11a");
+  routeSignalAndShiftLulu(s);
+  matureCompostIfDue(s);
+  const pick = pickGoblinProposal(s, "t11a");
+  ok(pick && typeof pick.fallbackText === "string", "T11a: pickGoblinProposal returns a pick with a fallback text, no applyEvent yet");
+  ok(!has(s, "PROPOSAL_RISEN"), "T11a: pickGoblinProposal alone commits nothing to the ledger");
+  const risen = riseGoblinProposal(s, pick, externalText);
+  ok(risen.text === externalText, "T11a: riseGoblinProposal commits the externally-supplied text verbatim");
+  ok(s.pending.text === externalText, "T11a: S.pending carries the external text (event data, not a side-channel)");
+  ok(admitProposal(s) === true, "T11a: the externally-texted proposal admits normally, same reducer rules as any other");
+
+  const fold = foldGardenLog(s.ledger, s.epoch);
+  ok(fold.ok, "T11a: folding the ledger (which contains the externally-supplied text as event data) succeeds");
+  ok(computeStateHash(fold.state) === computeStateHash(s),
+    "T11a: replay hash is IDENTICAL to the live hash for a game containing an external-text event");
+  ok(fold.state.pending === null && fold.state.zones.GARDEN_PLOTS.mutationCount === s.zones.GARDEN_PLOTS.mutationCount,
+    "T11a: folded state reproduces the admitted external-text proposal's effects exactly");
+
+  // reroll variant: rerollGoblinProposalText also carries external text as event data
+  const s2 = makeGardenState(0);
+  startGame(s2);
+  riseSignal(s2, "BUG_NURSERY", "QUARANTINE", 2, "t11a2");
+  routeSignalAndShiftLulu(s2);
+  matureCompostIfDue(s2);
+  const pick2 = pickGoblinProposal(s2, "t11a2");
+  riseGoblinProposal(s2, pick2, pick2.fallbackText);
+  const rerolled = rerollGoblinProposalText(s2, "A second, stranger telling of the same idea.");
+  ok(rerolled.id === pick2.id && rerolled.targetZone === pick2.targetZone,
+    "T11a: rerollGoblinProposalText re-emits PROPOSAL_RISEN for the SAME proposal id/zone, new text only");
+  denyProposal(s2);
+  const fold2 = foldGardenLog(s2.ledger, s2.epoch);
+  ok(fold2.ok && computeStateHash(fold2.state) === computeStateHash(s2),
+    "T11a: a reroll-then-deny game also replays to an identical hash");
+
+  // (b) reducer zone has zero fetch/network references (structural)
+  ok(!/fetch\s*\(/.test(reducerSource), "T11b: reducer zone source contains no fetch( call");
+  ok(!/XMLHttpRequest|WebSocket|api\.anthropic\.com/.test(reducerSource),
+    "T11b: reducer zone source contains no XHR/WebSocket/API-host reference");
+  ok(!/generateGoblinText/.test(reducerSource),
+    "T11b: the live-voice function itself is not even referenced inside the reducer zone");
+
+  // (c) Kernel deep-compare unchanged across a game using external-text events
+  const kernelBefore = JSON.stringify(KERNEL);
+  const s3 = makeGardenState(0);
+  startGame(s3);
+  const zonesCycle = ["GARDEN_PLOTS", "RECEIPT_FORGE", "BUG_NURSERY"];
+  const decisions = ["admit", "deny", "compost", "admit", "admit"];
+  for (let i = 0; i < 5; i++) {
+    riseSignal(s3, zonesCycle[i % 3], SIGNAL_KINDS[i % SIGNAL_KINDS.length], (i % 3) + 1, "t11c-" + i);
+    routeSignalAndShiftLulu(s3);
+    matureCompostIfDue(s3);
+    const pk = pickGoblinProposal(s3, "t11c-" + i);
+    riseGoblinProposal(s3, pk, "<script>external voice #" + i + "</script> a weird improvement");
+    if (decisions[i] === "admit") admitProposal(s3);
+    else if (decisions[i] === "deny") denyProposal(s3);
+    else compostProposal(s3);
+  }
+  ok(JSON.stringify(KERNEL) === kernelBefore, "T11c: KERNEL JSON identical before/after a 5-cycle game built entirely of external-text proposals");
+  ok(s3.kernel === KERNEL && Object.isFrozen(KERNEL), "T11c: state's kernel is still the same frozen reference, still frozen");
+  const fold3 = foldGardenLog(s3.ledger, s3.epoch);
+  ok(fold3.ok && computeStateHash(fold3.state) === computeStateHash(s3),
+    "T11c: the external-text-only game also replays to an identical hash");
+
+  // (d) HTML-escaping: feed a <img onerror> payload through the event path
+  // and assert the rendered output string is escaped. The reducer zone has
+  // no DOM, so this exercises the UI zone's pure esc()/renderGoblinBubbleHTML
+  // helpers directly (extracted from the full file, not just reducerSource).
+  const escMatch = html.match(/function esc\(s\)\s*\{[^}]*\}/);
+  const bubbleMatch = html.match(/function renderGoblinBubbleHTML\([^)]*\)\s*\{[\s\S]*?\n\}/);
+  ok(!!escMatch, "T11d: esc() helper found in the shipped file");
+  ok(!!bubbleMatch, "T11d: renderGoblinBubbleHTML() helper found in the shipped file");
+  if (escMatch && bubbleMatch) {
+    const helpers = (0, eval)("(function(){ " + escMatch[0] + "\n" + bubbleMatch[0] + "\nreturn {esc, renderGoblinBubbleHTML}; })()");
+    const payload = "<img src=x onerror=alert(1)>";
+    const escaped = helpers.esc(payload);
+    ok(escaped.includes("&lt;img") && !/<img[\s/]/i.test(escaped),
+      "T11d: esc() turns a raw <img onerror> payload into an escaped string, no live tag survives");
+    const bubbleHTML = helpers.renderGoblinBubbleHTML("Mossrick", payload);
+    ok(bubbleHTML.includes("&lt;img") && !/<img[\s/]/i.test(bubbleHTML),
+      "T11d: renderGoblinBubbleHTML(goblinId, text) escapes untrusted proposal text before it reaches innerHTML");
+  }
+  // structural: the goblin-bubble innerHTML assignment must route through renderGoblinBubbleHTML (which itself calls esc())
+  ok(/bubble\.innerHTML\s*=\s*renderGoblinBubbleHTML\(/.test(html),
+    "T11d (structural): the goblin bubble's innerHTML assignment is built via the escaping helper, not raw string concatenation");
 }
 
 console.log(`\ngarden selftest: ${passed} passed, ${failed} failed`);

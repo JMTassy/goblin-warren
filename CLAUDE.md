@@ -19,7 +19,7 @@ node v2-selftest.js v2.html
 node v3-selftest.js v3.html
 ```
 
-**v3.html** is the HELEN Garden vertical slice (CTO brief): three zones, six Lulu archetypes, ADMIT/DENY/COMPOST, fold-derived goblin memory, sovereign event log, read-only kernel panel, zero network. `Garden change ⊬ Kernel truth` is test-enforced. Grow it via the `/warren` skill (one bounded mechanic per slice). `skills/helen-operator/` holds the frozen procedure-distillation estate (FREEZE_V1; cases pinned 46e6ad7f…).
+**v3.html** is the HELEN Garden vertical slice (CTO brief): three zones, six Lulu archetypes, ADMIT/DENY/COMPOST, fold-derived goblin memory, sovereign event log, read-only kernel panel, plus a **live AI pixel goblin NPC** (CSS pixel sprite; optional sessionStorage Anthropic key gives it a live voice via the v2 seam — resolved text enters the reducer as event data, so replay stays byte-identical; template fallback keeps it fully playable offline; reducer zone remains zero-network, test-enforced). `Garden change ⊬ Kernel truth` is test-enforced (83 assertions). Grow it via the `/warren` skill (one bounded mechanic per slice). `skills/helen-operator/` holds the frozen procedure-distillation estate (FREEZE_V1; cases pinned 46e6ad7f…).
 
 No build, lint, or package.json. The selftests cannot run individual assertions — each is a sequential script that preserves state; run whole.
 

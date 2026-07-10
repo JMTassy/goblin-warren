@@ -7,8 +7,22 @@
 <!--
   HELEN -- Dreams of Conquest / Goblin Warren MVP -- "The Living Garden"
   authority=false . claim=NO_CLAIM . proposal-grade . HOLD_FOR_OPERATOR
-  Zero network. Zero build step. Pure DOM/CSS, pixel aesthetic via CSS only
-  (no Three.js, no CDN, no remote calls of any kind anywhere in this file).
+  Zero network by default. Zero build step. Pure DOM/CSS, pixel aesthetic via
+  CSS only (no Three.js, no CDN, no images, no canvas libs).
+
+  LIVE GOBLIN VOICE (opt-in, scoped exactly like v2.html's LLM seam): a
+  player-supplied Anthropic API key, stored ONLY in sessionStorage (this tab,
+  this session -- cleared on close, never written to disk, never sent
+  anywhere but the provider's API directly from the browser), lets the pixel
+  goblin NPC speak its proposals live via generateGoblinText(). No key, or
+  any failure, falls back to the same deterministic TEMPLATE_BANKS the
+  offline path always used -- the game is always fully playable with zero
+  network. This is the ONLY network-capable code in this file; it lives
+  entirely in the UI zone, after REDUCER-END. The reducer zone remains
+  network-free: resolved text (whichever source produced it) enters the
+  reducer as ordinary PROPOSAL_RISEN event DATA, so fold/replay reproduces
+  identical Garden state regardless of where the text came from. The model
+  may narrate; it never decides, never mutates, never touches Kernel truth.
 
   HARD ARCHITECTURE LAW: Garden change |-/- Kernel truth.
   GardenState_t = fold(events_0..t). There is no hidden mutable Goblin
@@ -55,7 +69,7 @@
   button.goal{border-color:var(--violet)}
   #kernel{grid-column:1/2;grid-row:1/2}
   #left{grid-column:1/2;grid-row:2/3}
-  #zones{grid-column:2/3;grid-row:1/3;display:flex;flex-direction:column;gap:8px}
+  #zones{grid-column:2/3;grid-row:1/3;display:flex;flex-direction:column;gap:8px;position:relative}
   .zone{flex:1;display:flex;flex-direction:column}
   .zone .emoji{font-size:38px;text-align:center;margin:6px 0}
   .zone .zname{font-size:11px;letter-spacing:.1em;color:var(--ember);text-transform:uppercase}
@@ -81,6 +95,29 @@
   .badge-ok{color:var(--glow)} .badge-bad{color:var(--rot)}
   #startBtn{font-size:13px;padding:9px 16px}
   .hidden{display:none !important}
+
+  /* ---- Pixel Goblin NPC: pure CSS/HTML box-shadow pixel grid, zero images, zero canvas ---- */
+  #goblin-npc{position:absolute;left:20%;top:12%;width:22px;height:28px;z-index:20;
+    transition:left 900ms steps(8,end), top 900ms steps(8,end);pointer-events:none}
+  #goblin-npc.hidden{display:none}
+  .g-sprite{position:relative;width:100%;height:100%;animation:g-wander 7s ease-in-out infinite}
+  .g-body{position:absolute;left:6px;top:9px;width:4px;height:4px;background:#5c7a3a;
+    box-shadow:
+      -4px 0 0 0 #5c7a3a, 4px 0 0 0 #5c7a3a, 0 4px 0 0 #5c7a3a, -4px 4px 0 0 #5c7a3a, 4px 4px 0 0 #5c7a3a,
+      0 -4px 0 0 var(--goblin-accent,#d08a3c),
+      -8px 2px 0 0 #2a1c10, 8px 2px 0 0 #2a1c10;
+    animation:g-idle 1.4s steps(2) infinite}
+  .g-eyes{position:absolute;left:8px;top:9px;width:2px;height:2px;background:#0d1408;box-shadow:6px 0 0 0 #0d1408}
+  .g-legs{position:absolute;left:6px;top:17px;width:2px;height:6px;background:#2a1c10;box-shadow:6px 0 0 0 #2a1c10;
+    animation:g-step 0.55s steps(2) infinite}
+  @keyframes g-idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+  @keyframes g-step{0%{transform:translateX(0)}50%{transform:translateX(2px)}100%{transform:translateX(-2px)}}
+  @keyframes g-wander{0%,100%{margin-left:0}25%{margin-left:6px}55%{margin-left:-5px}80%{margin-left:3px}}
+  #goblin-bubble{position:absolute;left:26px;top:-8px;min-width:60px;max-width:150px;background:var(--ink);
+    border:2px solid var(--goblin-accent,#d08a3c);padding:3px 5px;font-size:9px;color:var(--bone);
+    box-shadow:2px 2px 0 #000;z-index:21}
+  #goblin-bubble.hidden{display:none}
+  .g-voice-badge{color:var(--violet);font-size:8px}
 </style>
 </head>
 <body>
@@ -117,6 +154,14 @@
     <div id="goal-buttons"></div>
     <h2 style="margin-top:8px">Signals</h2>
     <div id="signal-buttons"></div>
+    <h2 style="margin-top:8px">Goblin Voice</h2>
+    <div class="stat">Mode: <b id="ai-voice-status">off (template)</b></div>
+    <div class="law">Optional — an Anthropic API key kept only in this tab's sessionStorage,
+      never written to disk, gone when you close the tab. No key, or any failure,
+      falls back to the same offline template banks. Flavor only: the goblin may
+      narrate differently; HAL/admission/replay never see or trust the source.</div>
+    <button onclick="uiSetGoblinVoiceKey()">set/clear AI voice key</button>
+    <button id="goblin-reroll-btn" class="hidden" onclick="uiRerollGoblinVoice()">reroll goblin's words</button>
   </div>
   <div id="zones">
     <div class="zone panel" id="zone-GARDEN_PLOTS">
@@ -136,6 +181,14 @@
       <div class="emoji" id="e-BUG_NURSERY">🐛</div>
       <div class="zonebar"><i id="b-BUG_NURSERY" style="width:50%"></i></div>
       <div class="stat" id="s-BUG_NURSERY"></div>
+    </div>
+    <div id="goblin-npc" class="hidden">
+      <div class="g-sprite">
+        <div class="g-body"></div>
+        <div class="g-eyes"></div>
+        <div class="g-legs"></div>
+      </div>
+      <div id="goblin-bubble" class="hidden"></div>
     </div>
   </div>
   <div id="right">
@@ -522,16 +575,32 @@ function routeSignalAndShiftLulu(S) {
   return mode;
 }
 
-// Proposal generation: deterministic given (folded ledger state, seed,
-// S.actions, S.lulu.mode). Same log prefix + same seed => same proposal.
-function generateGoblinProposal(S, seed) {
+function matureCompostIfDue(S) {
+  if (S.phase !== "RUNNING") return false;
+  if (S.compostQueue.length === 0) return false;
+  const item = S.compostQueue[0];
+  const bonus = {soil: 2, knowledge: 1};
+  applyEvent(S, {kind: "COMPOST_MATURED", data: {consumedId: item.id, bonus}});
+  return true;
+}
+
+// Proposal generation is split in two, same law as v2.html's
+// pickProposalAgent / createProposal seam:
+//   1) pickGoblinProposal -- deterministic, pure, no applyEvent: decides
+//      WHICH zone, archetype, goblin and predicted effects, plus an offline
+//      fallback line from TEMPLATE_BANKS -- all from folded state + seed
+//      alone. Same log prefix + same seed => same pick.
+//   2) riseGoblinProposal -- deterministic, pure: takes an ALREADY-RESOLVED
+//      text (pick.fallbackText, OR a live-model string the UI zone obtained
+//      through its own network call, never fetched here) and commits it as
+//      PROPOSAL_RISEN event DATA. Because applyEvent's PROPOSAL_RISEN case
+//      is a bare `S.pending = d.proposal` assignment, fold/replay reproduces
+//      an externally-supplied string exactly the same way it reproduces a
+//      template one -- the reducer never learns or cares where text came
+//      from, and never touches the network either way.
+function pickGoblinProposal(S, seed) {
   if (S.phase !== "RUNNING") return null;
   seed = seed || "";
-  if (S.compostQueue.length > 0) {
-    const item = S.compostQueue[0];
-    const bonus = {soil: 2, knowledge: 1};
-    applyEvent(S, {kind: "COMPOST_MATURED", data: {consumedId: item.id, bonus}});
-  }
   const weights = zoneWeights(S);
   const bag = [];
   ZONES.forEach(z => {
@@ -542,15 +611,53 @@ function generateGoblinProposal(S, seed) {
   const zone = bag[h % bag.length];
   const bank = TEMPLATE_BANKS[S.lulu.mode];
   const tIdx = (h >>> 4) % bank.length;
-  const text = bank[tIdx].replace("{zone}", ZONE_DISPLAY[zone]);
+  const fallbackText = bank[tIdx].replace("{zone}", ZONE_DISPLAY[zone]);
   const goblinId = GOBLIN_NAMES[(h >>> 8) % GOBLIN_NAMES.length];
   const predictedEffects = computePredictedEffects(zone, S.lulu.mode);
-  const proposal = {
+  return {
     id: "prop" + S.actions, goblinId, archetype: S.lulu.mode,
-    category: zone, text, targetZone: zone, predictedEffects, authority: false
+    category: zone, targetZone: zone, predictedEffects, fallbackText
+  };
+}
+
+function riseGoblinProposal(S, pick, text) {
+  if (S.phase !== "RUNNING" || !pick) return null;
+  const proposal = {
+    id: pick.id, goblinId: pick.goblinId, archetype: pick.archetype,
+    category: pick.category, text: text, targetZone: pick.targetZone,
+    predictedEffects: pick.predictedEffects, authority: false
   };
   applyEvent(S, {kind: "PROPOSAL_RISEN", data: {proposal}});
   return proposal;
+}
+
+// Reroll: same seam as riseGoblinProposal, not a new mutation path -- it
+// re-emits PROPOSAL_RISEN for the SAME pending proposal (id/zone/archetype/
+// predictedEffects unchanged) carrying new text. Trivial because
+// PROPOSAL_RISEN is already just "S.pending = d.proposal"; fold/replay
+// reproduces a reroll exactly the same way it reproduces the original rise.
+function rerollGoblinProposalText(S, text) {
+  if (S.phase !== "RUNNING" || !S.pending) return null;
+  const p = S.pending;
+  return riseGoblinProposal(S, {
+    id: p.id, goblinId: p.goblinId, archetype: p.archetype,
+    category: p.category, targetZone: p.targetZone, predictedEffects: p.predictedEffects
+  }, text);
+}
+
+// Deterministic given (folded ledger state, seed, S.actions, S.lulu.mode).
+// Kept as the offline one-shot path: matures compost, picks, and rises with
+// the offline TEMPLATE_BANKS fallback text. The UI zone instead calls
+// pickGoblinProposal, resolves text through its own live-voice call, and
+// commits with riseGoblinProposal directly, so a live-model string can be
+// substituted for fallbackText -- this function's own behavior (and T1's
+// determinism proof) is unchanged.
+function generateGoblinProposal(S, seed) {
+  if (S.phase !== "RUNNING") return null;
+  matureCompostIfDue(S);
+  const pick = pickGoblinProposal(S, seed);
+  if (!pick) return null;
+  return riseGoblinProposal(S, pick, pick.fallbackText);
 }
 
 function admitProposal(S) {
@@ -685,11 +792,115 @@ function computeStateHash(S) {
 
 /* ===== REDUCER-END ===== */
 
-/* ===== RENDER + UI (browser only; zero network, DOM/CSS pixel edition) ===== */
+/* ===== RENDER + UI (browser only; DOM/CSS pixel edition. Network-free EXCEPT
+   the opt-in goblin-voice seam below, scoped exactly like v2.html's LLM
+   call -- flavor text only, never state, never trusted by the reducer.) ===== */
 let S = makeGardenState(0);
 let signalCursor = 0; // deterministic rotation through zones/kinds, no Math.random
+let proposing = false; // guards re-entrant uiProvoke/uiRerollGoblinVoice while an await is in flight
 
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+/* ---- Live goblin voice (network lives HERE, NEVER in the reducer) ----
+   Same pattern as v2.html's generateProposalText: a player-supplied
+   Anthropic key in sessionStorage only; no key, or any failure, resolves to
+   null so the caller falls back to pick.fallbackText (the deterministic
+   TEMPLATE_BANKS line) -- the game is always fully playable offline. */
+function llmGoblinKey() { return sessionStorage.getItem("gw3_llm_key") || ""; }
+function llmGoblinModel() { return "claude-haiku-4-5-20251001"; }
+
+async function generateGoblinText(archetype, zone, gardenState) {
+  const key = llmGoblinKey();
+  if (!key) return {text: null, source: "template"};
+  const sys = "You are a small fantasy goblin NPC in an original pixel-art browser " +
+    "garden-builder game. Your current mood/archetype is " + archetype + "; let it color your voice. " +
+    "You are proposing ONE small improvement to " + zone + ".\n" +
+    "Rules:\n" +
+    "- Output ONLY the proposal itself, one short sentence, max 16 words.\n" +
+    "- No markdown, no surrounding quotes, no explanation, no name prefix.\n" +
+    "- Stay entirely within an original goblin/garden/fungal fantasy setting -- invent " +
+    "everything, reference no real-world brands, people, or other games.";
+  const usr = "Garden vitals: health " + gardenState.health + ", chaos " + gardenState.chaos +
+    ", trust " + gardenState.trust + ", coherence " + gardenState.coherence +
+    ", knowledge " + gardenState.knowledge + ", soil " + gardenState.soil + ".\n" +
+    "Propose one small improvement for " + zone + ".";
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", "x-api-key": key,
+        "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({model: llmGoblinModel(), max_tokens: 60, system: sys, messages: [{role: "user", content: usr}]})
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    let text = ((data.content && data.content[0] && data.content[0].text) || "").trim();
+    text = text.replace(/^["']|["']$/g, "").replace(/\s+/g, " ");
+    if (!text) throw new Error("empty response");
+    if (text.length > 160) text = text.slice(0, 157) + "…";
+    return {text, source: "llm"};
+  } catch (err) {
+    console.warn("goblin voice generation failed, falling back to template:", err);
+    return {text: null, source: "template-fallback", error: err.message};
+  }
+}
+
+function uiSetGoblinVoiceKey() {
+  const val = window.prompt("Anthropic API key for the goblin's live voice (session-only; blank + OK clears):", "");
+  if (val === null) return;
+  if (val.trim() === "") sessionStorage.removeItem("gw3_llm_key");
+  else sessionStorage.setItem("gw3_llm_key", val.trim());
+  updateGoblinVoiceStatus();
+}
+
+function updateGoblinVoiceStatus() {
+  const has = !!llmGoblinKey();
+  const el = document.getElementById("ai-voice-status");
+  if (el) el.textContent = has ? "live (AI)" : "off (template)";
+}
+
+/* ---- Pixel goblin NPC: pure CSS/HTML box-shadow sprite, zero images/canvas ---- */
+const GOBLIN_ACCENT = {
+  BOUFFON_TENDRE: "#e0a83c", PUNK_DU_REPOS: "#8b5fc9", ROMANTIQUE_DES_QUESTIONS: "#a8d858",
+  GREMLIN_DES_SIDE_QUESTS: "#d08a3c", CAVE_DWELLER: "#8a5a4a", NOMMEUR_DE_BUGS: "#5c7a3a"
+};
+const ZONE_GOBLIN_TOP = {GARDEN_PLOTS: "8%", RECEIPT_FORGE: "38%", BUG_NURSERY: "68%"};
+
+// Idle "home" position is deterministic from the fold (S.actions) when no
+// proposal is pending -- the wander wiggle itself (g-wander/g-idle keyframes)
+// is pure cosmetic CSS animation and carries no state.
+function homeZoneForIdle() {
+  const h = h32("idle" + S.actions);
+  return ZONES[h % ZONES.length];
+}
+
+// Pure formatting helper (also unit-testable outside the DOM): builds the
+// speech-bubble innerHTML with the proposal text HTML-escaped, same
+// discipline as renderReceipts/renderLedger above.
+function renderGoblinBubbleHTML(goblinId, text) {
+  return "<div class=\"bubbletext\">" + esc(goblinId + ": " + text) + "</div>";
+}
+
+function updateGoblinSprite() {
+  const npc = document.getElementById("goblin-npc");
+  const bubble = document.getElementById("goblin-bubble");
+  if (!npc || !bubble) return;
+  if (S.phase !== "RUNNING") { npc.classList.add("hidden"); return; }
+  npc.classList.remove("hidden");
+  if (!S.pending) {
+    npc.style.setProperty("--goblin-accent", GOBLIN_ACCENT[S.lulu.mode] || "#d08a3c");
+    npc.style.top = ZONE_GOBLIN_TOP[homeZoneForIdle()];
+    bubble.classList.add("hidden");
+    bubble.innerHTML = "";
+    return;
+  }
+  const p = S.pending;
+  npc.style.setProperty("--goblin-accent", GOBLIN_ACCENT[p.archetype] || "#d08a3c");
+  npc.style.top = ZONE_GOBLIN_TOP[p.targetZone];
+  bubble.classList.remove("hidden");
+  bubble.innerHTML = renderGoblinBubbleHTML(p.goblinId, p.text);
+}
 
 function renderKernel() {
   document.getElementById("k-version").textContent = KERNEL.version;
@@ -771,6 +982,9 @@ function renderSignalButtons() {
 
 function renderAll() {
   renderVitals(); renderZones(); renderProposal(); renderReceipts(); renderLedger();
+  updateGoblinSprite();
+  const rerollBtn = document.getElementById("goblin-reroll-btn");
+  if (rerollBtn) rerollBtn.classList.toggle("hidden", !S.pending);
   if (S.phase === "ENDED_WON" || S.phase === "ENDED_LOST") showEndScreen();
 }
 
@@ -797,11 +1011,18 @@ function showEndScreen() {
 function uiStart() {
   document.getElementById("overlay").classList.add("hidden");
   startGame(S);
+  updateGoblinVoiceStatus();
   renderGoalButtons(); renderSignalButtons(); renderAll();
 }
 
-function uiProvoke(zone) {
-  if (S.phase !== "RUNNING") return;
+// Provokes a signal, then lets the goblin NPC walk to the target zone and
+// (optionally) speak its proposal live. Split into pick -> await -> rise,
+// same shape as v2.html's uiPropose: the reducer computes everything
+// deterministically up front (pickGoblinProposal), the network call is the
+// ONLY async step, and the resolved text is committed via riseGoblinProposal
+// only after re-validating the world we captured before the await.
+async function uiProvoke(zone) {
+  if (S.phase !== "RUNNING" || proposing) return;
   const kind = SIGNAL_KINDS[signalCursor % SIGNAL_KINDS.length];
   const severity = (signalCursor % 3) + 1;
   signalCursor++;
@@ -809,7 +1030,34 @@ function uiProvoke(zone) {
   const sig = riseSignal(S, zone, kind, severity, seed);
   if (!sig) return;
   routeSignalAndShiftLulu(S);
-  generateGoblinProposal(S, seed);
+  matureCompostIfDue(S);
+  const pick = pickGoblinProposal(S, seed);
+  if (!pick) { renderAll(); return; }
+  proposing = true;
+  renderAll(); // goblin walks toward pick.targetZone while "thinking"
+  const myS = S; // invariant: post-await code must re-validate the world it captured before the await
+  const gen = await generateGoblinText(pick.archetype, pick.targetZone, S.garden);
+  proposing = false;
+  if (S !== myS || S.phase !== "RUNNING") { renderAll(); return; } // restarted/ended mid-await -- drop the text, no write
+  const text = (gen && gen.text) ? gen.text : pick.fallbackText;
+  riseGoblinProposal(S, pick, text);
+  renderAll();
+}
+
+// Reroll: re-request a live line for the CURRENTLY pending proposal without
+// changing which zone/archetype/effects it targets. Same post-await guard,
+// plus "the proposal was already decided" -- if S.pending went null (or was
+// replaced by a different proposal id) while we awaited, drop the text.
+async function uiRerollGoblinVoice() {
+  if (!S.pending || proposing) return;
+  const p = S.pending;
+  proposing = true;
+  const myS = S;
+  const gen = await generateGoblinText(p.archetype, p.targetZone, S.garden);
+  proposing = false;
+  if (S !== myS || S.phase !== "RUNNING" || !S.pending || S.pending.id !== p.id) { renderAll(); return; }
+  const text = (gen && gen.text) ? gen.text : p.text;
+  rerollGoblinProposalText(S, text);
   renderAll();
 }
 
@@ -828,6 +1076,7 @@ function uiRestart() {
 }
 
 renderKernel();
+updateGoblinVoiceStatus();
 </script>
 </body>
 </html>
