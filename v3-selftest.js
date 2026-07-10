@@ -461,5 +461,31 @@ console.log("\n--- 10-cycle headless playthrough trace ---");
     "T11d (structural): the goblin bubble's innerHTML assignment is built via the escaping helper, not raw string concatenation");
 }
 
+// ============================================================
+// TEST 12 -- iPhone-compatibility slice (UI/CSS zone only): viewport-fit,
+// a responsive breakpoint, touch ergonomics, and -- the load-bearing check
+// for this slice -- proof the REDUCER zone byte content is UNCHANGED.
+// ============================================================
+{
+  const crypto = require("crypto");
+
+  ok(/viewport-fit\s*=\s*cover/.test(html), "T12: <meta viewport> declares viewport-fit=cover (notch/safe-area opt-in)");
+  ok(/@media\s*\(\s*max-width\s*:\s*480px\s*\)/.test(html), "T12: at least one @media (max-width:480px) rule present for the iPhone-class breakpoint");
+  ok(/touch-action\s*:\s*manipulation/.test(html), "T12: touch-action:manipulation present (kills iOS double-tap-to-zoom on buttons)");
+  ok(/env\(safe-area-inset-/.test(html), "T12: at least one env(safe-area-inset-*) use for notch/home-bar padding");
+  ok(/-webkit-tap-highlight-color/.test(html), "T12: -webkit-tap-highlight-color tuned (no default gray flash box)");
+  ok(/min-height\s*:\s*100dvh/.test(html), "T12: 100dvh used (with a vh fallback) instead of a bare 100vh trap");
+
+  // Load-bearing: this slice is UI/CSS-zone-only. Prove it by hashing the
+  // exact REDUCER-BEGIN/END-extracted text (the same `m[1]` the harness
+  // already uses to build `reducerSource`) and comparing to the sha256
+  // recorded from v3.html IMMEDIATELY BEFORE this slice's edits began
+  // (computed via: node -e with crypto.createHash("sha256").update(m[1]).digest("hex")).
+  const EXPECTED_REDUCER_SHA256 = "ad48a7f9603d02e687fd23be6340f3d1ce2082a6694a6e86f7c42391ef5fcdce";
+  const actualReducerSha256 = crypto.createHash("sha256").update(reducerSource, "utf8").digest("hex");
+  ok(actualReducerSha256 === EXPECTED_REDUCER_SHA256,
+    "T12: reducer zone sha256 UNCHANGED vs. the pre-slice hash (proves no new/changed code entered the pure zone)");
+}
+
 console.log(`\ngarden selftest: ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
