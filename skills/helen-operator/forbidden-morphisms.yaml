@@ -1,0 +1,24 @@
+# helen-operator/forbidden-morphisms.yaml — consult before every completion claim
+version: v0
+morphisms:
+  - model_output ⊬ receipt
+  - proposal ⊬ state
+  - test_description ⊬ test_execution
+  - report ⊬ implementation
+  - receipt_candidate ⊬ admission
+  - validation ⊬ canon
+  - model_explanation ⊬ actual_internal_reasoning
+  - prompt_distillation ⊬ capability_equivalence
+  - single_trap_pass ⊬ transplant_success
+  - manual_loaded ⊬ manual_followed
+  - benchmark_score ⊬ production_admission
+  - fluency ⊬ receipt
+  - confidence ⊬ evidence
+  - engagement ↛ reducer_input
+  - partial_grep ⊬ exhaustive_search
+  - intended_command ⊬ successful_command
+  - summary ⊬ receipt
+  - model_agreement ⊬ independent_verification
+  - dashboard ⊬ canon
+drift_chain_to_reject: fallthrough_default -> classification -> routing -> proposal -> admitted_capability
+law: only reducer/operator admission may change governed reality

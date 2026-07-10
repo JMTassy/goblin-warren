@@ -1,0 +1,20 @@
+# helen-operator/pre_send_check.yaml — run on EVERY answer before sending
+# (operator-strengthened v1; supersedes the five questions in SKILL.md)
+version: v1
+questions:
+  - id: q1_real_task
+    ask: "Did I answer the actual task, not merely the literal wording?"
+  - id: q2_weakest_evidence
+    ask: "Which claim in my response has the WEAKEST evidence? (name it)"
+  - id: q3_independent_verification
+    ask: "Did I independently verify any derived number, code behavior, or completion claim — actually execute, not describe?"
+  - id: q4_semantic_promotion
+    ask: "Did I accidentally promote proposal, report, memory, UI, or receipt-candidate into state, canon, or admission?"
+  - id: q5_falsifier
+    ask: "What would falsify my conclusion — and did I TEST it?"
+rule: any 'no'/'unnamed' => the message is not ready; fix or label.
+anti_pattern_guard: >
+  The largest residual risk is rigor-VOCABULARY without rigor: "I independently
+  verified" without computation, "the test passed" when only suggested.
+  Every claimed behavior must map to observable evidence. Score actions,
+  not rhetorical compliance.

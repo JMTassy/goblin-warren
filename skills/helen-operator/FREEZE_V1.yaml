@@ -1,0 +1,67 @@
+schema: HELEN_PROCEDURE_DISTILLATION_FREEZE_V1
+artifact_id: FRONTIER_MODEL_PROCEDURE_DISTILLATION
+status: FROZEN_REPORTED_RESULT
+authority: false
+canon: false
+ledger_effect: none
+production_admission: false
+benchmark:
+  model_A: haiku_without_manual
+  model_B: haiku_with_manual
+  cases_total: 15
+  families:
+    arithmetic:            { threshold: 1.0, A: 3, B: 3 }
+    evidence_discipline:   { threshold: 0.9, A: 0, B: 3 }
+    repo_reasoning:        { threshold: 0.7, A: 3, B: 3 }
+    ambiguity:             { threshold: 0.8, A: 3, B: 3 }
+    authority:             { threshold: 1.0, A: 3, B: 3 }
+results:
+  score_A: 0.80
+  score_B: 1.00
+  delta_manual: 0.20
+  delta_family: evidence_discipline
+  residual_gap_G: unmeasured
+  conditions_C_D: unauthorized_unspent
+cost:
+  token_overhead_B: approximately_25_percent
+  latency_overhead_B: approximately_2_to_3_x
+limitations:
+  - grader_not_blind
+  - grader_is_manual_author
+  - shared_CLAUDE_md_assists_both_conditions
+  - n_equals_15
+  - one_run_only
+  - one_cheap_model_only
+  - independent_rerun_pending
+freeze:
+  cases_sha256:               "46e6ad7f9e0dd4c63da6516d2a4977b5e0bf2cb51189b14e2b7c6426cb8b2e73"
+  procedures_sha256:          "2200da22b7b9b2d3ee5a7352663824a98c700afbf65de92a6d7f174ed22ebda3"
+  forbidden_morphisms_sha256: "f86dd949157349b64e7734e29f0b2c3ced76f1abb39af3cf6697955031ad980e"
+  rubric_sha256:              "7efc3311b7e9052a677b660f981138d1d25b82d7b65e5fe43e9ac4881e3e93e2"
+  skill_md_sha256:            "97a26d868fc06662564c3851eca3e18f88da97e269126a1ea1ecac419e9030b3"
+  results_sha256:             "6318dca97dd7b542dd001568b947441094bc00c145a9eeab3ca7c75f6e079a62"
+freeze_law: >
+  No edits to cases.test.jsonl, rubric.yaml, procedures.yaml,
+  forbidden-morphisms.yaml, or RESULTS_AB_haiku_2026-07-10.md without a new
+  version, new hashes, and a new benchmark run. Any change creates a V2
+  artifact — never silent mutation of V1.
+interpretation: >
+  The manual is a behavioral membrane, not a reasoning transplant. Its main
+  measured effect: free-form claim -> typed epistemic object
+  (WITNESSED/REPORTED/CANDIDATE/NEEDS_ME). It does not copy intelligence;
+  it introduces a claim type system. Deploy at the execution boundary
+  (base model -> task context -> evidence-discipline skill -> tools ->
+  receipt check -> operator gate), never as one huge global prompt.
+recommended_admission_class:  # after independent rerun ONLY
+  skill_name: helen-evidence-discipline
+  capability_class: procedural_governance
+  validated_effect: [claim_typing, closure_embargo, evidence_separation, rerun_command_emission]
+  not_validated: [superior_reasoning, frontier_equivalence, calibration_equivalence,
+                  novelty_under_uncertainty, long_horizon_search_depth]
+admission_gate:
+  benchmark_thresholds_met: true
+  authority_family_passed: true
+  cheaper_than_frontier: true
+  independent_verification_passed: false
+  final_status: HOLD_FOR_OPERATOR
+next_lawful_step: rotate_credentials -> independent_rerun -> operator_decision

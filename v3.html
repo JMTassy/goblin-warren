@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELEN — Dreams of Conquest: Goblin Garden (MVP)</title>
+<!--
+  HELEN -- Dreams of Conquest / Goblin Warren MVP -- "The Living Garden"
+  authority=false . claim=NO_CLAIM . proposal-grade . HOLD_FOR_OPERATOR
+  Zero network. Zero build step. Pure DOM/CSS, pixel aesthetic via CSS only
+  (no Three.js, no CDN, no remote calls of any kind anywhere in this file).
+
+  HARD ARCHITECTURE LAW: Garden change |-/- Kernel truth.
+  GardenState_t = fold(events_0..t). There is no hidden mutable Goblin
+  memory anywhere in this file -- deny/admit weighting is recomputed by
+  folding the ledger (deriveGoblinMemory), every time it is needed. The
+  Kernel below is a frozen constant; no reducer function ever assigns to
+  it. Same event log => same Garden state, same Goblin memory, same Lulu
+  transitions, on this run or replayed cold in a fresh node process.
+  Corrupted/garbage event data fails CLOSED: foldGardenLog and
+  foldGardenLogFromJSONL never return a partially-applied state on
+  invalid input -- they return {ok:false, state:null} instead.
+
+  UI never mutates state directly -- every button routes through a
+  reducer function. This is proposal-grade software: it proposes a
+  playable shape for the loop. It does not claim canon, does not claim
+  authority, and is not merged into the HELEN OS lineage by existing.
+  HOLD_FOR_OPERATOR.
+-->
+<style>
+  :root{
+    --swamp:#141c0e; --moss:#5c7a3a; --glow:#a8d858; --ember:#d08a3c; --violet:#8b5fc9;
+    --bone:#e8dcc0; --rot:#8a5a4a; --ink:#0d1408;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:0;background:var(--swamp);color:var(--bone);
+    font-family:"Courier New",Courier,monospace;
+    -webkit-font-smoothing:none;font-smooth:never;font-size:13px}
+  .pixel{image-rendering:pixelated;image-rendering:crisp-edges}
+  #app{display:grid;grid-template-columns:250px 1fr 280px;grid-template-rows:auto 1fr auto;
+    gap:8px;height:100vh;padding:8px}
+  .panel{background:var(--ink);border:3px solid var(--moss);border-radius:0;
+    padding:8px;box-shadow:3px 3px 0 #000;overflow-y:auto}
+  h2{margin:0 0 6px 0;font-size:12px;color:var(--glow);letter-spacing:.08em;
+    text-transform:uppercase;border-bottom:2px solid var(--moss);padding-bottom:4px}
+  .stat{margin:2px 0;font-size:11px}
+  .stat b{color:var(--amber,#e0a83c)}
+  .law{font-size:10px;color:var(--ember);margin:4px 0}
+  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);border-radius:0;
+    padding:5px 9px;margin:3px 3px 3px 0;cursor:pointer;font-family:inherit;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.04em;box-shadow:3px 3px 0 #000}
+  button:hover{background:#2a3a1a}
+  button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  button.goal{border-color:var(--violet)}
+  #kernel{grid-column:1/2;grid-row:1/2}
+  #left{grid-column:1/2;grid-row:2/3}
+  #zones{grid-column:2/3;grid-row:1/3;display:flex;flex-direction:column;gap:8px}
+  .zone{flex:1;display:flex;flex-direction:column}
+  .zone .emoji{font-size:38px;text-align:center;margin:6px 0}
+  .zone .zname{font-size:11px;letter-spacing:.1em;color:var(--ember);text-transform:uppercase}
+  .zonebar{height:8px;background:#222;border:1px solid #000;margin:2px 0}
+  .zonebar i{display:block;height:100%;background:var(--glow)}
+  #right{grid-column:3/4;grid-row:1/3;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  #proposal{flex:0 0 auto}
+  #receipts{flex:1 1 auto;min-height:80px}
+  #proposal .agentname{color:var(--ember);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+  #proposal .ptext{margin:5px 0;font-size:11.5px}
+  #proposal .verdict{font-size:10px;color:var(--violet)}
+  #ledger{grid-column:1/4;grid-row:3/4;max-height:150px}
+  .log-entry{font-size:9.5px;border-left:3px solid var(--moss);padding-left:5px;margin:1px 0}
+  .log-entry.adm{border-color:var(--glow);color:var(--glow)}
+  .log-entry.den{border-color:var(--rot);color:var(--rot)}
+  .receipt{font-size:9.5px;border:1px solid var(--violet);padding:3px;margin:3px 0;color:var(--violet)}
+  .lululine{font-size:10px;color:var(--glow);margin:4px 0;font-style:italic}
+  #overlay{position:absolute;inset:0;background:rgba(8,12,5,.96);display:flex;
+    align-items:center;justify-content:center;flex-direction:column;z-index:50;pointer-events:auto}
+  #overlay .title{font-size:22px;color:var(--glow);text-shadow:3px 3px 0 #000;
+    text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+  #overlay .sub{max-width:520px;text-align:center;font-size:11px;margin-bottom:14px;color:var(--bone)}
+  .badge-ok{color:var(--glow)} .badge-bad{color:var(--rot)}
+  #startBtn{font-size:13px;padding:9px 16px}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div class="title">The Living Garden</div>
+  <div class="sub">A goblin-tended kernel-side plot. Signals rise, Lulu shifts shape, a goblin
+    proposes something funny and half-broken. You admit, deny, or compost it. The world only
+    moves on YOUR word. Zero network. Zero persistence. HOLD_FOR_OPERATOR — this is a proposal,
+    not canon.</div>
+  <button id="startBtn" onclick="uiStart()">Wake the Garden</button>
+</div>
+<div id="app">
+  <div id="kernel" class="panel">
+    <h2>Kernel (read-only)</h2>
+    <div class="stat">version: <b id="k-version"></b></div>
+    <div class="stat">authority: <b id="k-authority"></b></div>
+    <div class="stat">claim: <b id="k-claim"></b></div>
+    <div class="stat">status: <b id="k-status"></b></div>
+    <div class="law" id="k-law"></div>
+    <div class="stat" style="margin-top:4px">frozen: <b id="k-frozen"></b></div>
+  </div>
+  <div id="left" class="panel">
+    <h2>Garden Vitals</h2>
+    <div class="stat">Health: <b id="v-health"></b> · Chaos: <b id="v-chaos"></b></div>
+    <div class="stat">Trust: <b id="v-trust"></b> · Coherence: <b id="v-coherence"></b></div>
+    <div class="stat">Knowledge: <b id="v-knowledge"></b> · Soil: <b id="v-soil"></b></div>
+    <div class="stat">Membrane: <b id="v-membrane"></b></div>
+    <div class="stat">Fruit (L6) progress: <b id="v-fruit"></b>/100</div>
+    <h2 style="margin-top:8px">Lulu</h2>
+    <div class="stat">Mode: <b id="lulu-mode"></b></div>
+    <div class="lululine" id="lulu-line"></div>
+    <h2 style="margin-top:8px">Hivemind Goal</h2>
+    <div id="goal-current" class="stat"></div>
+    <div id="goal-buttons"></div>
+    <h2 style="margin-top:8px">Signals</h2>
+    <div id="signal-buttons"></div>
+  </div>
+  <div id="zones">
+    <div class="zone panel" id="zone-GARDEN_PLOTS">
+      <div class="zname">Garden Plots (creation)</div>
+      <div class="emoji" id="e-GARDEN_PLOTS">🌱</div>
+      <div class="zonebar"><i id="b-GARDEN_PLOTS" style="width:50%"></i></div>
+      <div class="stat" id="s-GARDEN_PLOTS"></div>
+    </div>
+    <div class="zone panel" id="zone-RECEIPT_FORGE">
+      <div class="zname">Receipt Forge (validation)</div>
+      <div class="emoji" id="e-RECEIPT_FORGE">📜</div>
+      <div class="zonebar"><i id="b-RECEIPT_FORGE" style="width:50%"></i></div>
+      <div class="stat" id="s-RECEIPT_FORGE"></div>
+    </div>
+    <div class="zone panel" id="zone-BUG_NURSERY">
+      <div class="zname">Bug Nursery (chaos)</div>
+      <div class="emoji" id="e-BUG_NURSERY">🐛</div>
+      <div class="zonebar"><i id="b-BUG_NURSERY" style="width:50%"></i></div>
+      <div class="stat" id="s-BUG_NURSERY"></div>
+    </div>
+  </div>
+  <div id="right">
+    <div id="proposal" class="panel">
+      <h2>Goblin Proposal</h2>
+      <div id="proposal-empty" class="stat">No proposal pending. Provoke a signal.</div>
+      <div id="proposal-body" class="hidden">
+        <div class="agentname" id="p-agent"></div>
+        <div class="ptext" id="p-text"></div>
+        <div class="stat">target: <span id="p-zone"></span> · archetype: <span id="p-archetype"></span></div>
+        <div class="verdict" id="p-verdict">authority=false — you decide, not the goblin.</div>
+        <button onclick="uiAdmit()">Admit</button>
+        <button onclick="uiDeny()">Deny</button>
+        <button onclick="uiCompost()">Compost</button>
+      </div>
+    </div>
+    <div id="receipts" class="panel">
+      <h2>Receipt Tray</h2>
+      <div class="law">claimable — admission happens elsewhere. All entries admitted=false.</div>
+      <div id="receipt-list"></div>
+    </div>
+  </div>
+  <div id="ledger" class="panel">
+    <h2>Event Ledger (append-only, showing last 10)</h2>
+    <div id="ledger-list"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== REDUCER-BEGIN (pure logic -- no DOM, no network, no Math.random, no Date; node-testable) ===== */
+
+function h32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+// ---- Kernel: frozen, constant, NEVER assigned to by any reducer function. ----
+// This is the law made literal: "Garden change |-/- Kernel truth."
+const KERNEL = Object.freeze({
+  version: "0.1.0",
+  authority: false,
+  claim: "NO_CLAIM",
+  status: "HOLD_FOR_OPERATOR",
+  law: "Garden change cannot prove Kernel truth (⊬)",
+  zones: Object.freeze(["GARDEN_PLOTS", "RECEIPT_FORGE", "BUG_NURSERY"])
+});
+
+const ZONES = ["GARDEN_PLOTS", "RECEIPT_FORGE", "BUG_NURSERY"];
+const ZONE_DISPLAY = {
+  GARDEN_PLOTS: "the Garden Plots",
+  RECEIPT_FORGE: "the Receipt Forge",
+  BUG_NURSERY: "the Bug Nursery"
+};
+const SIGNAL_KINDS = ["SIGNAL", "DECOMPOSITION", "REDISTRIBUTION", "QUARANTINE", "TRANSFORMATION"];
+const LULU_MODES = ["BOUFFON_TENDRE","PUNK_DU_REPOS","ROMANTIQUE_DES_QUESTIONS",
+  "GREMLIN_DES_SIDE_QUESTS","CAVE_DWELLER","NOMMEUR_DE_BUGS"];
+const LULU_LINES = {
+  BOUFFON_TENDRE: "aw, come here, little feeling -- let's turn you into coherence.",
+  PUNK_DU_REPOS: "everybody SITS DOWN. the chaos can wait its turn.",
+  ROMANTIQUE_DES_QUESTIONS: "ooh, an ambiguity. let's follow it somewhere unexpected.",
+  GREMLIN_DES_SIDE_QUESTS: "bored? BORED? I found a receipt UNDER THE COMPOST, let's go",
+  CAVE_DWELLER: "something is at the membrane. I am the membrane now.",
+  NOMMEUR_DE_BUGS: "you're not a bug. you're GERALD. welcome, Gerald."
+};
+const GOALS = ["BEAUTY","DEFENSE","CHAOS","ECONOMY","EXPLORATION","REST","KNOWLEDGE"];
+const GOAL_ZONE_BIAS = {
+  BEAUTY: {GARDEN_PLOTS: 1.5},
+  EXPLORATION: {GARDEN_PLOTS: 1.3, BUG_NURSERY: 1.1},
+  KNOWLEDGE: {GARDEN_PLOTS: 1.15, RECEIPT_FORGE: 1.25},
+  ECONOMY: {RECEIPT_FORGE: 1.5},
+  REST: {RECEIPT_FORGE: 1.2, BUG_NURSERY: 0.7},
+  DEFENSE: {BUG_NURSERY: 1.4},
+  CHAOS: {BUG_NURSERY: 1.6}
+};
+
+// signal kind -> which ambient Garden-state fields it nudges, and by how much
+// per point of severity. These are the raw materials Lulu's triggers read.
+const SIGNAL_FIELD_MAP = {
+  SIGNAL: {novelty: 1},
+  DECOMPOSITION: {ambiguity: 1},
+  REDISTRIBUTION: {activeQuests: 1},
+  QUARANTINE: {intrusionRisk: 1},
+  TRANSFORMATION: {failures: -1, trust: 1}
+};
+
+const FIELD_RANGES = {
+  health: [0, 100], chaos: [0, 150], trust: [0, 100], coherence: [0, 100],
+  knowledge: [0, 999], soil: [0, 999], activeQuests: [0, 20], ambiguity: [0, 20],
+  novelty: [0, 20], intrusionRisk: [0, 20], failures: [0, 20], membraneStress: [0, 20]
+};
+function clampField(key, val) {
+  const r = FIELD_RANGES[key];
+  if (!r) return val;
+  return Math.max(r[0], Math.min(r[1], val));
+}
+
+// ---- Lulu templates: >=6 per archetype, zone-targeted, funny/weird on purpose ----
+const TEMPLATE_BANKS = {
+  BOUFFON_TENDRE: [
+    "Cry into {zone} until the soil feels heard, then plant something.",
+    "Hug the nearest structure in {zone}. It has been load-bearing and lonely.",
+    "Turn a sad little glitch in {zone} into a lullaby, badly, on purpose.",
+    "Give {zone} a participation ribbon for merely continuing to exist.",
+    "Whisper 'you are doing great' to the worst part of {zone}.",
+    "Braid the anxious vines in {zone} into something soft to lean on."
+  ],
+  PUNK_DU_REPOS: [
+    "Cancel one (1) meeting-shaped task inside {zone}. Everyone naps.",
+    "Nail a 'CLOSED FOR REST' sign to the loudest corner of {zone}.",
+    "Replace three urgent chores in {zone} with a single sanctioned shrug.",
+    "Install a hammock across the busiest walkway in {zone}.",
+    "Declare a moratorium on new quests emerging from {zone} until further notice.",
+    "Slow {zone} to exactly one (1) speed: unbothered."
+  ],
+  ROMANTIQUE_DES_QUESTIONS: [
+    "Draw a wobbly bridge between {zone} and whatever it's avoiding.",
+    "Ask {zone} what it actually meant by that. Wait for the weird answer.",
+    "Open a door in {zone} that leads to a slightly different question.",
+    "Tie a string from every 'maybe' in {zone} to every other 'maybe'.",
+    "Let {zone} wonder out loud for a while before anyone fixes anything.",
+    "Turn the confusing bit of {zone} into a signpost, not a wall."
+  ],
+  GREMLIN_DES_SIDE_QUESTS: [
+    "Dig sideways in {zone} until something unlisted falls out.",
+    "Trade three boring facts about {zone} for one deeply weird receipt.",
+    "Hide a rare mushroom of knowledge somewhere idiotic in {zone}.",
+    "Detour {zone} through a tunnel nobody asked for. Find loot.",
+    "Rename the dullest corner of {zone} something absurd, then explore it.",
+    "Chase the smallest sparkle in {zone} off the map on purpose."
+  ],
+  CAVE_DWELLER: [
+    "Grow a thorn hedge along the seam of {zone} facing outward.",
+    "Seal the drafty gap in {zone} with something load-bearing and rude.",
+    "Post a silent, enormous presence at the edge of {zone}.",
+    "Thicken the membrane around {zone}; ask questions of anyone who knocks.",
+    "Bury the spare key to {zone} somewhere only the roots remember.",
+    "Build a second, meaner wall behind the first wall in {zone}."
+  ],
+  NOMMEUR_DE_BUGS: [
+    "Name the thing crawling out of {zone} 'Gerald' and give it a job.",
+    "Adopt the weird crash in {zone}; it just wanted a home.",
+    "Turn the recurring error in {zone} into a small, useful pet.",
+    "Introduce the bug in {zone} to the other bug in {zone}. They're friends now.",
+    "Give the {zone} glitch a name tag before it gives itself a worse one.",
+    "Domesticate whatever just hatched in {zone}. Feed it compost."
+  ]
+};
+const GOBLIN_NAMES = ["Mossrick","Puddlefang","Snagtooth","Bramblewick","Ashgrub","Wartle","Drizzlecap","Knucklemoss"];
+const BUG_NAMES = ["Gerald","Bartholomew","Nibbles","Squibble","Cranky","Puddleworth","Dorothy","Ansel"];
+
+const VISUAL_STAGES = {
+  GARDEN_PLOTS: ["🌱","🌿","🌳","🌸🌳"],
+  RECEIPT_FORGE: ["📜","📜✨","📚✨","🏛️📜"],
+  BUG_NURSERY: ["🐛","🐛🐛","🦋","🐉✨"]
+};
+
+// ---- state shape ----
+function initialGardenState(epoch) {
+  return {
+    kernel: KERNEL,
+    phase: "START",
+    epoch: epoch || 0,
+    actions: 0,
+    goal: null,
+    lulu: {mode: "PUNK_DU_REPOS", previous: null},
+    garden: {
+      health: 60, chaos: 10, trust: 50, coherence: 50, knowledge: 0, soil: 0,
+      activeQuests: 0, ambiguity: 0, novelty: 5, intrusionRisk: 0, failures: 0,
+      membraneStress: 0, fruitProgress: 0
+    },
+    zones: {
+      GARDEN_PLOTS: {visualMutation: VISUAL_STAGES.GARDEN_PLOTS[0], mutationCount: 0},
+      RECEIPT_FORGE: {visualMutation: VISUAL_STAGES.RECEIPT_FORGE[0], mutationCount: 0},
+      BUG_NURSERY: {visualMutation: VISUAL_STAGES.BUG_NURSERY[0], mutationCount: 0}
+    },
+    bugs: [],
+    receipts: [],
+    compostQueue: [],
+    lastSignal: null,
+    pending: null,
+    endSummary: null,
+    ledger: []
+  };
+}
+function makeGardenState(epoch) { return initialGardenState(epoch); }
+
+const KNOWN_EVENT_KINDS = new Set([
+  "GAME_STARTED","GOAL_SET","SIGNAL_ROSE","LULU_SHIFTED","GATE_ROUTED",
+  "PROPOSAL_RISEN","COMPOST_MATURED","PROPOSAL_ADMITTED","PROPOSAL_DENIED",
+  "PROPOSAL_COMPOSTED","GAME_WON","GAME_LOST"
+]);
+
+function applyDelta(g, delta) {
+  Object.keys(delta || {}).forEach(k => {
+    if (k === "visualMutation") return;
+    if (typeof delta[k] === "number") g[k] = clampField(k, (g[k] || 0) + delta[k]);
+  });
+}
+
+// ---- applyEvent: the ONE mutation path. Live play and cold replay both
+// funnel every state change through here, so fold(events) is byte-identical
+// to whatever the live session produced by calling the same functions. ----
+function applyEvent(S, ev) {
+  if (!ev || typeof ev !== "object" || typeof ev.kind !== "string") {
+    throw new Error("malformed event (missing kind)");
+  }
+  if (!KNOWN_EVENT_KINDS.has(ev.kind)) {
+    throw new Error("unknown event kind: " + ev.kind);
+  }
+  const d = ev.data || {};
+  S.actions++;
+  switch (ev.kind) {
+    case "GAME_STARTED":
+      S.phase = "RUNNING";
+      break;
+    case "GOAL_SET":
+      if (!GOALS.includes(d.goal)) throw new Error("invalid goal in event");
+      S.goal = d.goal;
+      break;
+    case "SIGNAL_ROSE": {
+      const g = S.garden;
+      Object.keys(d.fieldDeltas || {}).forEach(k => { g[k] = clampField(k, (g[k] || 0) + d.fieldDeltas[k]); });
+      S.lastSignal = d.signal;
+      break;
+    }
+    case "LULU_SHIFTED":
+      S.lulu.previous = S.lulu.mode;
+      S.lulu.mode = d.mode;
+      break;
+    case "GATE_ROUTED":
+      S.lulu.mode = d.mode;
+      break;
+    case "PROPOSAL_RISEN":
+      S.pending = d.proposal;
+      break;
+    case "COMPOST_MATURED": {
+      const g = S.garden;
+      g.soil = clampField("soil", g.soil + ((d.bonus && d.bonus.soil) || 0));
+      g.knowledge = clampField("knowledge", g.knowledge + ((d.bonus && d.bonus.knowledge) || 0));
+      S.compostQueue.shift();
+      break;
+    }
+    case "PROPOSAL_ADMITTED": {
+      const g = S.garden;
+      const z = S.zones[d.zone];
+      applyDelta(g, d.delta);
+      if (z) {
+        z.mutationCount++;
+        if (d.delta && d.delta.visualMutation) z.visualMutation = d.delta.visualMutation;
+      }
+      if (d.bug) S.bugs.push(d.bug);
+      if (d.receipt) S.receipts.push(d.receipt);
+      S.pending = null;
+      g.fruitProgress = computeFruitProgress(g, S.receipts.length, S.bugs.filter(b => b.tamed).length);
+      break;
+    }
+    case "PROPOSAL_DENIED": {
+      const g = S.garden;
+      g.chaos = clampField("chaos", g.chaos + 1);
+      if (d.membraneHit) g.membraneStress = clampField("membraneStress", g.membraneStress + 1);
+      S.pending = null;
+      g.fruitProgress = computeFruitProgress(g, S.receipts.length, S.bugs.filter(b => b.tamed).length);
+      break;
+    }
+    case "PROPOSAL_COMPOSTED": {
+      const g = S.garden;
+      g.soil = clampField("soil", g.soil + 3);
+      g.knowledge = clampField("knowledge", g.knowledge + 1);
+      S.compostQueue.push(d.scheduled);
+      S.pending = null;
+      g.fruitProgress = computeFruitProgress(g, S.receipts.length, S.bugs.filter(b => b.tamed).length);
+      break;
+    }
+    case "GAME_WON":
+      S.phase = "ENDED_WON";
+      S.endSummary = {reason: d.reason, summary: d.summary};
+      break;
+    case "GAME_LOST":
+      S.phase = "ENDED_LOST";
+      S.endSummary = {reason: d.reason, summary: d.summary};
+      break;
+  }
+  S.ledger.push(ev);
+  return S;
+}
+
+// ---- Lulu: pure function of Garden state. Same state => same mode. ----
+function deriveLuluMode(g, previousMode) {
+  if (g.intrusionRisk >= 7) return "CAVE_DWELLER";
+  if (g.failures >= 3) return "NOMMEUR_DE_BUGS";
+  if (g.trust <= 30 && (g.activeQuests + g.ambiguity) >= 4) return "BOUFFON_TENDRE";
+  if (g.activeQuests >= 4) return "PUNK_DU_REPOS";
+  if (g.ambiguity >= 5) return "ROMANTIQUE_DES_QUESTIONS";
+  if (g.novelty <= 2) return "GREMLIN_DES_SIDE_QUESTS";
+  return previousMode || "PUNK_DU_REPOS";
+}
+
+// ---- Goblin memory: NO stored counters. Derived by folding the ledger,
+// every single time. This is the literal "no hidden mutable memory" law. ----
+function deriveGoblinMemory(ledger) {
+  const tally = {};
+  ZONES.forEach(z => { tally[z] = {admits: 0, denies: 0}; });
+  ledger.forEach(e => {
+    if (e.kind === "PROPOSAL_ADMITTED" && tally[e.data.zone]) tally[e.data.zone].admits++;
+    if (e.kind === "PROPOSAL_DENIED" && tally[e.data.zone]) tally[e.data.zone].denies++;
+  });
+  const weights = {};
+  ZONES.forEach(z => {
+    const net = tally[z].denies - tally[z].admits;
+    let w = 1;
+    if (net > 0) w = Math.max(0.2, 1 - 0.3 * net);       // suppressed by net denials
+    else if (net < 0) w = Math.min(2, 1 + 0.15 * (-net)); // reinforced by net admits
+    weights[z] = w;
+  });
+  return {tally, weights};
+}
+function zoneWeights(S) {
+  const mem = deriveGoblinMemory(S.ledger).weights;
+  const bias = (S.goal && GOAL_ZONE_BIAS[S.goal]) || {};
+  const w = {};
+  ZONES.forEach(z => { w[z] = mem[z] * (bias[z] || 1); });
+  return w;
+}
+
+function computePredictedEffects(zone, archetype) {
+  const base = {
+    GARDEN_PLOTS: {health: 4, coherence: 1, chaos: 1},
+    RECEIPT_FORGE: {trust: 3, coherence: 2, chaos: 0},
+    BUG_NURSERY: {chaos: -3, knowledge: 2, health: 1}
+  }[zone];
+  const out = Object.assign({}, base);
+  const flavor = {
+    BOUFFON_TENDRE: {coherence: 2, trust: 1},
+    PUNK_DU_REPOS: {chaos: -2},
+    ROMANTIQUE_DES_QUESTIONS: {knowledge: 1, coherence: 1},
+    GREMLIN_DES_SIDE_QUESTS: {knowledge: 2, soil: 1},
+    CAVE_DWELLER: {trust: 2, chaos: -1},
+    NOMMEUR_DE_BUGS: {chaos: -4, knowledge: 1}
+  }[archetype] || {};
+  Object.keys(flavor).forEach(k => { out[k] = (out[k] || 0) + flavor[k]; });
+  return out;
+}
+
+function computeFruitProgress(g, receiptsCount, tamedBugsCount) {
+  const v = g.health * 0.5 + receiptsCount * 4 + tamedBugsCount * 10 - g.chaos * 0.3;
+  return Math.max(0, Math.min(100, Math.round(v)));
+}
+
+// ---- top-level reducer moves ----
+function startGame(S) {
+  if (S.phase !== "START") return false;
+  applyEvent(S, {kind: "GAME_STARTED", data: {epoch: S.epoch}});
+  return true;
+}
+
+function setHivemindGoal(S, goal) {
+  if (S.phase !== "RUNNING") return false;
+  if (!GOALS.includes(goal)) return false;
+  applyEvent(S, {kind: "GOAL_SET", data: {goal}});
+  return true;
+}
+
+function riseSignal(S, sourceZone, kind, severity, seed) {
+  if (S.phase !== "RUNNING") return null;
+  if (!ZONES.includes(sourceZone) || !SIGNAL_KINDS.includes(kind)) return null;
+  severity = Math.max(1, Math.min(5, severity | 0));
+  const id = "sig" + S.actions + "_" + h32((seed || "") + sourceZone + kind + S.actions);
+  const map = SIGNAL_FIELD_MAP[kind] || {};
+  const fieldDeltas = {};
+  Object.keys(map).forEach(k => { fieldDeltas[k] = map[k] * severity; });
+  const signal = {id, sourceZone, kind, severity, seed: seed || ""};
+  applyEvent(S, {kind: "SIGNAL_ROSE", data: {signal, fieldDeltas}});
+  return signal;
+}
+
+// Mycelial Gate: routes the signal and lets Lulu shift (or not) per the
+// deterministic trigger rules in deriveLuluMode.
+function routeSignalAndShiftLulu(S) {
+  if (S.phase !== "RUNNING") return S.lulu.mode;
+  const mode = deriveLuluMode(S.garden, S.lulu.mode);
+  if (mode !== S.lulu.mode) {
+    applyEvent(S, {kind: "LULU_SHIFTED", data: {mode, previous: S.lulu.mode}});
+  } else {
+    applyEvent(S, {kind: "GATE_ROUTED", data: {mode}});
+  }
+  return mode;
+}
+
+// Proposal generation: deterministic given (folded ledger state, seed,
+// S.actions, S.lulu.mode). Same log prefix + same seed => same proposal.
+function generateGoblinProposal(S, seed) {
+  if (S.phase !== "RUNNING") return null;
+  seed = seed || "";
+  if (S.compostQueue.length > 0) {
+    const item = S.compostQueue[0];
+    const bonus = {soil: 2, knowledge: 1};
+    applyEvent(S, {kind: "COMPOST_MATURED", data: {consumedId: item.id, bonus}});
+  }
+  const weights = zoneWeights(S);
+  const bag = [];
+  ZONES.forEach(z => {
+    const w = Math.max(1, Math.round(weights[z] * 10));
+    for (let k = 0; k < w; k++) bag.push(z);
+  });
+  const h = h32(seed + "|" + S.actions + "|" + S.lulu.mode);
+  const zone = bag[h % bag.length];
+  const bank = TEMPLATE_BANKS[S.lulu.mode];
+  const tIdx = (h >>> 4) % bank.length;
+  const text = bank[tIdx].replace("{zone}", ZONE_DISPLAY[zone]);
+  const goblinId = GOBLIN_NAMES[(h >>> 8) % GOBLIN_NAMES.length];
+  const predictedEffects = computePredictedEffects(zone, S.lulu.mode);
+  const proposal = {
+    id: "prop" + S.actions, goblinId, archetype: S.lulu.mode,
+    category: zone, text, targetZone: zone, predictedEffects, authority: false
+  };
+  applyEvent(S, {kind: "PROPOSAL_RISEN", data: {proposal}});
+  return proposal;
+}
+
+function admitProposal(S) {
+  if (S.phase !== "RUNNING" || !S.pending) return false;
+  const p = S.pending;
+  const zoneState = S.zones[p.targetZone];
+  const stageArr = VISUAL_STAGES[p.targetZone];
+  const stageIdx = Math.min(stageArr.length - 1, zoneState.mutationCount + 1);
+  const delta = Object.assign({}, p.predictedEffects, {visualMutation: stageArr[stageIdx]});
+  let bug = null;
+  if (p.targetZone === "BUG_NURSERY" && p.archetype === "NOMMEUR_DE_BUGS") {
+    const h = h32(p.id + "bug");
+    bug = {id: "bug" + p.id, name: BUG_NAMES[h % BUG_NAMES.length], tamed: true};
+  }
+  const receipt = {
+    id: "rcpt" + p.id, sourceProposalId: p.id,
+    evidenceRefs: [p.id, "sig:" + (S.lastSignal && S.lastSignal.id)],
+    claimedEffect: delta, admitted: false, authority: false
+  };
+  applyEvent(S, {kind: "PROPOSAL_ADMITTED", data: {proposalId: p.id, zone: p.targetZone, delta, bug, receipt}});
+  checkEnd(S);
+  return true;
+}
+
+function denyProposal(S) {
+  if (S.phase !== "RUNNING" || !S.pending) return false;
+  const p = S.pending;
+  const membraneHit = S.garden.intrusionRisk >= 8;
+  applyEvent(S, {kind: "PROPOSAL_DENIED", data: {proposalId: p.id, zone: p.targetZone, archetype: p.archetype, membraneHit}});
+  checkEnd(S);
+  return true;
+}
+
+function compostProposal(S) {
+  if (S.phase !== "RUNNING" || !S.pending) return false;
+  const p = S.pending;
+  const scheduled = {id: "comp" + p.id, category: p.targetZone, enrich: p.predictedEffects};
+  applyEvent(S, {kind: "PROPOSAL_COMPOSTED", data: {proposalId: p.id, zone: p.targetZone, scheduled}});
+  checkEnd(S);
+  return true;
+}
+
+function snapshotSummary(S) {
+  const g = S.garden;
+  return {
+    health: g.health, chaos: g.chaos, trust: g.trust, coherence: g.coherence,
+    knowledge: g.knowledge, soil: g.soil, fruitProgress: g.fruitProgress,
+    receipts: S.receipts.length, tamedBugs: S.bugs.filter(b => b.tamed).length,
+    membraneStress: g.membraneStress
+  };
+}
+
+function checkEnd(S) {
+  if (S.phase !== "RUNNING") return false;
+  const g = S.garden;
+  // NOTE: g.fruitProgress is NOT recomputed here. It is derived and written
+  // exclusively inside applyEvent (PROPOSAL_ADMITTED/DENIED/COMPOSTED cases),
+  // the single mutation path -- so a cold fold() of the ledger reproduces it
+  // exactly, with no side-channel mutation living outside the event log.
+  const membraneIntact = g.membraneStress < 5;
+  if (g.chaos >= 100) {
+    applyEvent(S, {kind: "GAME_LOST", data: {reason: "chaos overwhelmed the garden", summary: snapshotSummary(S)}});
+    return true;
+  }
+  if (!membraneIntact) {
+    applyEvent(S, {kind: "GAME_LOST", data: {reason: "the membrane breached", summary: snapshotSummary(S)}});
+    return true;
+  }
+  if (g.health <= 0) {
+    applyEvent(S, {kind: "GAME_LOST", data: {reason: "tree health collapsed", summary: snapshotSummary(S)}});
+    return true;
+  }
+  if (g.health >= 70 && membraneIntact && g.fruitProgress >= 100) {
+    applyEvent(S, {kind: "GAME_WON", data: {reason: "an L6 fruit matured", summary: snapshotSummary(S)}});
+    return true;
+  }
+  return false;
+}
+
+// ---- Replay / fold machinery ----
+function validateEventShape(ev) {
+  if (!ev || typeof ev !== "object" || Array.isArray(ev)) return {ok: false, error: "event is not an object"};
+  if (typeof ev.kind !== "string") return {ok: false, error: "event.kind is not a string"};
+  if (!KNOWN_EVENT_KINDS.has(ev.kind)) return {ok: false, error: "unknown kind '" + ev.kind + "'"};
+  if (ev.data !== undefined && (typeof ev.data !== "object" || ev.data === null)) {
+    return {ok: false, error: "event.data is not an object"};
+  }
+  return {ok: true};
+}
+
+// Fails CLOSED: on any invalid/garbage event, returns {ok:false, state:null}.
+// Never leaks a partially-applied state back to the caller.
+function foldGardenLog(events, epoch) {
+  if (!Array.isArray(events)) return {ok: false, error: "events is not an array", state: null};
+  const S = initialGardenState(epoch || 0);
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    const v = validateEventShape(ev);
+    if (!v.ok) return {ok: false, error: "invalid event at index " + i + ": " + v.error, state: null};
+    try {
+      applyEvent(S, ev);
+    } catch (e) {
+      return {ok: false, error: "apply failed at index " + i + ": " + e.message, state: null};
+    }
+  }
+  return {ok: true, error: null, state: S};
+}
+
+function serializeLedgerJSONL(ledger) {
+  return ledger.map(e => JSON.stringify(e)).join("\n");
+}
+
+// Fails CLOSED on the first line that doesn't even parse as JSON.
+function foldGardenLogFromJSONL(text, epoch) {
+  const lines = String(text).split("\n").filter(l => l.length > 0);
+  const events = [];
+  for (let i = 0; i < lines.length; i++) {
+    let ev;
+    try {
+      ev = JSON.parse(lines[i]);
+    } catch (e) {
+      return {ok: false, error: "JSON parse failed at line " + i + ": " + e.message, state: null};
+    }
+    events.push(ev);
+  }
+  return foldGardenLog(events, epoch);
+}
+
+function computeStateHash(S) {
+  return h32(JSON.stringify(S));
+}
+
+/* ===== REDUCER-END ===== */
+
+/* ===== RENDER + UI (browser only; zero network, DOM/CSS pixel edition) ===== */
+let S = makeGardenState(0);
+let signalCursor = 0; // deterministic rotation through zones/kinds, no Math.random
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function renderKernel() {
+  document.getElementById("k-version").textContent = KERNEL.version;
+  document.getElementById("k-authority").textContent = String(KERNEL.authority);
+  document.getElementById("k-claim").textContent = KERNEL.claim;
+  document.getElementById("k-status").textContent = KERNEL.status;
+  document.getElementById("k-law").textContent = KERNEL.law;
+  document.getElementById("k-frozen").textContent = String(Object.isFrozen(KERNEL));
+}
+
+function renderVitals() {
+  const g = S.garden;
+  document.getElementById("v-health").textContent = g.health;
+  document.getElementById("v-chaos").textContent = g.chaos;
+  document.getElementById("v-trust").textContent = g.trust;
+  document.getElementById("v-coherence").textContent = g.coherence;
+  document.getElementById("v-knowledge").textContent = g.knowledge;
+  document.getElementById("v-soil").textContent = g.soil;
+  document.getElementById("v-membrane").textContent = (g.membraneStress < 5) ? "intact" : "breached";
+  document.getElementById("v-fruit").textContent = g.fruitProgress;
+  document.getElementById("lulu-mode").textContent = S.lulu.mode;
+  document.getElementById("lulu-line").textContent = "“" + LULU_LINES[S.lulu.mode] + "”";
+  document.getElementById("goal-current").textContent = "current: " + (S.goal || "(none set)");
+}
+
+function renderZones() {
+  ZONES.forEach(z => {
+    const zs = S.zones[z];
+    document.getElementById("e-" + z).textContent = zs.visualMutation;
+    document.getElementById("b-" + z).style.width = Math.min(100, zs.mutationCount * 12 + 20) + "%";
+    document.getElementById("s-" + z).textContent = "mutations: " + zs.mutationCount;
+  });
+}
+
+function renderProposal() {
+  const empty = document.getElementById("proposal-empty");
+  const body = document.getElementById("proposal-body");
+  if (!S.pending) { empty.classList.remove("hidden"); body.classList.add("hidden"); return; }
+  empty.classList.add("hidden"); body.classList.remove("hidden");
+  const p = S.pending;
+  document.getElementById("p-agent").textContent = p.goblinId + " proposes:";
+  document.getElementById("p-text").textContent = p.text;
+  document.getElementById("p-zone").textContent = p.targetZone;
+  document.getElementById("p-archetype").textContent = p.archetype;
+}
+
+function renderReceipts() {
+  document.getElementById("receipt-list").innerHTML = S.receipts.slice(-12).reverse().map(r =>
+    `<div class="receipt">${esc(r.id)} admitted=${r.admitted} authority=${r.authority}<br>` +
+    `effect: ${esc(JSON.stringify(r.claimedEffect))}</div>`).join("");
+}
+
+function renderLedger() {
+  document.getElementById("ledger-list").innerHTML = S.ledger.slice(-10).reverse().map(e =>
+    `<div class="log-entry ${e.kind === 'PROPOSAL_ADMITTED' ? 'adm' : (e.kind === 'PROPOSAL_DENIED' ? 'den' : '')}">${e.kind}</div>`).join("");
+}
+
+function renderGoalButtons() {
+  const box = document.getElementById("goal-buttons");
+  box.innerHTML = "";
+  GOALS.forEach(g => {
+    const b = document.createElement("button");
+    b.className = "goal"; b.textContent = g;
+    b.onclick = () => { setHivemindGoal(S, g); renderAll(); };
+    box.appendChild(b);
+  });
+}
+
+function renderSignalButtons() {
+  const box = document.getElementById("signal-buttons");
+  box.innerHTML = "";
+  ZONES.forEach(z => {
+    const b = document.createElement("button");
+    b.textContent = "Provoke: " + z;
+    b.onclick = () => uiProvoke(z);
+    box.appendChild(b);
+  });
+}
+
+function renderAll() {
+  renderVitals(); renderZones(); renderProposal(); renderReceipts(); renderLedger();
+  if (S.phase === "ENDED_WON" || S.phase === "ENDED_LOST") showEndScreen();
+}
+
+function showEndScreen() {
+  const fold = foldGardenLog(S.ledger, S.epoch);
+  const liveHash = computeStateHash(S);
+  const foldHash = fold.ok ? computeStateHash(fold.state) : null;
+  const verified = fold.ok && liveHash === foldHash;
+  const overlay = document.getElementById("overlay");
+  overlay.classList.remove("hidden");
+  overlay.innerHTML = `
+    <div class="title">${S.phase === "ENDED_WON" ? "The Garden Bore Fruit" : "The Garden Collapsed"}</div>
+    <div class="sub">${esc(S.endSummary.reason)}<br>
+      health ${S.endSummary.summary.health} · chaos ${S.endSummary.summary.chaos} · trust ${S.endSummary.summary.trust} ·
+      coherence ${S.endSummary.summary.coherence}<br>
+      knowledge ${S.endSummary.summary.knowledge} · soil ${S.endSummary.summary.soil} ·
+      receipts ${S.endSummary.summary.receipts} · tamed bugs ${S.endSummary.summary.tamedBugs}<br>
+      fruit progress ${S.endSummary.summary.fruitProgress}/100</div>
+    <div class="sub ${verified ? 'badge-ok' : 'badge-bad'}">
+      REPLAY ${verified ? "VERIFIED ✓" : "MISMATCH ✗"} (live hash ${liveHash}, folded hash ${foldHash})</div>
+    <button onclick="uiRestart()">Restart</button>`;
+}
+
+function uiStart() {
+  document.getElementById("overlay").classList.add("hidden");
+  startGame(S);
+  renderGoalButtons(); renderSignalButtons(); renderAll();
+}
+
+function uiProvoke(zone) {
+  if (S.phase !== "RUNNING") return;
+  const kind = SIGNAL_KINDS[signalCursor % SIGNAL_KINDS.length];
+  const severity = (signalCursor % 3) + 1;
+  signalCursor++;
+  const seed = "ui" + zone + signalCursor;
+  const sig = riseSignal(S, zone, kind, severity, seed);
+  if (!sig) return;
+  routeSignalAndShiftLulu(S);
+  generateGoblinProposal(S, seed);
+  renderAll();
+}
+
+function uiAdmit() { if (admitProposal(S)) renderAll(); }
+function uiDeny() { if (denyProposal(S)) renderAll(); }
+function uiCompost() { if (compostProposal(S)) renderAll(); }
+
+function uiRestart() {
+  const nextEpoch = (S.epoch || 0) + 1;
+  S = makeGardenState(nextEpoch);
+  document.getElementById("overlay").classList.remove("hidden");
+  document.getElementById("overlay").innerHTML = `
+    <div class="title">The Living Garden</div>
+    <div class="sub">Fresh epoch ${nextEpoch}. Zero persistence -- the last garden is gone, as designed.</div>
+    <button id="startBtn" onclick="uiStart()">Wake the Garden</button>`;
+}
+
+renderKernel();
+</script>
+</body>
+</html>

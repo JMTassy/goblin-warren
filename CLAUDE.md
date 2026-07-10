@@ -14,7 +14,12 @@ node selftest.js index.html
 
 # Run the v2 test suite
 node v2-selftest.js v2.html
+
+# Run the v3 Garden test suite (61 assertions; fold-replay + kernel-isolation laws)
+node v3-selftest.js v3.html
 ```
+
+**v3.html** is the HELEN Garden vertical slice (CTO brief): three zones, six Lulu archetypes, ADMIT/DENY/COMPOST, fold-derived goblin memory, sovereign event log, read-only kernel panel, zero network. `Garden change ⊬ Kernel truth` is test-enforced. Grow it via the `/warren` skill (one bounded mechanic per slice). `skills/helen-operator/` holds the frozen procedure-distillation estate (FREEZE_V1; cases pinned 46e6ad7f…).
 
 No build, lint, or package.json. The selftests cannot run individual assertions — each is a sequential script that preserves state; run whole.
 

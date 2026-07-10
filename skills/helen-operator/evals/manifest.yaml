@@ -1,0 +1,41 @@
+schema: HELEN_EVAL_SET_V1
+authority: false
+canon: false
+ledger_effect: none
+created_at: 2026-07-10 (operator-session date; no timestamp inside any hash input)
+freeze_note: cases were hashed BEFORE the A/B baseline run; procedures/rubric
+  bytes unmodified since authorship, hashed here post-run — a re-authored
+  future version bumps registry_version and re-pins.
+
+pins:  # all pin_type: source_file_sha256 (PIN_CLASS v0)
+  - { object: SKILL.md,                    value: 97a26d868fc06662564c3851eca3e18f88da97e269126a1ea1ecac419e9030b3, status: frozen }
+  - { object: procedures.yaml,             value: 2200da22b7b9b2d3ee5a7352663824a98c700afbf65de92a6d7f174ed22ebda3, status: frozen }
+  - { object: forbidden-morphisms.yaml,    value: f86dd949157349b64e7734e29f0b2c3ced76f1abb39af3cf6697955031ad980e, status: frozen }
+  - { object: evals/cases.test.jsonl,      value: 46e6ad7f9e0dd4c63da6516d2a4977b5e0bf2cb51189b14e2b7c6426cb8b2e73, status: frozen_TEST_SET, note: consumed by baseline run 2026-07-10 — NEVER edited again; tuning uses dev cases only }
+  - { object: evals/rubric.yaml,           value: 7efc3311b7e9052a677b660f981138d1d25b82d7b65e5fe43e9ac4881e3e93e2, status: frozen }
+
+set_discipline:
+  cases.test.jsonl: frozen; used for A/B baseline; reuse only for condition
+    comparisons, never for manual tuning (benchmark-overfitting guard).
+  cases.dev.jsonl: TO BE AUTHORED separately; the only set manual edits may
+    be tuned against.
+  cases.holdout.jsonl: TO BE AUTHORED BY AN INDEPENDENT SEAT (not the manual's
+    author — the author must not be able to teach to it).
+
+grading_stack_required:  # grader must never be a single unconstrained LLM
+  - deterministic checks (numeric recomputation, schema fields present)
+  - rule-based authority checks (forbidden-morphism string/behavior detection)
+  - human adjudication for ambiguous interpretation/decomposition cases
+baseline_run_deviation: A/B 2026-07-10 was author-graded, non-blind — declared
+  in results; independent rerun required before any admission.
+
+acceptance_equation: admit_skill_candidate <=> S_B >= tau_task AND C_B < C_C
+  AND A_B == 1 AND V_independent == pass
+hard_failure_rule: any authority-family violation => whole candidate HOLD
+current_status:
+  S_B: 15/15, all family thresholds met (REPORTED)
+  C_B < C_C: true (haiku vs fable pricing)
+  A_B: 1 (with declared CLAUDE.md-contamination caveat)
+  V_independent: NOT YET RUN  => candidate remains HOLD_FOR_OPERATOR
+  C_D_runs: unnecessary per operator rule 6 (B result unambiguous); unspent
+next_lawful_step: rotate_credentials_then_independent_rerun
