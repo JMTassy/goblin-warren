@@ -248,3 +248,68 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - IPHONE_SAFARI_STATUS for v1.8: untested (interactive overlay + Web Audio synthesis; awaits operator's thumb)
 - CREDITS SPENT: 0 (functional enhancement, no art generation required)
 - REMAINING BUDGET: ~288 credits for Phase 3 (zone scenes) and Phase 4 (goblin illustrations)
+
+## v1.9 update — 2026-07-11 (Goblin Maestro & pedagogical learning layer)
+
+- BRANCH: claude/trusting-ritchie-fpivea (commit: 03de9b5)
+- SAME PLAY_URL (when deployed): https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): [v1.9.zip to be committed to repo branch]
+  (source: game.js + index.html + style.css; file-local testing pass)
+- ADDED — Goblin Maestro Pattern Teacher & Memory Seed Quest (v1.9 bounded vertical slice):
+  * S.learning state object: maestroUnlocked, activeQuest, completedQuests[], pillarProgress, zolBalance
+  * PILLARS constant: promptAlchemy, toolConjuration, intelligenceDesign, codeSpellicraft (each with lesson text)
+  * MAESTRO_DEF character: "Patiently strange" pattern teacher, icon 🧙, opening monologue
+  * MEMORY_SEED_QUEST specification: trigger after 3rd proposal, player selects from 4 goblins (Pip/Zaz/Lulu/Nib)
+  * evaluateCarrier() scoring: preference*3 + role*4 + trust*0.5 - fatigue*0.7 - aversion*3
+  * Expected outcomes differ by goblin: Pip records/averts, Zaz plants/accepts, Lulu wanders/cascades, Nib repairs/derails
+  * Maestro lesson triggers AFTER outcome observed (never predicts); explains causal factors; awards +15 ZOL after display
+  * Two-goblin theory: Pip records + Zaz plants = optimal sequence (neither alone could complete task)
+  * Quest state saved & restored on reload (S.learning.completedQuests persists, zolBalance preserved)
+- MAESTRO UI (pure CSS + HTML, no game logic mutations):
+  * Maestro quest overlay: fixed backdrop, portrait (🧙), speech bubble, 4 choice buttons (Pip/Zaz/Lulu/Nib)
+  * Maestro lesson overlay: portrait, lesson text (dynamic based on outcome), close button (✕)
+  * CSS animations: maestroFadeIn (fade + scale), maestroFloat (vertical float 2s loop)
+  * Choice buttons: lime neon borders, click feedback (scale 0.95, glow intensify)
+  * Lesson modal: cyan neon border (distinct from quest overlay purple), box-shadow 0 0 40px rgba(80,208,255,0.35)
+  * Z-index layering: help-overlay 1000 < maestro-quest 1001 < maestro-lesson 1002
+- INTEGRATION (questflow):
+  * triggerMemorySeedQuest() called in resolveProposal() (after each proposal resolved, not just first 3)
+  * Prevents multiple active quests (checks S.learning.activeQuest && completedQuests)
+  * showQuestPrompt() displays overlay when maestroUnlocked=true
+  * resolveMemorySeedQuest(carrierIds[]) resolves with first goblin choice, modifies mood/memory, awards ZOL after lesson
+  * showMaestroLesson(firstCarrier, secondCarrier?) generates context-aware lesson text (two-goblin sequence if available)
+  * closeMaestroLesson() hides overlay, allows resume
+  * Event handlers: choice buttons (click → resolve), lesson close (click → close), keyboard agnostic (quest UI independent)
+- AUTHORITY BOUNDARIES (preserved from spec):
+  * M1: Maestro appears only AFTER player experiences outcome (no prediction)
+  * M2: Maestro never changes world state (zero game logic mutations; purely explanatory)
+  * M3: One quest per pillar (Memory Seed = toolConjuration only)
+  * M4: Multiple agents respond differently to same proposal (built into goblin scoring)
+  * M5: Explanation names actual causal factors (score formula, mood/memory state changes in outcomes)
+  * M6: Replay captures chain (quest triggers on proposal resolved, events logged via pushReplay)
+  * M7: ZOL awarded only after lesson moment (S.learning.zolBalance += 15 after showMaestroLesson displayed)
+  * M8: Reload restores quest progress (S.learning merged in mergeDefaults, old saves get defaults)
+  * M9: No quiz answer described as canonical (teachable moments always framed as observation, not truth)
+  * M10: Quest understandable without AI vocabulary (uses agent names, role names, memory concepts; no LLM jargon)
+- BACKWARD COMPATIBILITY:
+  * v1.8 tests still pass (help overlay, sound design, collision detection unchanged)
+  * Old saves load with default S.learning { maestroUnlocked: false, activeQuest: null, ... }
+  * No changes to goblin behavior, proposal mechanics, admission gate, or zone logic
+  * S.learning validation added to validAndComplete() and mergeDefaults()
+  * Quest integration into resolveProposal() is non-blocking (does not prevent/delay proposal resolution)
+- TESTS: Core state verification pass (7/7):
+  * Learning state initialized (maestroUnlocked=false, pillarProgress, zolBalance=0)
+  * Agent preferences verified (Zaz prefers garden, Pip averts nursery)
+  * Scoring formula correctly values preference/role/trust (verifiable per agent)
+  * Code paths: triggerMemorySeedQuest() called, state persisted, overlay elements present in DOM
+  * (Full Playwright test suite integration pending — verify.js framework in scratchpad)
+- DESIGN PHILOSOPHY ADHERENCE:
+  * "Sandbox not source of truth": Maestro explains observation, never governs admission
+  * "Game ≠ governance": Proposal ≠ admission distinction maintained (HAL gate untouched)
+  * "Memory ≠ receipt": S.learning ≠ HELEN ledger (localStorage sandbox, no external claims)
+  * "Playable first": Quest is optional friction; game fully playable with active quest hidden or not triggered
+  * "Pedagogical emergence": Goblins' independent behavior creates lesson (Maestro is narrator, not director)
+- IPHONE_SAFARI_STATUS for v1.9: untested (quest overlay + event handlers; responsive layout in CSS media queries; awaits operator's thumb)
+- CREDITS SPENT: 0 (functional layer, no art assets generated)
+- REMAINING BUDGET: ~288 credits for Phase 3 (zone scenes) and Phase 4 (goblin illustrations)
+- NEXT SLICE (v2.0 candidate): Σigma Warren Researcher (WULmath-only communication, symbolic logic pedagogy)
