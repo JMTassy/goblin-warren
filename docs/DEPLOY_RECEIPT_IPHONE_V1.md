@@ -115,3 +115,30 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   verbatim text + sovereignty tail intact.
 - IPHONE_SAFARI_STATUS for v1.3: untested (awaits the operator's thumb).
 - CREDITS: 2 spent (one 16:9 cover, Nano Banana Pro).
+
+## v1.4 update — 2026-07-11 (operator-ordered: "introducing Goblin Raâm: Boss level 1" + Chiddush esoteric-layers brief)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): 05226e28a0257e625b7d114dbac9b6f1a86e00ca64b5190b1a34f93b6d4c1d3b
+  (source pinned @ 15c93fe; bytes re-fetched over the public URL and matched)
+- ADDED — RAÂM, THE LOUD MASK 👹 (Boss Level 1, from the operator's oni-mask
+  identity art + in-game mockup): looms near the Mycelial Gate shouting
+  doom he does not have — only volume. Four boops = four goblin giggles;
+  the mask shrinks per laugh, unmasks into A Very Polite Mask at the Gate,
+  +1 orb/laugh +3 on defeat, quest "Unmask Raâm" visible from Level 1.
+  Boss ladder: Raâm = false ALARM (Lv1) · False Crown = false AUTHORITY
+  (Lv2). Neither threatens anything real; the Kernel never notices.
+- ADDED — THE LITTLE TEMPLE ⛩️ (CHIDDUSH_ESOTERIC_LAYERS_V1, brief committed
+  in docs/ from the operator's 5-image corpus: Heindel weekday currents,
+  Promethea zone-as-awareness registers, Jerusalem event storeys,
+  Voice-of-the-Fire recurrence motifs, Moon&Serpent barker typing):
+  tap the shrine → rotating host reads the last event in GROUND / GARDEN /
+  SKY layers under the real weekday's planetary current; recurrence noted
+  with "recurrence strengthens evidence; law remains unchanged". Readings
+  pay nothing and change nothing (test-enforced) — meaning is free; state
+  is earned. Footer, always: "a reading, not a ruling — the Kernel did
+  not stir."
+- TESTS: 22 gates (T21 Raâm boss math exact-orb; T22 reading-changes-
+  nothing invariant). 22/22 before deploy.
+- IPHONE_SAFARI_STATUS for v1.4: untested (awaits the operator's thumb).
+- CREDITS: 0 spent on this update.
