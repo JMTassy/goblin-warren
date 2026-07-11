@@ -35,3 +35,26 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   Operator seat separately witnessed public reachability + page title.
 - CREDITS: 4 spent this sequence (thumbnail + favicon, Nano Banana Pro);
   deploy_game logged no charge; balance after: 2996 (team plan)
+
+## v1.1 update — 2026-07-11 (operator-ordered: "Add one thing: BOOP THE GOBLINS")
+
+- SAME PLAY_URL (updated via game_id, not a new game):
+  https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): 2cecb1090cf25230ebaf57cfab0d08af7dd5467ca22747666099811396eb6a8d
+  (source pinned @ 5600a3d; bytes re-fetched over the public URL and matched)
+- ADDED: Goblin Boop Chain (operator spec — tap = squeak/wobble/squint/line/
+  drops; rare reactions; boop-back "Your turn."; 3-distinct chain = Warren
+  Dance; Lulu→Pip→Nib→Zaz = Tree Party + A Ridiculous Golden Fruit) and
+  The Memory Moth (Fable's companion trick — a golden moth from the Akashic
+  Tree quizzes the player on their OWN local log; right = golden dust +
+  Garden warmth; wrong = sneeze, no penalty). Law held in both: mood,
+  animation, Garden events — never Kernel truth.
+- TESTS: verify.js grown 14 → 17 gates (T15 boop, T16 tree-party combo,
+  T17 moth quiz); 17/17 before deploy. Old saves merge cleanly (new flags
+  default in). Spent proposal cards now clear to idle.
+- LISTING DESCRIPTION: two gameplay sentences added between the approved
+  verbatim text and the sovereignty tail (both otherwise intact) — flagged
+  for operator; revert to strict verbatim on order.
+- IPHONE_SAFARI_STATUS for v1.1: untested (v1.0 was witnessed; the update
+  awaits the next thumb).
+- CREDITS: 0 spent on this update.
