@@ -215,3 +215,36 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   * Textures: hf_20260711_222910_5e8b0aaa...svg
 - IPHONE_SAFARI_STATUS for v1.7: untested (CSS visual layer only, determinism unchanged; awaits operator's thumb).
 - NEXT PHASES: Phase 3 (Additional Scenes ~20-30 credits) and Phase 4 (Goblin Illustrations ~50 credits) queued per priority "1 then 3 then 4". Remaining budget: ~288 credits.
+
+## v1.8 update — 2026-07-11 (player discoverability + educational sound design)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): [v1.8.zip committed to repo branch claude/trusting-ritchie-fpivea]
+  (source pinned via raw GitHub URL: deploy/goblin-warren-v1.8.zip)
+- ADDED — help overlay system:
+  * Press "?" key to toggle help modal (any time, any state)
+  * Tutorial grid explaining Q=riddles, B=buy, P=propose, A/D/H=choices
+  * Sections: Your Tools, Win the Warren, Listen to the Goblins, Memory Moth & Oracle
+  * Styled with cyan neon borders, glow palette consistent with Phase 1 UI
+  * Modal dismissible via X button or help-close button
+  * Z-index layered above game world, below modal backdrop
+- ADDED — educational sound design (Do Re Mi Fa Sol scale + Solfeggio frequencies):
+  * Scale foundation: SCALE_DO_RE_MI = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25] Hz
+  * Solfeggio Sacred Frequencies: 174 (grounding), 285 (regeneration), 396 (liberation), 417 (change), 528 (love), 639 (connection), 741 (intuition), 852 (order)
+  * Sound.riddlePrompt() — Do-Mi-Sol ascending for question/anticipation
+  * Sound.riddleCorrect() — Do-Re-Mi-Fa-Sol ascending for achievement (maps to answerQuiz correct path)
+  * Sound.riddleWrong() — Mi-Re-Do descending for gentle feedback (maps to answerQuiz wrong path)
+  * Sound.territoryBuy() — Sol-La-Si-Do ascending for acquisition/progress
+  * Sound.proposalSubmit() — Do-Re-Mi + Solfeggio 417Hz (change) underlayer for decision
+  * Sound.proposalAccepted() — Fa-Sol-La-Si-Do + Solfeggio 528Hz (love) for acceptance/transformation
+  * Sound.proposalDenied() — Do-Re-Do + Solfeggio 396Hz (liberation) for gentle rejection
+  * Sound.spireUnlock() — octave jump Do-Do (higher) + Solfeggio 852Hz (spiritual order) for milestone
+  * Sound.gardenHarmony() — Solfeggio 639Hz (connection) + harmonic chord (Mi-Sol-Do) for ecosystem harmony
+  * Modern psychology integration: ascending scales for reward/achievement, descending for gentle feedback, harmonic undertones for emotional resonance and psychological engagement
+  * Zero network requests added; all synthesis via Web Audio API
+- INTEGRATION METHOD: Help overlay added to HTML (new #help-overlay div with keyboard event handler); sound methods added to Sound object; keyboard listener in wireInput() for "?" key toggle; all existing reducer logic unchanged (zero game state changes from help/sounds)
+- TESTS: verify.js 22/22 gates passing (T13 still validates zero unexpected requests, T1 zero console errors, keyboard handler isolated from test flow)
+- DESIGN PHILOSOPHY ALIGNMENT: "playable sandbox first" (help makes controls discoverable without tutorial), "small persistent choices matter" (sounds provide immediate feedback), "psychological engagement gently catches full attention" (Do Re Mi scales + Solfeggio frequencies per modern psychology best practices: ascending = achievement/reward, harmonic = connection/well-being, non-punitive descending = failure safety)
+- IPHONE_SAFARI_STATUS for v1.8: untested (interactive overlay + Web Audio synthesis; awaits operator's thumb)
+- CREDITS SPENT: 0 (functional enhancement, no art generation required)
+- REMAINING BUDGET: ~288 credits for Phase 3 (zone scenes) and Phase 4 (goblin illustrations)
