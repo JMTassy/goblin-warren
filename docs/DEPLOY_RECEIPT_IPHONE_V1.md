@@ -58,3 +58,31 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - IPHONE_SAFARI_STATUS for v1.1: untested (v1.0 was witnessed; the update
   awaits the next thumb).
 - CREDITS: 0 spent on this update.
+
+## v1.2 update — 2026-07-11 (operator-ordered: background art + validated V1 slice)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): f0d557c02f55a702d98a00a129bb1d128732eaae89601b9f27a812c831337747
+  (source pinned @ 46d17ee; bytes re-fetched over the public URL and matched)
+- ADDED: painted night-garden world — three CSS layers: readability scrim →
+  painted Akashic-garden image (generated per the approved art direction;
+  the game's SINGLE whitelisted remote asset, progressive enhancement only,
+  hotlinked because every byte-download route from this session is
+  egress-blocked) → bundled original bg.svg night-garden (~5KB) that carries
+  the full look offline. Play NEVER depends on the network.
+- COLLISION_AWARE_LABEL_LAYOUT_V1 (operator's bounded bead): world objects
+  take orbit slots in an arc above their zone glyph; old saves re-laid-out
+  on boot (cosmetic only); speech bubbles anchor beside goblins, growing
+  downward into empty moss, never onto zone labels; labels and signs got
+  readability pills. Event timeline: per-choice icons (🌱⏳🍂🎉🦋) +
+  entrance animation.
+- TESTS: 18 gates (new T18 sign/bubble-vs-label collision gate; T13 now
+  whitelists exactly the one background URL; T1 allows only that asset's
+  load failures). 18/18. Every sandbox run exercises the offline fallback
+  by construction (the URL is blocked there).
+- LAW NOTE: "zero network" is amended to "zero network DEPENDENCY, one
+  optional whitelisted art asset" — flagged for operator; removing one CSS
+  line restores strict zero-network (SVG scene remains).
+- IPHONE_SAFARI_STATUS for v1.2: untested (awaits the next thumb — this
+  one also witnesses whether the painted layer loads on real 4G).
+- CREDITS: 2 spent (one 9:16 background, Nano Banana Pro).
