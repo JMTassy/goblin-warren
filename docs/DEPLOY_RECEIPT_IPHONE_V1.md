@@ -142,3 +142,26 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   nothing invariant). 22/22 before deploy.
 - IPHONE_SAFARI_STATUS for v1.4: untested (awaits the operator's thumb).
 - CREDITS: 0 spent on this update.
+
+## v1.5 update — 2026-07-11 (operator-ordered: contest prep — "first let us improve it")
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · marketplace
+  listing re-published (status: published).
+- BUNDLE_HASH (sha256): 8c591aeb9a43f2b59d8f61cb5ce394dd2baccee238451d039b125b997cfdac56
+  (source pinned @ f39ea70; bytes re-fetched and matched)
+- ADDED (judge's-first-minute polish): title splash (pure visual,
+  pointer-events none, self-fades 3s — T4 first-interaction still passes
+  under it); 7 ambient CSS fireflies; goblins blink; 12s no-boop hint from
+  Lulu. verify.js 22/22.
+- CONTEST STATUS (Higgsfield App Contest, ~10d left at entry time):
+  participate_in_contest requires (a) a WEBSITE with a live deploy_website
+  build — our reserved website goblin-warren (id 7bd6fc00-0c9d-4f11-8cd5-
+  9140b8f5e2d1) cannot be deployed from THIS session: the build repo host
+  apps-repos.higgsfield.ai remains egress-blocked (retested, CONNECT 403);
+  and (b) ≥1 social-media link (YouTube/X/Instagram/TikTok) promoting it —
+  operator-side by nature. Credential-in-public-repo workarounds were
+  considered and REFUSED (would leak website repo credentials).
+  OPERATOR PATHS: tap "Submit an app" in the Higgsfield UI for the
+  published game listing, OR allowlist apps-repos.higgsfield.ai for a
+  future session + provide social links, and the entry completes via MCP.
+- CREDITS: 0 spent on this update.
