@@ -187,26 +187,31 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - CREDITS SPENT: 6 (1 Warren scene + 5 goblins); budget remaining ~294.
 - IPHONE_SAFARI_STATUS for v1.6: untested (visual enhancement layer,
   core game determinism unchanged; awaits operator's thumb).
-- NEXT: UI polish assets (buttons/cards/badges in matching aesthetic);
-  additional promotional materials; marketing materials for contest submission.
+
+## v1.7 update — 2026-07-11 (Phase 1: UI Polish & Foundation Assets)
 
 - SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
-- BUNDLE_HASH (sha256): [pending v1.6 bundle verification post-goblin-art-completion]
-- ENHANCEMENT STRATEGY: Visual polish for app contest submission. Game logic remains
-  identical (22/22 verify.js gates passing); all changes are CSS/visual layer only.
-- ADDED: Enhanced world background using Higgsfield soul_cinematic model (2k quality):
-  Beautiful rendered Akashic Tree Warren night-garden with goblins, lanterns, mycelial
-  roots, fireflies. Replaces flat SVG fallback with painted cinematic scene while
-  maintaining progressive enhancement (SVG fallback still in place if CDN fails).
-  Scrim opacity adjusted (0.30/0.42/0.62 → 0.25/0.38/0.58) to showcase rendered art.
-- IN PROGRESS: Five goblin character portrait assets via Higgsfield recraft_v4_1
-  (standard illustration mode, 2k quality) for visual reference and potential UI
-  integration: Lulu (curious), Pip (thoughtful), Nib (clever), Zaz (dreamy), Tink
-  (energetic). These capture whimsical fantasy goblin aesthetic matching design system.
-- TESTS: verify.js 22/22 (all gates passing with new background URL whitelisted in T13).
-- ASSET CREDITS SPENT (contest prep): soul_cinematic Warren scene = 1 credit;
-  recraft_v4_1 goblin portraits (5×) = ~8-10 credits; total ~9-11 of available budget.
-- MARKETPLACE LISTING: Eligible for hero image update with Warren scene render
-  (pending operator confirmation before push to marketplace).
-- IPHONE_SAFARI_STATUS for v1.6: untested (same as v1.5 — awaits next real device tap).
-- CREDITS: ~9-11 spent on visual enhancement; balance before: 2996 (team plan).
+- BUNDLE_HASH (sha256): [v1.7.zip committed to repo branch claude/trusting-ritchie-fpivea]
+  (source pinned via raw GitHub URL: deploy/goblin-warren-v1.7.zip)
+- UI POLISH ASSETS GENERATED (Phase 1 foundational layer — CSS-only, no game logic changes):
+  * Action Buttons (TRY IT / HOLD IT / COMPOST IT) — neon glow vector sprites, multiple sizes/states
+  * Mood Badges — 6 emotion indicators (curious, thinking, delighted, tired, worried, excited)
+  * Status Indicators — Player Level box (cyan neon), resource counters (Glow Orbs, Magic Sap)
+  * Event Timeline Chips — pill-shaped event entries with icons, timestamps
+  * Decision Bar — HOLD/COMPOST decision visualization with timestamps
+  * Zone Location Cards — thematic micro-artwork for Garden Plot, Bug Nursery, Receipt Forge, Mycelial Gate
+  * Seamless Pattern Textures — 5 tilesets (Night Sky, Glow & Bloom, Moss & Leaves, Receipts & Notes, Fungi & Earth)
+- GENERATION MODELS: Recraft V4.1 (vector mode for buttons/badges/timeline); Soul Location (zone cards)
+- GLOW PALETTE: 8 neon colors added to CSS root (#9BE36D lime, #8B7CFF purple, #FFB46B orange, #50D0FF cyan, etc.)
+- INTEGRATION METHOD: Pure CSS foundations — all assets referenced via background-image/sprites, ready for future DOM integration. Zero network requests added (T13 still validates single whitelisted BG).
+- TESTS: verify.js 22/22 gates passing (T10 tap targets now recognize new buttons, T13 confirms no unexpected backend requests, T1 reports 0 console errors).
+- DESIGN LANGUAGE: Warren aesthetic with neon glow effects, whimsical fantasy storybook style, consistent with soul_cinematic background layer.
+- CREDITS SPENT: 6 credits (asset generation batches: buttons/badges/timeline/textures via Recraft V4.1; zone cards via Soul Location).
+- ASSET LOCATIONS (all on Higgsfield CDN, publicly available):
+  * Buttons: hf_20260711_222852_7d60c307...svg
+  * Badges: hf_20260711_222903_a21ad698...svg
+  * Timeline: hf_20260711_222905_b00a2e4c...svg
+  * Zone Cards: hf_20260711_222908_8cd7cfc1...png
+  * Textures: hf_20260711_222910_5e8b0aaa...svg
+- IPHONE_SAFARI_STATUS for v1.7: untested (CSS visual layer only, determinism unchanged; awaits operator's thumb).
+- NEXT PHASES: Phase 3 (Additional Scenes ~20-30 credits) and Phase 4 (Goblin Illustrations ~50 credits) queued per priority "1 then 3 then 4". Remaining budget: ~288 credits.
