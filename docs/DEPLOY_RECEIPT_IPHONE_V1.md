@@ -86,3 +86,32 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - IPHONE_SAFARI_STATUS for v1.2: untested (awaits the next thumb — this
   one also witnesses whether the painted layer loads on real 4G).
 - CREDITS: 2 spent (one 9:16 background, Nano Banana Pro).
+
+## v1.3 update — 2026-07-11 (operator-ordered: "regrade cover, boss, add-ons like in the model")
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): e517c4d46a50283ff3727810f5c8b7664befaad961cfb8bbedb9986763b011c6
+  (source pinned @ 87950e5; bytes re-fetched over the public URL and matched)
+- COVER REGRADED: new 16:9 marketplace thumbnail (goblin crew + Akashic
+  Tree + violet High Spire + mischievous floating crown, storybook style).
+  Favicon unchanged.
+- ADDED — progression (model's add-ons, HELEN-typed): Glow Orbs ✨ + Magic
+  Sap 🔮 Garden currencies in the top bar (buy nothing sovereign; they open
+  play spaces); quests on the idle sheet (Collect 10 Sap / Compost the
+  False Crown / Throw a Tree Party); Warren Level 2 at 10 Sap wakes THE
+  HIGH SPIRE 🏰 (new locked center zone) and unlocks TINK THE TINKERER
+  (fifth goblin, additive — core-four save contract untouched, old saves
+  upgrade in place).
+- ADDED — boss: THE FALSE CROWN 👑 squats the Spire shouting authority
+  claims; it has no power, only claims (📜×5); each tap composts one while
+  goblins heckle (+1 Sap); defeated → A Very Humble Hat object + COMPOST
+  replay chip; respawns minutes later. Boss threatens nothing real; Kernel
+  never notices it. Forbidden-word DOM scan still clean (T12).
+- LAYOUT: speech bubbles moved below goblins' feet (the Spire label claimed
+  map center; below-goblin space is label-free by grid construction).
+- TESTS: 20 gates (T19 spire/level/Tink unlock, T20 boss: 5 taps → hat +
+  chip + exact +5 sap). 20/20 before deploy.
+- DESCRIPTION: one gameplay sentence added for Spire/Crown; approved
+  verbatim text + sovereignty tail intact.
+- IPHONE_SAFARI_STATUS for v1.3: untested (awaits the operator's thumb).
+- CREDITS: 2 spent (one 16:9 cover, Nano Banana Pro).
