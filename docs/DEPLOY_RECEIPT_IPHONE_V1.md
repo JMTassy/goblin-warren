@@ -165,3 +165,26 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   published game listing, OR allowlist apps-repos.higgsfield.ai for a
   future session + provide social links, and the entry completes via MCP.
 - CREDITS: 0 spent on this update.
+
+## v1.6 update — 2026-07-11 (contest prep: visual enhancement via AI art generation)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
+- BUNDLE_HASH (sha256): [pending v1.6 bundle verification post-goblin-art-completion]
+- ENHANCEMENT STRATEGY: Visual polish for app contest submission. Game logic remains
+  identical (22/22 verify.js gates passing); all changes are CSS/visual layer only.
+- ADDED: Enhanced world background using Higgsfield soul_cinematic model (2k quality):
+  Beautiful rendered Akashic Tree Warren night-garden with goblins, lanterns, mycelial
+  roots, fireflies. Replaces flat SVG fallback with painted cinematic scene while
+  maintaining progressive enhancement (SVG fallback still in place if CDN fails).
+  Scrim opacity adjusted (0.30/0.42/0.62 → 0.25/0.38/0.58) to showcase rendered art.
+- IN PROGRESS: Five goblin character portrait assets via Higgsfield recraft_v4_1
+  (standard illustration mode, 2k quality) for visual reference and potential UI
+  integration: Lulu (curious), Pip (thoughtful), Nib (clever), Zaz (dreamy), Tink
+  (energetic). These capture whimsical fantasy goblin aesthetic matching design system.
+- TESTS: verify.js 22/22 (all gates passing with new background URL whitelisted in T13).
+- ASSET CREDITS SPENT (contest prep): soul_cinematic Warren scene = 1 credit;
+  recraft_v4_1 goblin portraits (5×) = ~8-10 credits; total ~9-11 of available budget.
+- MARKETPLACE LISTING: Eligible for hero image update with Warren scene render
+  (pending operator confirmation before push to marketplace).
+- IPHONE_SAFARI_STATUS for v1.6: untested (same as v1.5 — awaits next real device tap).
+- CREDITS: ~9-11 spent on visual enhancement; balance before: 2996 (team plan).
