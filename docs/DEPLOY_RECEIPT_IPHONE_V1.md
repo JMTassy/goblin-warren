@@ -168,6 +168,28 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 
 ## v1.6 update — 2026-07-11 (contest prep: visual enhancement via AI art generation)
 
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · marketplace
+  listing re-published (status: published).
+- BUNDLE_HASH (sha256): [v1.6.zip committed to repo branch claude/trusting-ritchie-fpivea]
+  (source pinned via raw GitHub URL: deploy/goblin-warren-v1.6.zip)
+- VISUAL ENHANCEMENTS: Beautiful rendered Akashic Tree night-garden scene
+  (soul_cinematic 2k quality) now primary background layer. Scrim opacity
+  adjusted (0.30→0.25 / 0.42→0.38 / 0.62→0.58) for better visibility.
+  Progressive enhancement: painted layer fails gracefully to bundled SVG.
+- GENERATED ASSETS (Higgsfield credits): Warren scene (1 credit, soul_cinematic),
+  5 goblin character portraits via Soul Cast (5 credits: Lulu, Pip, Nib, Zaz, Tink).
+  Portraits generated for character design reference (whimsical cinematic style).
+- TESTING: verify.js updated T13 whitelist for new BG URL. All 22/22 gates pass.
+- MARKETPLACE: Hero image now the rendered Warren scene (2048×1152, 16:9).
+  Description updated to emphasize visual improvements while preserving core gameplay.
+- DEPLOYMENT: v1.6 live via deploy_game (game_id unchanged, same URL);
+  publish_game updated marketplace listing with cover image.
+- CREDITS SPENT: 6 (1 Warren scene + 5 goblins); budget remaining ~294.
+- IPHONE_SAFARI_STATUS for v1.6: untested (visual enhancement layer,
+  core game determinism unchanged; awaits operator's thumb).
+- NEXT: UI polish assets (buttons/cards/badges in matching aesthetic);
+  additional promotional materials; marketing materials for contest submission.
+
 - SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/
 - BUNDLE_HASH (sha256): [pending v1.6 bundle verification post-goblin-art-completion]
 - ENHANCEMENT STRATEGY: Visual polish for app contest submission. Game logic remains
