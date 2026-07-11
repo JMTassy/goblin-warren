@@ -22,7 +22,16 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   rejects every action; shim ⊆ platform adaptation) · README.md
 - TESTS BEFORE DEPLOY: verify.js 14/14 (re-run after each rebuild) ·
   shim ESM smoke test under Node · public-URL byte identity check
-- NOT TESTED: served page render · marketplace card · any WebKit engine
-- IPHONE_SAFARI_STATUS: untested (Chromium emulation never counts)
+- NOT TESTED: marketplace card render · other devices/orientations
+- IPHONE_SAFARI_STATUS: WITNESSED (operator's physical iPhone, Safari, 4G,
+  2026-07-11 18:32 screenshot): game playable mid-session — map, four goblins
+  with tasks/moods, live proposal card with TRY/HOLD/COMPOST, event chips
+  showing a real compost (18:31) and hold (18:32), two admitted Gerald
+  apartments rendered. No blank page, no join wrapper despite mode "rules".
+  Scope: one session, one device; not a blanket claim.
+  Cosmetic findings: world-object labels can stack on zone labels near the
+  Bug Nursery (addObject jitter ±10px); a goblin speech bubble can occlude
+  the Receipt Forge label. Both queued as a layout bead, no state effect.
+  Operator seat separately witnessed public reachability + page title.
 - CREDITS: 4 spent this sequence (thumbnail + favicon, Nano Banana Pro);
   deploy_game logged no charge; balance after: 2996 (team plan)
