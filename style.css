@@ -707,7 +707,13 @@ html, body {
 }
 
 /* ---------- mood visuals — base 6-bucket layer (PARKED_CHIDDUSHIM.md #15) ---------- */
+/* Mouthless by design: the goblins read better as quiet, watchful faces.
+   Mood is still fully expressed — eyes (.g-body::before/::after), body glow,
+   and the floating .g-mood-fx symbol all shift per mood; only the mouth is
+   gone. The per-mood .g-mouth rules below are inert while this is display:none
+   (kept so mouths can be restored by flipping one line). */
 .g-mouth {
+  display: none;
   position: absolute;
   left: 50%; top: 14px;
   width: 6px; height: 2px;
