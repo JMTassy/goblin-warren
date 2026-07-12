@@ -3667,6 +3667,29 @@ var goblinEls = {};
 var objectEls = {};
 var bubbleTimers = {};
 
+/* ---------------------------------------------------------------------
+   MOOD VISUALS — a pure display lookup, no reducer touch. Six base
+   buckets (the priority set from the mood-visual chiddush); every raw
+   mood string the reducer zone can produce maps into exactly one,
+   unmapped/future strings fall back to "calm" rather than erroring.
+   Archetype-flavored variants and the neglect "shadow" state are
+   parked (PARKED_CHIDDUSHIM.md #15) — this is the base layer only.
+--------------------------------------------------------------------- */
+var MOOD_BUCKETS = {
+  curious:  ["curious", "intrigued", "attentive"],
+  happy:    ["delighted", "content", "warm", "grateful", "touched", "relieved", "amused", "giggly"],
+  calm:     ["calm", "rested", "settled", "steadied", "patient", "breezy", "solemn", "neutral"],
+  lonely:   ["wistful", "distant", "uneasy", "sheepish", "unsure", "defensive"],
+  focused:  ["focused", "thoughtful", "resolute", "sharp", "watchful", "inspired"],
+  dramatic: ["fierce", "suspicious", "dreamy", "proud", "quietly proud", "victorious", "thrilled"]
+};
+var MOOD_FX_SYMBOL = { curious: "✨", happy: "🌟", calm: "〜", lonely: "♡", focused: "◆", dramatic: "❣" };
+var MOOD_BUCKET_LOOKUP = {};
+Object.keys(MOOD_BUCKETS).forEach(function (bucket) {
+  MOOD_BUCKETS[bucket].forEach(function (m) { MOOD_BUCKET_LOOKUP[m] = bucket; });
+});
+function moodBucket(mood) { return MOOD_BUCKET_LOOKUP[mood] || "calm"; }
+
 function buildGoblinEl(d) {
   var world = document.getElementById("world");
   var el = document.createElement("div");
@@ -3675,7 +3698,8 @@ function buildGoblinEl(d) {
   el.style.setProperty("--gob-color", d.color);
   el.innerHTML =
     '<div class="g-tapring"></div>' +
-    '<div class="g-body"><div class="g-ear l"></div><div class="g-ear r"></div></div>' +
+    '<div class="g-mood-fx"></div>' +
+    '<div class="g-body"><div class="g-ear l"></div><div class="g-ear r"></div><div class="g-mouth"></div></div>' +
     '<div class="g-nametag">' + d.name + '</div>' +
     '<div class="g-nametag g-task" id="task-' + d.id + '"></div>';
   el.addEventListener("click", function () { onTapGoblin(d.id); });
@@ -3743,6 +3767,10 @@ function renderGoblins() {
     el.style.top = g.y + "%";
     el.classList.toggle("facing-left", g.facing === "left");
     el.classList.toggle("resting", !!g.resting);
+    var mb = moodBucket(g.mood);
+    Object.keys(MOOD_BUCKETS).forEach(function (b) { el.classList.toggle("mood-" + b, b === mb); });
+    var fxEl = el.querySelector(".g-mood-fx");
+    if (fxEl) fxEl.textContent = MOOD_FX_SYMBOL[mb] || "";
     var taskEl = document.getElementById("task-" + id);
     if (taskEl) taskEl.textContent = g.task;
   });
@@ -6230,6 +6258,10 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* goblin mood visuals */
+  moodBucket: function (m) { return moodBucket(m); },
+  renderGoblins: function () { renderGoblins(); },
+  getGoblinEl: function (id) { return goblinEls[id] ? goblinEls[id].outerHTML : null; },
   /* the akashic organ */
   openOrgan: function () { openOrgan(); },
   closeOrgan: function () { closeOrgan(); },

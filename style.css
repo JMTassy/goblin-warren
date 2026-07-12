@@ -666,6 +666,65 @@ html, body {
   inset: -10px -10px -2px -10px;
 }
 
+/* ---------- mood visuals — base 6-bucket layer (PARKED_CHIDDUSHIM.md #15) ---------- */
+.g-mouth {
+  position: absolute;
+  left: 50%; top: 14px;
+  width: 6px; height: 2px;
+  background: #0c0a17;
+  border-radius: 0 0 3px 3px;
+  transform: translateX(-50%);
+  transition: all .4s ease;
+}
+.g-mood-fx {
+  position: absolute;
+  left: 50%; top: -10px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px var(--mood-glow, transparent));
+}
+.goblin.mood-curious .g-mood-fx,
+.goblin.mood-happy .g-mood-fx,
+.goblin.mood-lonely .g-mood-fx,
+.goblin.mood-focused .g-mood-fx,
+.goblin.mood-dramatic .g-mood-fx { opacity: 0.9; animation: moodfx 2.6s ease-in-out infinite; }
+.goblin.mood-calm .g-mood-fx { opacity: 0.5; animation: moodfxslow 4.5s ease-in-out infinite; }
+@keyframes moodfx { 0%, 100% { transform: translate(-50%, 0); opacity: 0.5; } 50% { transform: translate(-50%, -4px); opacity: 1; } }
+@keyframes moodfxslow { 0%, 100% { transform: translate(-50%, 0) scale(1); opacity: 0.35; } 50% { transform: translate(-50%, -2px) scale(1.15); opacity: 0.6; } }
+
+.goblin.mood-curious { --mood-glow: #4DEEEA; }
+.goblin.mood-curious .g-body::before, .goblin.mood-curious .g-body::after { transform: scale(1.25); }
+.goblin.mood-curious .g-mouth { width: 5px; border-radius: 0 0 3px 3px; }
+.goblin.mood-curious .g-body { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.4), 0 0 6px var(--mood-glow); }
+
+.goblin.mood-happy { --mood-glow: #FFD666; }
+.goblin.mood-happy .g-body::before, .goblin.mood-happy .g-body::after { height: 1.5px; border-radius: 2px; top: 9px; }
+.goblin.mood-happy .g-mouth { width: 8px; height: 3px; border-radius: 0 0 5px 5px; }
+.goblin.mood-happy .g-body { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.4), 0 0 6px var(--mood-glow); }
+
+.goblin.mood-calm { --mood-glow: #7CFC8A; }
+.goblin.mood-calm .g-body::before, .goblin.mood-calm .g-body::after { height: 2.5px; top: 9px; }
+.goblin.mood-calm .g-mouth { width: 5px; border-radius: 2px; }
+.goblin.mood-calm .g-body { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.4), 0 0 4px var(--mood-glow); }
+
+.goblin.mood-lonely { --mood-glow: #6E8FD1; }
+.goblin.mood-lonely .g-body::before, .goblin.mood-lonely .g-body::after { transform: translateY(1px) scale(0.85); }
+.goblin.mood-lonely .g-body { transform: translateY(1px); }
+.goblin.mood-lonely .g-mouth { width: 5px; border-radius: 3px 3px 0 0; top: 15px; }
+
+.goblin.mood-focused { --mood-glow: #FF8C42; }
+.goblin.mood-focused .g-body::before, .goblin.mood-focused .g-body::after { height: 1.5px; border-radius: 1px; top: 8.5px; }
+.goblin.mood-focused .g-mouth { width: 4px; border-radius: 1px; }
+.goblin.mood-focused .g-body { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.4), 0 0 5px var(--mood-glow); }
+
+.goblin.mood-dramatic { --mood-glow: #E85C86; }
+.goblin.mood-dramatic .g-body::before, .goblin.mood-dramatic .g-body::after { transform: scale(1.4); }
+.goblin.mood-dramatic .g-mouth { width: 7px; height: 5px; border-radius: 50%; top: 13px; }
+.goblin.mood-dramatic .g-body { box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.4), 0 0 8px var(--mood-glow); animation: dramaticpulse 1.4s ease-in-out infinite; }
+@keyframes dramaticpulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15); } }
+
 /* COLLISION_AWARE_LABEL_LAYOUT_V1: bubbles hang BELOW the goblin's feet —
    in this map's geometry the space under a goblin is always label-free
    (labels live above goblins, objects arc above zones). */
