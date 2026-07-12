@@ -1,0 +1,192 @@
+[
+ {
+  "dataset": "turbulent_radiative_layer_2D",
+  "vrmse": {
+   "FNO": 0.5001,
+   "TFNO": 0.5016,
+   "Unet": 0.2418,
+   "CNextUnet": 0.1956
+  },
+  "time_horizon": "Not stated; caption only says 'VRMSE metrics on test sets (lower is better)'",
+  "notes": "Card header spells the last model 'CNextU-net'; its value 0.1956 is bolded as best. No extra baselines, no VRMSE>1."
+ },
+ {
+  "dataset": "turbulent_radiative_layer_3D",
+  "vrmse": {
+   "FNO": 0.5278,
+   "TFNO": 0.5187,
+   "Unet": 0.3728,
+   "CNextUnet": 0.3667
+  },
+  "time_horizon": "Not stated; caption only says 'VRMSE metrics on test sets (lower is better)'",
+  "notes": "Card header spells the last model 'CNextU-net'; its value 0.3667 is bolded as best. Card has no YAML metadata but table is present. No extra baselines, no VRMSE>1."
+ },
+ {
+  "dataset": "active_matter",
+  "vrmse": {
+   "FNO": 0.3691,
+   "TFNO": 0.3598,
+   "Unet": 0.2489,
+   "CNextUnet": 0.1034
+  },
+  "time_horizon": "Not stated; caption only says 'VRMSE metrics on test sets (lower is better)'",
+  "notes": "Card header spells the last model 'CNextU-net'; its value 0.1034 is bolded as best. No extra baselines, no VRMSE>1."
+ },
+ {
+  "dataset": "viscoelastic_instability",
+  "vrmse": {
+   "FNO": 0.7212,
+   "TFNO": 0.7102,
+   "Unet": 0.4185,
+   "CNextUnet": 0.2499
+  },
+  "time_horizon": "Not stated; caption only says 'VRMSE metrics on test sets (lower is better)'",
+  "notes": "Card header spells the last model 'CNextU-net'; its value 0.2499 is bolded as best. No extra baselines, no VRMSE>1."
+ },
+ {
+  "dataset": "rayleigh_benard",
+  "vrmse": {
+   "FNO": 0.8395,
+   "TFNO": 0.6566,
+   "Unet": 1.486,
+   "CNextUnet": 0.6699
+  },
+  "time_horizon": "not stated (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "Unet = 1.4860 exceeds 1, i.e. worse than predicting the mean (VRMSE scaled so mean-prediction = 1). TFNO (0.6566) is bolded as best. Model names on card: FNO, TFNO, Unet, CNextU-net."
+ },
+ {
+  "dataset": "shear_flow",
+  "vrmse": {
+   "FNO": 0.1567,
+   "TFNO": 0.1348,
+   "Unet": 0.591,
+   "CNextUnet": 0.2037
+  },
+  "time_horizon": "not stated (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "TFNO (0.1348) is bolded as best. No anomalies; all four models present."
+ },
+ {
+  "dataset": "gray_scott_reaction_diffusion",
+  "vrmse": {
+   "FNO": 0.1365,
+   "TFNO": 0.3633,
+   "Unet": 0.2252,
+   "CNextUnet": 0.1761
+  },
+  "time_horizon": "not stated (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "Card bolds TWO entries as best: FNO (0.1365) and CNextU-net (0.1761). All four models present."
+ },
+ {
+  "dataset": "rayleigh_taylor_instability",
+  "vrmse": {},
+  "time_horizon": "not stated (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "Table exists but publishes NO numeric values: every model (FNO, TFNO, Unet, CNextU-net) is listed as '>10', i.e. VRMSE > 10, far worse than the mean-prediction baseline of 1. Row is labeled 'rayleigh_taylor_instability (At = 0.25)'. Numbers omitted because '>10' is a bound, not an exact value."
+ },
+ {
+  "dataset": "acoustic_scattering_maze",
+  "vrmse": {
+   "FNO": 0.5062,
+   "TFNO": 0.5057,
+   "Unet": 0.0351,
+   "CNextUnet": 0.0153
+  },
+  "time_horizon": "not stated on the card (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "Table present with all four models; model names printed as FNO, TFNO, Unet, CNextU-net. Best (bold) is CNextU-net 0.0153. No values >1."
+ },
+ {
+  "dataset": "acoustic_scattering_discontinuous",
+  "vrmse": {},
+  "notes": "No benchmark/VRMSE table on this dataset card \u2014 README has description, equations, and metadata only; all model numbers omitted."
+ },
+ {
+  "dataset": "acoustic_scattering_inclusions",
+  "vrmse": {},
+  "notes": "No benchmark/VRMSE table on this dataset card \u2014 README has description, equations, and metadata only; all model numbers omitted."
+ },
+ {
+  "dataset": "helmholtz_staircase",
+  "vrmse": {
+   "FNO": 0.00046,
+   "TFNO": 0.00346,
+   "Unet": 0.01931,
+   "CNextUnet": 0.02758
+  },
+  "time_horizon": "not stated on the card (table caption says only 'VRMSE metrics on test sets')",
+  "notes": "Table present with all four models; model names printed as FNO, TFNO, Unet, CNextU-net. Best (bold) is FNO 0.00046. No values >1."
+ },
+ {
+  "dataset": "planetswe",
+  "vrmse": {
+   "FNO": 0.1727,
+   "TFNO": 0.0853,
+   "Unet": 0.362,
+   "CNextUnet": 0.3724
+  },
+  "time_horizon": "not stated (table caption only says 'VRMSE metrics on test sets')",
+  "notes": "TFNO (0.0853) shown in bold as best. All four models present."
+ },
+ {
+  "dataset": "MHD_64",
+  "vrmse": {
+   "FNO": 0.3605,
+   "TFNO": 3561,
+   "Unet": 0.1798,
+   "CNextUnet": 0.1633
+  },
+  "time_horizon": "not stated",
+  "notes": "TFNO printed literally as '3561' with no decimal point on the card \u2014 almost certainly a typo for 0.3561, but reported exactly as published; as printed it is VRMSE>1. CNextU-net (0.1633) shown in bold as best."
+ },
+ {
+  "dataset": "turbulence_gravity_cooling",
+  "vrmse": {
+   "FNO": 0.2429,
+   "TFNO": 0.2673,
+   "Unet": 0.6753,
+   "CNextUnet": 0.2096
+  },
+  "time_horizon": "not stated",
+  "notes": "CNextU-net (0.2096) shown in bold as best. All four models present."
+ },
+ {
+  "dataset": "supernova_explosion_64",
+  "vrmse": {
+   "FNO": 0.3783,
+   "TFNO": 0.3785,
+   "Unet": 0.3063,
+   "CNextUnet": 0.3181
+  },
+  "time_horizon": "not stated",
+  "notes": "Unet (0.3063) shown in bold as best. All four models present."
+ },
+ {
+  "dataset": "post_neutron_star_merger",
+  "vrmse": {
+   "FNO": 0.3866,
+   "TFNO": 0.3793
+  },
+  "time_horizon": "not stated",
+  "notes": "Unet and CNextU-net cells are '-' (omitted): card states these architectures require all data dimensions to be multiples of 2, so results are not available. TFNO (0.3793) shown in bold as best."
+ },
+ {
+  "dataset": "convective_envelope_rsg",
+  "vrmse": {
+   "FNO": 0.0269,
+   "TFNO": 0.0283,
+   "Unet": 0.0555,
+   "CNextUnet": 0.0799
+  },
+  "time_horizon": "not stated",
+  "notes": "FNO (0.0269) shown in bold as best. All four models present."
+ },
+ {
+  "dataset": "euler_multi_quadrants_openBC",
+  "vrmse": {
+   "FNO": 0.4081,
+   "TFNO": 0.4163,
+   "Unet": 0.1834,
+   "CNextUnet": 0.1531
+  },
+  "time_horizon": "not stated",
+  "notes": "Row label on the openBC card actually reads 'euler_multi-quadrants_periodicBC' \u2014 the card appears to reuse the periodicBC benchmark row. CNextU-net (0.1531) shown in bold as best."
+ }
+]

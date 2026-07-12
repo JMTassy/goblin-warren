@@ -1,0 +1,130 @@
+{
+ "n": 15,
+ "spearman_nu_R": 0.7357,
+ "perm_p_one_sided": 0.0014,
+ "rule": "nu_mean > 0.30 -> local (CNext/Unet) wins, else spectral (FNO/TFNO) competitive",
+ "rule_accuracy": "12/15",
+ "majority_baseline": "11/15",
+ "rows": [
+  {
+   "dataset": "viscoelastic_instability",
+   "nu_mean": 1.0844647468252824,
+   "nu_max": 1.4754546311127863,
+   "best": 0.2499,
+   "R": 2.8639455782312924,
+   "winner": "local"
+  },
+  {
+   "dataset": "acoustic_scattering_maze",
+   "nu_mean": 0.8333937696537514,
+   "nu_max": 0.8400240144086452,
+   "best": 0.0153,
+   "R": 33.068627450980394,
+   "winner": "local"
+  },
+  {
+   "dataset": "supernova_explosion_64",
+   "nu_mean": 0.6643025143547581,
+   "nu_max": 1.402787853663592,
+   "best": 0.3063,
+   "R": 1.2353901403852432,
+   "winner": "local"
+  },
+  {
+   "dataset": "turbulent_radiative_layer_3D",
+   "nu_mean": 0.6265746345867019,
+   "nu_max": 1.2166666666666666,
+   "best": 0.3667,
+   "R": 1.4269157349331878,
+   "winner": "local"
+  },
+  {
+   "dataset": "active_matter",
+   "nu_mean": 0.46849681156050077,
+   "nu_max": 0.6078811686717408,
+   "best": 0.1034,
+   "R": 3.5246615087040616,
+   "winner": "local"
+  },
+  {
+   "dataset": "turbulent_radiative_layer_2D",
+   "nu_mean": 0.4383281482008796,
+   "nu_max": 0.5802525832376578,
+   "best": 0.1956,
+   "R": 2.5605828220858897,
+   "winner": "local"
+  },
+  {
+   "dataset": "MHD_64",
+   "nu_mean": 0.3948717539754651,
+   "nu_max": 0.6347640927939034,
+   "best": 0.1633,
+   "R": 2.2075933864053887,
+   "winner": "local"
+  },
+  {
+   "dataset": "turbulence_gravity_cooling",
+   "nu_mean": 0.37548981730354813,
+   "nu_max": 1.320214175314639,
+   "best": 0.2096,
+   "R": 1.2170801526717556,
+   "winner": "local"
+  },
+  {
+   "dataset": "rayleigh_benard",
+   "nu_mean": 0.2562912784360866,
+   "nu_max": 0.3285077702890882,
+   "best": 0.6566,
+   "R": 1.1166592028660993,
+   "winner": "local"
+  },
+  {
+   "dataset": "euler_multi_quadrants_openBC",
+   "nu_mean": 0.1946568176770413,
+   "nu_max": 0.23034975554719817,
+   "best": 0.1531,
+   "R": 2.6923579359895493,
+   "winner": "local"
+  },
+  {
+   "dataset": "helmholtz_staircase",
+   "nu_mean": 0.12813922405610045,
+   "nu_max": 0.1282322296248059,
+   "best": 0.00046,
+   "R": 0.10150181253236665,
+   "winner": "spectral"
+  },
+  {
+   "dataset": "shear_flow",
+   "nu_mean": 0.08973724143979704,
+   "nu_max": 0.1932371329686279,
+   "best": 0.1348,
+   "R": 0.7155130093274423,
+   "winner": "spectral"
+  },
+  {
+   "dataset": "gray_scott_reaction_diffusion",
+   "nu_mean": 0.08414950880466826,
+   "nu_max": 0.09121785540999515,
+   "best": 0.1365,
+   "R": 1.4190800681431006,
+   "winner": "local"
+  },
+  {
+   "dataset": "convective_envelope_rsg",
+   "nu_mean": 0.055030785014980314,
+   "nu_max": 0.11258014442869678,
+   "best": 0.0269,
+   "R": 0.49729729729729727,
+   "winner": "spectral"
+  },
+  {
+   "dataset": "planetswe",
+   "nu_mean": 0.026153080264055537,
+   "nu_max": 0.04600647822596274,
+   "best": 0.0853,
+   "R": 0.35635359116022103,
+   "winner": "spectral"
+  }
+ ]
+}

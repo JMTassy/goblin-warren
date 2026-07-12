@@ -1,0 +1,60 @@
+mean:
+  density: 1.0015
+  magnetic_field:
+  - 0.5333
+  - 0.0
+  - 0.0
+  velocity:
+  - 0.0096
+  - 0.0678
+  - 0.0193
+mean_delta:
+  density: 0.0
+  magnetic_field:
+  - 0.0
+  - -0.0
+  - 0.0
+  velocity:
+  - 0.0001
+  - 0.0002
+  - 0.0
+rms:
+  density: 1.3414
+  magnetic_field:
+  - 0.7509
+  - 0.3171
+  - 0.3201
+  velocity:
+  - 0.4852
+  - 0.4434
+  - 0.479
+rms_delta:
+  density: 0.5664
+  magnetic_field:
+  - 0.1429
+  - 0.1495
+  - 0.1494
+  velocity:
+  - 0.1439
+  - 0.1426
+  - 0.143
+std:
+  density: 0.8923
+  magnetic_field:
+  - 0.5287
+  - 0.3171
+  - 0.3201
+  velocity:
+  - 0.4852
+  - 0.4381
+  - 0.4786
+std_delta:
+  density: 0.5664
+  magnetic_field:
+  - 0.1429
+  - 0.1495
+  - 0.1494
+  velocity:
+  - 0.1439
+  - 0.1426
+  - 0.143

@@ -1,0 +1,116 @@
+{
+ "MHD_64": {
+  "nu_mean": 0.3948717539754651,
+  "nu_max": 0.6347640927939034,
+  "nu_min": 0.27028560620389636,
+  "n_ch": 7
+ },
+ "acoustic_scattering_discontinuous": {
+  "nu_mean": 0.3393666904800036,
+  "nu_max": 0.35001425959167237,
+  "nu_min": 0.3222513668109851,
+  "n_ch": 3
+ },
+ "acoustic_scattering_inclusions": {
+  "nu_mean": 0.326363649358752,
+  "nu_max": 0.3357770169693361,
+  "nu_min": 0.3094985270946085,
+  "n_ch": 3
+ },
+ "acoustic_scattering_maze": {
+  "nu_mean": 0.8333937696537514,
+  "nu_max": 0.8400240144086452,
+  "nu_min": 0.828950542822678,
+  "n_ch": 3
+ },
+ "active_matter": {
+  "nu_mean": 0.46849681156050077,
+  "nu_max": 0.6078811686717408,
+  "nu_min": 0.27845705967976714,
+  "n_ch": 11
+ },
+ "convective_envelope_rsg": {
+  "nu_mean": 0.055030785014980314,
+  "nu_max": 0.11258014442869678,
+  "nu_min": 0.013501577287066248,
+  "n_ch": 6
+ },
+ "euler_multi_quadrants_openBC": {
+  "nu_mean": 0.1946568176770413,
+  "nu_max": 0.23034975554719817,
+  "nu_min": 0.16023552994237034,
+  "n_ch": 5
+ },
+ "gray_scott_reaction_diffusion": {
+  "nu_mean": 0.08414950880466826,
+  "nu_max": 0.09121785540999515,
+  "nu_min": 0.07708116219934137,
+  "n_ch": 2
+ },
+ "helmholtz_staircase": {
+  "nu_mean": 0.12813922405610045,
+  "nu_max": 0.1282322296248059,
+  "nu_min": 0.12804621848739497,
+  "n_ch": 2
+ },
+ "planetswe": {
+  "nu_mean": 0.026153080264055537,
+  "nu_max": 0.04600647822596274,
+  "nu_min": 0.013475358996831388,
+  "n_ch": 3
+ },
+ "post_neutron_star_merger": {
+  "nu_mean": 0.5007040240746439,
+  "nu_max": 1.2494728552193684,
+  "nu_min": 0.17037696311484646,
+  "n_ch": 12
+ },
+ "rayleigh_benard": {
+  "nu_mean": 0.2562912784360866,
+  "nu_max": 0.3285077702890882,
+  "nu_min": 0.17454460219662468,
+  "n_ch": 4
+ },
+ "rayleigh_taylor_instability": {
+  "nu_mean": 0.2773234336642755,
+  "nu_max": 0.3898213980307361,
+  "nu_min": 0.08528120815354857,
+  "n_ch": 4
+ },
+ "shear_flow": {
+  "nu_mean": 0.08973724143979704,
+  "nu_max": 0.1932371329686279,
+  "nu_min": 0.022039359108324625,
+  "n_ch": 4
+ },
+ "supernova_explosion_64": {
+  "nu_mean": 0.6643025143547581,
+  "nu_max": 1.402787853663592,
+  "nu_min": 0.08578039101947187,
+  "n_ch": 6
+ },
+ "turbulence_gravity_cooling": {
+  "nu_mean": 0.37548981730354813,
+  "nu_max": 1.320214175314639,
+  "nu_min": 0.1437214141295173,
+  "n_ch": 6
+ },
+ "turbulent_radiative_layer_2D": {
+  "nu_mean": 0.4383281482008796,
+  "nu_max": 0.5802525832376578,
+  "nu_min": 0.2716330954746635,
+  "n_ch": 4
+ },
+ "turbulent_radiative_layer_3D": {
+  "nu_mean": 0.6265746345867019,
+  "nu_max": 1.2166666666666666,
+  "nu_min": 0.1984126984126984,
+  "n_ch": 5
+ },
+ "viscoelastic_instability": {
+  "nu_mean": 1.0844647468252824,
+  "nu_max": 1.4754546311127863,
+  "nu_min": 0.07723709834469328,
+  "n_ch": 8
+ }
+}

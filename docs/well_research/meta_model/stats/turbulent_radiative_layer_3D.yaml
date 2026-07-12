@@ -1,0 +1,42 @@
+mean:
+  density: 51.7318
+  pressure: 0.9996
+  velocity:
+  - -0.0039
+  - -0.0
+  - -0.0155
+mean_delta:
+  density: 0.0223
+  pressure: -0.0
+  velocity:
+  - -0.0
+  - 0.0
+  - -0.0002
+rms:
+  density: 70.9253
+  pressure: 0.9997
+  velocity:
+  - 0.038
+  - 0.0065
+  - 0.0279
+rms_delta:
+  density: 13.7946
+  pressure: 0.0073
+  velocity:
+  - 0.0075
+  - 0.0066
+  - 0.0097
+std:
+  density: 48.5203
+  pressure: 0.006
+  velocity:
+  - 0.0378
+  - 0.0065
+  - 0.0232
+std_delta:
+  density: 13.7946
+  pressure: 0.0073
+  velocity:
+  - 0.0075
+  - 0.0066
+  - 0.0097
