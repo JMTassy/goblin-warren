@@ -483,6 +483,21 @@ function resolveMemorySeedQuest(carrierIds) {
   var outcome = MEMORY_SEED_QUEST.outcomes[firstId];
   if (!outcome) outcome = MEMORY_SEED_QUEST.outcomes.pip;
 
+  /* Score evaluation: determine best carrier and compare to player's choice. */
+  var scores = {};
+  var bestScore = -Infinity;
+  var bestId = null;
+  MEMORY_SEED_QUEST.choices.forEach(function (cid) {
+    scores[cid] = evaluateCarrier(cid, MEMORY_SEED_QUEST);
+    if (scores[cid] > bestScore) {
+      bestScore = scores[cid];
+      bestId = cid;
+    }
+  });
+  var playerScore = scores[firstId] || -Infinity;
+  var scoreDelta = bestScore - playerScore;
+  var isOptimal = firstId === bestId;
+
   var g = S.goblins[firstId];
   if (g) {
     g.mood = outcome.mood;
@@ -490,7 +505,9 @@ function resolveMemorySeedQuest(carrierIds) {
   }
 
   S.world.treeHealth = Math.min(100, S.world.treeHealth + outcome.worldChange);
-  pushReplay("maestro", "Memory Seed planted", "quest-resolved", "A seed found its carrier.", outcome.memory);
+  pushReplay("maestro", "Memory Seed planted", "quest-resolved",
+    "A seed found its carrier. Optimal: " + bestId + " (" + bestScore.toFixed(1) + "). Chosen: " + firstId + " (" + playerScore.toFixed(1) + ").",
+    outcome.memory);
 
   /* Award ZOL after lesson moment. */
   S.learning.zolBalance += MEMORY_SEED_QUEST.zolReward;
@@ -500,11 +517,11 @@ function resolveMemorySeedQuest(carrierIds) {
 
   var overlay = document.getElementById("maestro-quest");
   if (overlay) overlay.classList.add("hidden");
-  showMaestroLesson(firstId, carrierIds.length > 1 ? carrierIds[1] : null);
+  showMaestroLesson(firstId, carrierIds.length > 1 ? carrierIds[1] : null, isOptimal, bestId);
   saveState();
 }
 
-function showMaestroLesson(firstCarrier, secondCarrier) {
+function showMaestroLesson(firstCarrier, secondCarrier, isOptimal, bestId) {
   var lessonOverlay = document.getElementById("maestro-lesson");
   if (!lessonOverlay) return;
 
@@ -513,18 +530,23 @@ function showMaestroLesson(firstCarrier, secondCarrier) {
 
   var firstGoblin = DEFS_BY_ID[firstCarrier];
   var secondGoblin = secondCarrier ? DEFS_BY_ID[secondCarrier] : null;
+  var bestGoblin = DEFS_BY_ID[bestId];
 
-  if (secondGoblin) {
-    lessonText.innerHTML = firstGoblin.name + " understood the memory.<br/>" +
-                           secondGoblin.name + " understood the soil.<br/>" +
-                           "The best agent was not one.<br/>" +
-                           "It was the right sequence.<br/><br/>+15 ✨";
+  var lesson = "";
+  if (isOptimal) {
+    /* Player chose the best agent. */
+    lesson = firstGoblin.name + " was the perfect choice for this task.<br/>" +
+             "That is Tool Conjuration—<br/>" +
+             "matching the right agent to the work.<br/><br/>+15 ✨";
   } else {
-    lessonText.innerHTML = firstGoblin.name + " took the seed.<br/>" +
-                           "One agent, one moment.<br/>" +
-                           "Sometimes that is enough.<br/><br/>+10 ✨";
+    /* Player chose a suboptimal agent. */
+    lesson = firstGoblin.name + " tried their best.<br/>" +
+             "But " + bestGoblin.name + " would have been stronger.<br/>" +
+             "That is Tool Conjuration—<br/>" +
+             "knowing which agent fits which task.<br/><br/>+15 ✨";
   }
 
+  lessonText.innerHTML = lesson;
   lessonOverlay.classList.remove("hidden");
 }
 
