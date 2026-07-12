@@ -1155,6 +1155,56 @@ function luluAccessoryEmojis() {
 }
 
 /* ---------------------------------------------------------------------
+   WARREN WEATHER — the Gray-Scott regime map, made governance.
+   Source (witnessed): polymathic-ai/gray_scott_reaction_diffusion card —
+   six named pattern regimes with exact (feed f, kill k) coordinates.
+   The Warren's f = how generously you TRY; its k = how firmly you
+   COMPOST. Your governance style is literally a coordinate in
+   reaction-diffusion parameter space; the nearest regime is the weather.
+   Pure function of state — same history, same weather, forever.
+--------------------------------------------------------------------- */
+
+var GS_REGIMES = [
+  { name: "Gliders", f: 0.014, k: 0.054, line: "small things drift with purpose",   tint: "none" },
+  { name: "Spirals", f: 0.018, k: 0.051, line: "everything curls back on itself",   tint: "hue-rotate(12deg) saturate(1.06)" },
+  { name: "Maze",    f: 0.029, k: 0.057, line: "the paths are rearranging",         tint: "saturate(1.12)" },
+  { name: "Spots",   f: 0.030, k: 0.062, line: "ideas sit apart, politely",         tint: "brightness(1.04)" },
+  { name: "Worms",   f: 0.058, k: 0.065, line: "growth wriggles at the edges",      tint: "hue-rotate(-10deg) brightness(1.03)" },
+  { name: "Bubbles", f: 0.098, k: 0.057, line: "abundance, briefly, everywhere",    tint: "saturate(1.18) brightness(1.05)" }
+];
+
+function warrenWeather() {
+  /* feed rate: how much the operator tries + garden warmth */
+  var tries = 0, composts = 0;
+  S.replay.forEach(function (r) {
+    if (r.choice === "try") tries++;
+    else if (r.choice === "compost") composts++;
+  });
+  var f = 0.014 + 0.084 * clamp((tries * 8 + S.world.warmth) / 160, 0, 1);
+  /* kill rate: how much becomes soil */
+  var k = 0.051 + 0.014 * clamp((composts * 10 + S.world.soil) / 120, 0, 1);
+  var best = GS_REGIMES[0], bd = Infinity;
+  GS_REGIMES.forEach(function (r) {
+    var d = (r.f - f) * (r.f - f) + 4 * (r.k - k) * (r.k - k);
+    if (d < bd) { bd = d; best = r; }
+  });
+  return best;
+}
+
+function renderWeather() {
+  var w = warrenWeather();
+  var el = document.getElementById("signal-text");
+  if (el && !S.activeProposal && el.textContent === "quiet") {
+    el.textContent = w.name.toLowerCase() + " weather";
+  }
+  var world = document.getElementById("world");
+  if (world && world.dataset.tint !== w.name) {
+    world.dataset.tint = w.name;
+    world.style.filter = w.tint === "none" ? "" : w.tint;
+  }
+}
+
+/* ---------------------------------------------------------------------
    SIDE QUESTS — WarioWare law: one rule + one thumb + 5-15s + one funny
    consequence. Opt-in via the 🎪 sparkle (attention is sacred — never
    forced). Success pays ZOL with the gold rush; failure is funny and
@@ -2705,6 +2755,7 @@ function renderAll() {
   renderGoblins();
   renderObjects();
   renderReplayStrip();
+  renderWeather();
   if (S.activeProposal) renderSheetProposal();
 }
 
@@ -3348,7 +3399,28 @@ var AI_QCM = [
     pool: ["Turns it into soil for better ideas", "Deletes it forever", "Punishes the goblin", "Nothing"],
     correct: "Turns it into soil for better ideas",
     topic: "feedback", lesson: "rejected ideas become raw material",
-    explain: "In the Warren, rejected ideas feed the next experiments." }
+    explain: "In the Warren, rejected ideas feed the next experiments." },
+  /* — physics with receipts: witnessed numbers from The Well (polymathic-ai) — */
+  { q: "Two chemicals feed and kill each other on a grid. What can grow from pure noise?",
+    pool: ["Stable patterns — spots, worms, spirals, mazes", "Nothing, noise stays noise", "One big gray blob"],
+    correct: "Stable patterns — spots, worms, spirals, mazes",
+    topic: "emergence", lesson: "simple rules + feedback = patterns from randomness",
+    explain: "Gray-Scott: two knobs (feed, kill) make six pattern worlds. 1200 real simulations. Your Warren's weather uses their map." },
+  { q: "Where was every atom of real gold actually made?",
+    pool: ["Inside volcanoes", "In colliding neutron stars", "By very patient goblins"],
+    correct: "In colliding neutron stars",
+    topic: "ai_basics", lesson: "gold is forged in neutron star mergers",
+    explain: "The r-process in neutron-star mergers mints gold. Every ZOL remembers the kilonova. (Simulated in The Well.)" },
+  { q: "Hot gas slides over cold gas and they mix. What happens to the lukewarm layer?",
+    pool: ["It stays comfy forever", "It cools fast and the cold side gains mass", "It becomes a cloud goblin"],
+    correct: "It cools fast and the cold side gains mass",
+    topic: "evidence", lesson: "mixed states are unstable; they fall to one side",
+    explain: "Turbulent radiative layers: mixing reaches temperatures where cooling wins. Witnessed across 90 real simulations." },
+  { q: "A physics field changes violently every timestep. Which AI learns it better?",
+    pool: ["A local one that looks at neighborhoods", "A global one that sees whole waves", "Neither — give up"],
+    correct: "A local one that looks at neighborhoods",
+    topic: "tools_models", lesson: "match the model's eyes to the data's speed",
+    explain: "The Volatility Compass: fast-changing fields favor local nets (up to 33×); slow smooth ones favor spectral. ρ=0.74." }
 ];
 
 function aiQuizCandidate() {
@@ -3676,6 +3748,8 @@ window.WARREN_DEBUG = {
   mgGeraldPick: function (i) { mgGeraldPick(i); },
   mgRepairSet: function (pct) { mg.data.pct = pct; mg.data.holding = false; mgRepairRelease(); },
   spawnSparkle: function () { spawnSparkle(); },
+  weather: function () { return warrenWeather(); },
+  qcmCount: function () { return AI_QCM.length; },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
