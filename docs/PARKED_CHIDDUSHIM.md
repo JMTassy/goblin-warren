@@ -182,6 +182,33 @@
     priority moods, base version only (no archetype flavor, no shadow
     state) — CSS + a small mood→class map, no reducer touch, own
     selftest gate.
+    **BUILT (same day, operator said "go" to jump the queue):** the base
+    6-bucket layer shipped — `mood-gates.js` 5/5, full suite reverified
+    green. Archetype-flavored variants and boss moods remain parked as
+    written above.
+
+16. **"The Abyssal Depths" Boss Realm + minigame design DNA** — a design
+    document (not art) sent labeled as "more background," but it's a
+    pitch for a *third* boss/zone concept: Cinder Wraith Lair, Magma
+    Golem Forge, Void Portal (dragon/fire/void aesthetic — reads as a
+    different game tone than the Warren's cozy-mystical one), plus 10
+    general minigame-design principles, a fun-tuning formula
+    (`Fun = (Challenge × Feedback) + Frustration`, wants low
+    frustration), and named example minigame loops (Receipt Dash,
+    Mushroom Care, Bug Rescue, Matcha Brew, Map Expedition).
+    ⚠️ RECONCILE FLAG: this is the *third* distinct boss concept now on
+    file — the four Temple Bosses (Rââm/Seren/Mâa/Orr, #10) and this
+    Boss Realm trio (Cinder Wraith/Magma Golem/Void Portal) aren't the
+    same thing and haven't been reconciled. Parking rather than
+    building toward either until the operator says which (or both, or
+    neither) is canon — building both risks two unrelated boss systems
+    competing for the same slot.
+    What's genuinely useful regardless of that question: the minigame
+    design principles are sound and boss-agnostic (clarity, control,
+    low-frustration-high-flow, "the loop is infinite, the feeling is
+    everything") — reusable once *any* minigame slice gets built,
+    including the stripped Matcha Brew slice already noted at #14.
+    Reference image: `docs/concept-art/vision-07-boss-realm-minigames.jpeg`.
 
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
@@ -189,14 +216,19 @@
 - 3+4 → design-protection rules for STEP 3 (Attention Law) and STEP 7
   (the kid test).
 - 5 → Evolution Journal narrator (post-order bead).
-- 6 → art direction for STEP 4 (the Aquarium).
+- 6 → art direction for STEP 4 (the Aquarium). Reference art now exists
+  (`docs/concept-art/vision-05-root-hollow.jpeg`) — wiring it in as (or
+  alongside) the live `#world` background is available on request, not
+  done silently, since it changes what's currently shipped.
 - 12+13 → boss visual + audio design, both gated behind #10's punishment
   ruling (no bodies to paint or drum for yet).
 - 14 → a new resource-economy bead, post-order; the minigame slice could
   jump the queue standalone if the operator calls for it; the full
   global-reserve/distribution/boss-tribute shape waits for #9 and #10.
-- 15 → art direction for goblin rendering, post-order; the 6-mood base
-  slice could jump the queue standalone (pure UI, no reducer risk);
-  archetype flavor waits for #9, boss moods wait for #10.
+- 15 → BUILT (base 6-mood layer, `mood-gates.js` 5/5); archetype flavor
+  waits for #9, boss moods wait for #10.
+- 16 → needs an operator call reconciling it against #10 before either
+  gets built further; the minigame-design principles are usable
+  independent of that call, whenever a minigame slice is built.
 
 *The scroll waits. It never nags.* 📜
