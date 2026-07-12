@@ -1371,3 +1371,27 @@ html, body {
 @media (prefers-color-scheme: light) {
   /* This world stays night-garden regardless of OS theme — it is a place, not a UI. */
 }
+
+/* Territory objects on map */
+.territory-object {
+  position: absolute;
+  font-size: 24px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease;
+  filter: drop-shadow(0 0 8px rgba(150, 200, 80, 0.4));
+}
+
+.territory-object:active {
+  transform: scale(1.15);
+}
+
+.territory-object.owned {
+  filter: drop-shadow(0 0 16px rgba(150, 200, 80, 0.8)) brightness(1.2);
+  animation: territoryGlow 2s ease-in-out infinite;
+}
+
+@keyframes territoryGlow {
+  0%, 100% { filter: drop-shadow(0 0 12px rgba(150, 200, 80, 0.4)) brightness(1); }
+  50% { filter: drop-shadow(0 0 20px rgba(150, 200, 80, 0.8)) brightness(1.1); }
+}
