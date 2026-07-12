@@ -181,8 +181,8 @@ var TERRITORY_DEFS = [
     actionDescription: "Pip learns to clarify vague signs — and decides on her own when to fix one." },
   { id: "garden-north", name: "Northern Garden", zone: "garden", cost: 30, icon: "🌿", preferredRole: "Gardener" },
   { id: "forge-east", name: "Eastern Forge", zone: "forge", cost: 40, icon: "⚒️", preferredRole: "Archivist" },
-  { id: "library-west", name: "Western Library", zone: "library", cost: 35, icon: "📚", preferredRole: "Chronicler" },
-  { id: "grove-south", name: "Southern Grove", zone: "grove", cost: 25, icon: "🌳", preferredRole: "Scout" }
+  { id: "library-west", name: "Root Library", zone: "tree", cost: 35, icon: "📚", preferredRole: "Archivist" },
+  { id: "grove-south", name: "Nursery Grove", zone: "nursery", cost: 25, icon: "🌳", preferredRole: "Forger" }
 ];
 
 function makeState() {
@@ -934,16 +934,9 @@ function animateGoblinToZone(goblinId, zoneId, duration) {
 }
 
 function getZoneCenterCoord(zoneId) {
-  /* Return approximate center coordinate for each zone. */
-  var centers = {
-    "garden": { x: 50, y: 50 },
-    "forge": { x: 80, y: 50 },
-    "library": { x: 20, y: 50 },
-    "grove": { x: 50, y: 80 },
-    "mycelium": { x: 70, y: 80 },
-    "nursery": { x: 30, y: 30 }
-  };
-  return centers[zoneId] || { x: 50, y: 50 };
+  /* Builders walk to the real zone glyph (slightly below, where goblins stand). */
+  var z = zoneById(zoneId);
+  return { x: z.x, y: Math.min(94, z.y + 10) };
 }
 
 function playBuildCompleteSound() {
