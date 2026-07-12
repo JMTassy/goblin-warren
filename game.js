@@ -5350,7 +5350,12 @@ var AI_QCM = [
     pool: ["A local one that looks at neighborhoods", "A global one that sees whole waves", "Neither — give up"],
     correct: "A local one that looks at neighborhoods",
     topic: "tools_models", lesson: "match the model's eyes to the data's speed", hard: true,
-    explain: "The Volatility Compass: fast-changing fields favor local nets (up to 33×); slow smooth ones favor spectral. ρ=0.74." }
+    explain: "The Volatility Compass: fast-changing fields favor local nets (up to 33×); slow smooth ones favor spectral. ρ=0.74." },
+  { q: "Mog lit the violet lantern to summon mushrooms. Nothing glowed — but the goblins gathered to argue, and spotted the irrigation pipe blocked by three socks and a turnip. They cleared it; the mushrooms grew back. Why did they return?",
+    pool: ["The goblins unblocked the irrigation pipe", "The violet lantern's ancient power", "Mog believed hard enough", "Purple is causally superior"],
+    correct: "The goblins unblocked the irrigation pipe",
+    topic: "evidence", lesson: "myth may convene attention; only the repair changes conditions",
+    explain: "The lantern did not grow the mushrooms — it merely convened the idiots, and that was enough. Myth → attention → cooperation → repair → outcome. Not myth → magic → outcome. (docs/WARREN_LESSONS.md)" }
 ];
 
 function aiQuizCandidate() {
