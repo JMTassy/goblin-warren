@@ -40,6 +40,36 @@ var GOBLIN_DEFS = [
    the core-four save contract stays untouched; Tink is additive. */
 var TINK_DEF = { id: "tink", name: "Tink", role: "Tinkerer", trait: "inventive", color: "#d9c46b",
   preference: "spire", aversion: "garden", homeTask: "contraptioning" };
+
+/* ADOPT A GOBLIN: the six wanderer archetypes, one per return humor — the
+   field supplies the mask it currently lacks. Data lives up here because
+   mergeDefaults rebuilds an adopted kin at load time. */
+var WANDERER_ARCHETYPES = {
+  LONELY:   { archetype: "Hearth-Kindler",  role: "Hearth-Kindler",  trait: "warm-hearted", color: "#e8a7c0",
+              preference: "gate",    aversion: "forge",  homeTask: "kindling",
+              why: "The Warren felt lonely. So I came. I'm good at sitting nearby." },
+  TRICKSTER:{ archetype: "Thread-Untangler", role: "Thread-Untangler", trait: "methodical",  color: "#b9d4f0",
+              preference: "forge",   aversion: "gate",   homeTask: "untangling",
+              why: "Things moved around here. I put things back. Mostly the right places." },
+  DREAMING: { archetype: "Dream-Fisher",    role: "Dream-Fisher",    trait: "half-asleep",  color: "#b79bf0",
+              preference: "tree",    aversion: "nursery", homeTask: "dream-fishing",
+              why: "The Warren dreamed while you were gone. I catch those. For later." },
+  TENDER:   { archetype: "Echo-Singer",     role: "Echo-Singer",     trait: "soft-voiced",  color: "#ffd9a0",
+              preference: "garden",  aversion: "spire",  homeTask: "echo-singing",
+              why: "It's warm here. Warm places need someone to hum back at them." },
+  PROUD:    { archetype: "Pocket-Historian", role: "Pocket-Historian", trait: "solemn",      color: "#d9b96b",
+              preference: "spire",   aversion: "garden", homeTask: "chronicling",
+              why: "Great things happened here. Someone small should write them down." },
+  QUIET:    { archetype: "Door-Listener",   role: "Door-Listener",   trait: "attentive",    color: "#9fd8d0",
+              preference: "gate",    aversion: "spire",  homeTask: "listening at doors",
+              why: "It's quiet here. Quiet is a sound too. I collect it." }
+};
+
+function adoptedDef(a) {
+  var arch = WANDERER_ARCHETYPES[a.archetypeId] || WANDERER_ARCHETYPES.QUIET;
+  return { id: "kin", name: a.name, role: arch.role, trait: arch.trait, color: arch.color,
+    preference: arch.preference, aversion: arch.aversion, homeTask: arch.homeTask };
+}
 var DEFS_BY_ID = {};
 GOBLIN_DEFS.concat([TINK_DEF]).forEach(function (d) { DEFS_BY_ID[d.id] = d; });
 
@@ -221,7 +251,9 @@ function makeState() {
               geraldHead: false, luluHat: false },
     /* the teachable goblin — the child teaches, the goblin remembers,
        misgeneralizes, and acts only when the child stamps. */
-    teaching: { lessons: [], taughtCount: {}, pending: null }
+    teaching: { lessons: [], taughtCount: {}, pending: null },
+    /* the adopted kin — a wanderer named and stamped by the operator */
+    adopted: null
   };
 }
 
@@ -248,6 +280,11 @@ function mergeDefaults(loaded) {
     });
     if (loaded.goblins && loaded.goblins.tink) {
       out.goblins.tink = Object.assign({}, makeGoblin(TINK_DEF), loaded.goblins.tink);
+    }
+    if (loaded.adopted && loaded.adopted.id && loaded.adopted.name) {
+      out.adopted = loaded.adopted;
+      var kdef = adoptedDef(loaded.adopted);
+      out.goblins.kin = Object.assign({}, makeGoblin(kdef), (loaded.goblins && loaded.goblins.kin) || {});
     }
     out.progress = Object.assign({}, d.progress, loaded.progress || {});
     out.lulu = Object.assign({}, d.lulu, loaded.lulu || {});
@@ -1578,6 +1615,106 @@ function applyWarrenHumor(buckets) {
   renderReplayStrip();
   saveState();
   return h;
+}
+
+/* ---------------------------------------------------------------------
+   ADOPT A GOBLIN — the constellation ritual. A wanderer appears at the
+   Mycelial Gate: the archetype the Warren currently LACKS, chosen
+   deterministically from the return humor (the field supplies what it
+   needs). The player names it and STAMPS the adoption — nothing joins
+   the crew without the operator's hand. It then lives like any goblin:
+   boopable, teachable, an instrument, a mask in the constellation.
+--------------------------------------------------------------------- */
+
+var wandererEl = null, wandererTimer = null;
+
+function spawnWanderer() {
+  if (S.adopted || wandererEl) return;
+  var world = document.getElementById("world");
+  if (!world) return;
+  var el = document.createElement("div");
+  el.className = "wanderer";
+  el.innerHTML = '<div class="wanderer-body">🥺</div><div class="wanderer-tag">…may I stay?</div>';
+  el.style.left = "78%";
+  el.style.top = "66%";
+  el.addEventListener("click", function (e) { e.stopPropagation(); openAdoptCard(); });
+  world.appendChild(el);
+  wandererEl = el;
+  Sound.chirp();
+}
+
+function openAdoptCard() {
+  if (S.adopted) return;
+  var arch = WANDERER_ARCHETYPES[warrenHumor(0).id];
+  var old = document.getElementById("adopt-card");
+  if (old) old.remove();
+  var card = document.createElement("div");
+  card.id = "adopt-card";
+  card.innerHTML =
+    '<div class="adopt-inner">' +
+      '<div class="adopt-sprite" style="--kin-color:' + arch.color + '">🥺</div>' +
+      '<div class="adopt-arch">a small ' + arch.archetype + '</div>' +
+      '<div class="adopt-why">“' + arch.why + '”</div>' +
+      '<input id="adopt-name" placeholder="give it a name…" maxlength="16" autocomplete="off" />' +
+      '<div class="adopt-btns">' +
+        '<button id="adopt-stamp">🔨 ADOPT</button>' +
+        '<button id="adopt-later">not yet</button>' +
+      '</div>' +
+      '<div class="adopt-hint">nothing joins the Warren without your stamp</div>' +
+    '</div>';
+  document.getElementById("app").appendChild(card);
+  var input = document.getElementById("adopt-name");
+  input.addEventListener("click", function (e) { e.stopPropagation(); });
+  document.getElementById("adopt-stamp").addEventListener("click", function (e) {
+    e.stopPropagation();
+    var name = (input.value || "").trim();
+    if (!name) { input.placeholder = "it needs a name first…"; try { input.focus(); } catch (er) {} return; }
+    ensureAudio(); resumeAudio();
+    adoptWanderer(name);
+    card.remove();
+  });
+  document.getElementById("adopt-later").addEventListener("click", function (e) {
+    e.stopPropagation();
+    card.remove();
+    showBubbleFree("…I'll wait by the gate.", 78, 60);
+  });
+  try { input.focus(); } catch (e) {}
+}
+
+function showBubbleFree(text, xPct, yPct) {
+  /* a one-off bubble not tied to a goblin (the wanderer has no id yet) */
+  var world = document.getElementById("world");
+  if (!world) return;
+  var b = document.createElement("div");
+  b.className = "bubble";
+  b.style.position = "absolute";
+  b.style.left = xPct + "%";
+  b.style.top = yPct + "%";
+  b.textContent = text;
+  world.appendChild(b);
+  setTimeout(function () { b.remove(); }, 3200);
+}
+
+function adoptWanderer(name) {
+  if (S.adopted) return false;
+  var humorId = warrenHumor(0).id;
+  S.adopted = { id: "kin", name: name, archetypeId: humorId, bornTick: (S.world.warrenTicks || 0) };
+  var def = adoptedDef(S.adopted);
+  S.goblins.kin = makeGoblin(def);
+  S.goblins.kin.mood = "grateful";
+  S.goblins.kin.intention = "learning where everything is";
+  if (wandererEl) { wandererEl.remove(); wandererEl = null; }
+  Sound.stampThunk();
+  setTimeout(Sound.party, 250);
+  pushReplay("You", "Adoption: " + name + " the " + def.role, "adopt",
+    name + " joined the Warren — a " + def.role + ", because the Warren was " + humorId.toLowerCase() + ".",
+    "the day " + name + " was named.");
+  appBounce();
+  renderGoblins();
+  renderReplayStrip();
+  saveState();
+  showBubble("kin", "“" + name + "”. I like it. I'll keep it.", 4200);
+  return true;
 }
 
 /* ---------------------------------------------------------------------
@@ -3117,6 +3254,7 @@ function renderGoblins() {
   Object.keys(S.goblins).forEach(function (id) {
     var g = S.goblins[id];
     var el = goblinEls[id];
+    if (!el) el = buildGoblinEl(g); /* goblins can join mid-session (Tink, the adopted kin) */
     if (!el) return;
     el.style.left = g.x + "%";
     el.style.top = g.y + "%";
@@ -3361,7 +3499,7 @@ function renderReplayStrip() {
     strip.appendChild(e);
     return;
   }
-  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘" };
+  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
     chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
@@ -4919,6 +5057,20 @@ var FR_STRINGS = {
   "The Warren practiced looking impressive. For you.": "Le Terrier s'est entraîné à avoir l'air impressionnant. Pour vous.",
   "The Warren is here. It noticed you're back.": "Le Terrier est là. Il a remarqué votre retour. Il ne fera pas de commentaire.",
 
+  /* --- l'adoption --- */
+  "…may I stay?": "…je peux rester ?",
+  "give it a name…": "donnez-lui un nom…",
+  "it needs a name first…": "il lui faut un nom, d'abord…",
+  "🔨 ADOPT": "🔨 ADOPTER",
+  "nothing joins the Warren without your stamp": "rien ne rejoint le Terrier sans votre tampon",
+  "…I'll wait by the gate.": "…j'attendrai près de la porte.",
+  "The Warren felt lonely. So I came. I'm good at sitting nearby.": "Le Terrier se sentait seul. Alors je suis venu. Je sais très bien m'asseoir pas loin.",
+  "Things moved around here. I put things back. Mostly the right places.": "Des choses ont bougé ici. Je les remets. Presque toujours au bon endroit.",
+  "The Warren dreamed while you were gone. I catch those. For later.": "Le Terrier a rêvé pendant votre absence. J'attrape les rêves. Pour plus tard.",
+  "It's warm here. Warm places need someone to hum back at them.": "Il fait doux ici. Les endroits doux ont besoin qu'on leur fredonne en retour.",
+  "Great things happened here. Someone small should write them down.": "De grandes choses ont eu lieu ici. Quelqu'un de petit devrait les noter.",
+  "It's quiet here. Quiet is a sound too. I collect it.": "C'est calme ici. Le calme est un son aussi. Je le collectionne.",
+
   /* --- Raâm, le Masque Bruyant --- */
   "CATCH ME IF YOU CAN!": "ATTRAPEZ-MOI SI VOUS POUVEZ !",
   "TOO SLOW! LIKE A POLITE SNAIL!": "TROP LENT ! COMME UN ESCARGOT POLI !",
@@ -5233,6 +5385,11 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* the adoption ritual */
+  spawnWanderer: function () { spawnWanderer(); },
+  openAdoptCard: function () { openAdoptCard(); },
+  adoptWanderer: function (name) { return adoptWanderer(name); },
+  getAdopted: function () { return S.adopted; },
   /* goldfall */
   spawnGoldfall: function () { spawnGoldfall(); },
   catchGoldfall: function () { catchGoldfall(); },
@@ -5351,6 +5508,11 @@ function boot() {
 
   /* the sky sheds a coin now and then — first one comes a little sooner */
   scheduleGoldfall(randi(25000, 55000));
+
+  /* one wanderer, once — it appears only while the Warren has no kin */
+  if (!S.adopted) {
+    wandererTimer = setTimeout(spawnWanderer, randi(50000, 110000));
+  }
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

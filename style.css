@@ -173,6 +173,92 @@ html, body {
 }
 #zol-wallet:active { transform: scale(0.94); }
 
+/* ADOPT A GOBLIN — the wanderer at the gate, and the naming ritual */
+.wanderer {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  z-index: 26;
+  cursor: pointer;
+  text-align: center;
+  padding: 8px;
+  animation: wandersway 2.8s ease-in-out infinite;
+}
+@keyframes wandersway { 0%,100% { margin-top: 0; } 50% { margin-top: -3px; } }
+.wanderer-body {
+  font-size: 22px;
+  filter: drop-shadow(0 0 10px rgba(180, 220, 255, 0.55));
+}
+.wanderer-tag {
+  font-size: 8.5px;
+  color: var(--ink);
+  background: rgba(12,10,23,0.75);
+  border: 1px solid rgba(180,220,255,0.4);
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+#adopt-card {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 4, 14, 0.72);
+}
+.adopt-inner {
+  background: var(--panel, #171226);
+  border: 1px solid var(--panel-edge, #2c2545);
+  border-radius: 18px;
+  padding: 18px 16px;
+  width: min(320px, 86vw);
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+.adopt-sprite {
+  font-size: 44px;
+  filter: drop-shadow(0 0 16px var(--kin-color, #9fd8d0));
+  margin-bottom: 4px;
+}
+.adopt-arch { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: 0.04em; }
+.adopt-why { font-size: 11px; color: var(--ink-dim); font-style: italic; margin: 8px 0 12px; line-height: 1.45; }
+#adopt-name {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge, #2c2545);
+  background: rgba(255,255,255,0.06);
+  color: var(--ink);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.adopt-btns { display: flex; gap: 8px; justify-content: center; }
+#adopt-stamp {
+  flex: 1 1 auto;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--glow-lime, #9be36d);
+  background: linear-gradient(135deg, rgba(155,227,109,0.2), rgba(120,170,60,0.12));
+  color: var(--glow-lime, #9be36d);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+#adopt-stamp:active { transform: scale(0.95); }
+#adopt-later {
+  flex: 0 0 auto;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge, #2c2545);
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.adopt-hint { font-size: 9px; color: var(--ink-dim); margin-top: 10px; opacity: 0.8; }
+
 /* THE WARREN DREAMS — the return dawn-wash: an 18s breath of colour that
    greets you, then fades. Gentle by law — no strobe, no snap. */
 #world.dawnwash::after {
