@@ -218,7 +218,10 @@ function makeState() {
     council: { done: false, stage: "IDLE", card: null },
     /* echoes: consequences one mini-game leaves for another system to find */
     echoes: { nibHyper: false, memoryFact: null, mushroomNoticed: false,
-              geraldHead: false, luluHat: false }
+              geraldHead: false, luluHat: false },
+    /* the teachable goblin — the child teaches, the goblin remembers,
+       misgeneralizes, and acts only when the child stamps. */
+    teaching: { lessons: [], taughtCount: {}, pending: null }
   };
 }
 
@@ -265,6 +268,9 @@ function mergeDefaults(loaded) {
     out.memories = Array.isArray(loaded.memories) ? loaded.memories : [];
     out.council = Object.assign({}, d.council, loaded.council || {});
     out.echoes = Object.assign({}, d.echoes, loaded.echoes || {});
+    out.teaching = Object.assign({}, d.teaching, loaded.teaching || {});
+    out.teaching.lessons = Array.isArray(out.teaching.lessons) ? out.teaching.lessons.slice(-24) : [];
+    out.teaching.taughtCount = out.teaching.taughtCount || {};
   } catch (e) { return d; }
   return out;
 }
@@ -3115,6 +3121,137 @@ function renderSheetIdle() {
   document.getElementById("sheet-zol-shop").classList.add("hidden");
 }
 
+/* ---------------------------------------------------------------------
+   THE TEACHABLE GOBLIN — invert the direction of knowledge.
+   The child teaches a fact in their own words. The goblin interprets it
+   LITERALLY (models generalize from what you said, not what you meant),
+   proposes an action, and NOTHING happens until the child stamps it
+   (proposal ⊬ admission, as a thumb-gesture). Then it remembers, and
+   calls the lesson back later. No coins gate this: teaching is its own
+   channel — capability, memory, and comedy.
+--------------------------------------------------------------------- */
+
+var LESSON_THEMES = [
+  /* the charming misgeneralizations first — specific action-words win over
+     generic property-words, so "birds fly because they are light" glues
+     feathers to a rock. Hallucination, made visible and harmless. */
+  { keys: /fly|bird|wing|feather|oiseau|vol/i, comedy: true,
+    line: "Lighter means flying? Then MORE FEATHERS. I glue them to this rock.",
+    emoji: "🪨", sign: "A Rock With Feathers (does not fly)", zone: "nursery" },
+  { keys: /fast|quick|run|speed|vite|rapide/i, comedy: true,
+    line: "Faster means less drag. So I remove the bug's legs. For science.",
+    emoji: "🐛", sign: "A Streamlined Bug (confused)", zone: "nursery" },
+  { keys: /big|strong|tall|wall|huge|grand|fort/i, comedy: true,
+    line: "Bigger is better! I build a wall. In front of the door. You are welcome.",
+    emoji: "🧱", sign: "A Wall (blocks the door)", zone: "gate" },
+  { keys: /smart|think|brain|learn|clever|intellig/i, comedy: true,
+    line: "To be smart I must eat the book. I have eaten the book. I feel the same.",
+    emoji: "📚", sign: "A Digested Book (no smarter)", zone: "tree" },
+  /* the clean interpretations */
+  { keys: /light|lantern|bright|glow|sun|shine|lumi/i, comedy: false,
+    line: "So if light bounces, I put a lantern by the water — it will bounce to us!",
+    emoji: "🏮", sign: "A Lantern (taught)", zone: "garden" },
+  { keys: /water|pond|rain|river|wet|lake|pool|eau/i, comedy: false,
+    line: "Water! I dig a small pond right here. Petit. Pour commencer.",
+    emoji: "💧", sign: "A Pond (taught)", zone: "garden" },
+  { keys: /plant|seed|grow|tree|flower|garden|graine/i, comedy: false,
+    line: "I plant it and wait. Patiently. For about six seconds.",
+    emoji: "🌱", sign: "A Sprout (taught)", zone: "garden" },
+  { keys: /warm|fire|heat|cook|hot|chaud/i, comedy: false,
+    line: "Warm is good. I will sit very close to the fire and be an expert.",
+    emoji: "🔥", sign: "A Warmth (taught)", zone: "forge" },
+  { keys: /kind|friend|love|help|nice|gentil|aim/i, comedy: false,
+    line: "I will help! I do not know with what. But loudly, and with feeling.",
+    emoji: "💚", sign: "A Kindness (taught)", zone: "gate" }
+];
+
+function interpretLesson(text) {
+  var t = (text || "").trim();
+  var theme = null;
+  for (var i = 0; i < LESSON_THEMES.length; i++) {
+    if (LESSON_THEMES[i].keys.test(t)) { theme = LESSON_THEMES[i]; break; }
+  }
+  if (!theme) {
+    /* no keyword: the goblin does the most literal thing with your words */
+    var first = t.split(/\s+/).slice(0, 4).join(" ") || "that";
+    theme = { comedy: true,
+      line: "You said “" + first + "”. So I did the most literal possible thing.",
+      emoji: "📜", sign: "A Literal Interpretation", zone: "forge" };
+  }
+  return theme;
+}
+
+function teachGoblin(goblinId, text) {
+  text = (text || "").trim();
+  if (!text || !S.goblins[goblinId]) return false;
+  var interp = interpretLesson(text);
+  /* the goblin PROPOSES — nothing is admitted until the child stamps */
+  S.teaching.pending = { goblinId: goblinId, lesson: text.slice(0, 120),
+    line: interp.line, emoji: interp.emoji, sign: interp.sign,
+    zone: interp.zone, comedy: !!interp.comedy };
+  showBubble(goblinId, interp.line, 4600);
+  Sound.squeak(goblinId);
+  saveState();
+  renderSheetGoblin(goblinId);
+  return true;
+}
+
+function sealTeaching() {
+  /* the seal — proposal becomes real ONLY here, by the child's thumb */
+  var p = S.teaching.pending;
+  if (!p) return false;
+  stampFX("try");                       // the governance gesture
+  addObject(p.emoji, p.sign, p.zone);   // the world changes, because you stamped
+
+  var g = S.goblins[p.goblinId];
+  var summary = "You taught me “" + p.lesson + "”, so I made " + p.sign + ".";
+  var lesson = { goblin: p.goblinId, text: p.lesson, result: p.sign,
+    comedy: p.comedy, callback: summary, createdAt: Date.now() };
+  S.teaching.lessons.push(lesson);
+  if (S.teaching.lessons.length > 24) S.teaching.lessons.shift();
+  S.teaching.taughtCount[p.goblinId] = (S.teaching.taughtCount[p.goblinId] || 0) + 1;
+
+  if (g) {
+    g.memory = summary;
+    g.mood = p.comedy ? "delighted" : "proud";
+  }
+  pushReplay(p.goblinId, "Lesson admitted", "teach-sealed", summary, summary);
+
+  /* capability growth: three lessons and the goblin graduates */
+  if (S.teaching.taughtCount[p.goblinId] === 3) {
+    showBubble(p.goblinId, "I have learned three things. I am basically a professor now.", 4200);
+    pushReplay(p.goblinId, "Graduated", "teach-graduated",
+      (g ? g.name : p.goblinId) + " graduated — three lessons taught.", "");
+  } else {
+    setTimeout(function () {
+      showBubble(p.goblinId, p.comedy ? "…that did not work how I hoped. But I remember it!" : "It worked. Mostly. I remember who taught me.", 3600);
+    }, 1400);
+  }
+
+  S.teaching.pending = null;
+  saveState();
+  renderAll();
+  renderSheetGoblin(p.goblinId);
+  return true;
+}
+
+function dismissTeaching() {
+  /* the child does NOT stamp — the proposal simply doesn't happen */
+  if (!S.teaching.pending) return;
+  var gid = S.teaching.pending.goblinId;
+  showBubble(gid, "No stamp? Then it stays an idea. Ideas are free.", 3200);
+  S.teaching.pending = null;
+  saveState();
+  renderSheetGoblin(gid);
+}
+
+function goblinCallback(goblinId) {
+  /* what did this goblin learn from you? surface one, sometimes */
+  var mine = S.teaching.lessons.filter(function (l) { return l.goblin === goblinId; });
+  if (!mine.length) return null;
+  return mine[mine.length - 1].callback;
+}
+
 function renderSheetGoblin(id) {
   var g = S.goblins[id];
   document.getElementById("sheet-idle").classList.add("hidden");
@@ -3134,8 +3271,59 @@ function renderSheetGoblin(id) {
   document.getElementById("card-thought").textContent = "“" + fillTemplate(pick(STRANGE_THOUGHTS)) + "”";
   var actionText = g.resting ? "finally take that nap" : "sneak toward the " + zoneName(g.preference);
   document.getElementById("card-action").textContent = actionText;
+
+  /* a goblin remembers what you taught it — surface a callback */
+  var cb = goblinCallback(id);
+  if (cb) document.getElementById("card-memory").textContent = cb;
+
+  renderTeachPanel(id);
   renderLuluCare(id);
 }
+
+function renderTeachPanel(id) {
+  var host = document.getElementById("card-teach");
+  if (!host) return;
+  host.classList.remove("hidden");
+  var count = (S.teaching.taughtCount[id] || 0);
+  var grad = count >= 3 ? " 🎓" : "";
+  var p = S.teaching.pending && S.teaching.pending.goblinId === id ? S.teaching.pending : null;
+  var html = '<div class="teach-head">🎓 TEACH ' + S.goblins[id].name.toUpperCase() + grad +
+    ' <span class="teach-count">' + count + ' learned</span></div>';
+  if (p) {
+    html += '<div class="teach-prop"><div class="teach-prop-line">' + p.emoji + ' “' + p.line + '”</div>' +
+      '<div class="teach-prop-btns">' +
+        '<button id="teach-seal">🔨 STAMP IT</button>' +
+        '<button id="teach-nope">not yet</button>' +
+      '</div><div class="teach-hint">nothing happens until you stamp — that is the whole game</div></div>';
+  } else {
+    html += '<div class="teach-input-row">' +
+      '<input id="teach-input" placeholder="teach ' + S.goblins[id].name + ' a fact…" maxlength="120" autocomplete="off" />' +
+      '<button id="teach-send">🎓</button></div>' +
+      '<div class="teach-hint">tell them how the world works. watch what they do with it.</div>';
+  }
+  host.innerHTML = html;
+
+  var input = document.getElementById("teach-input");
+  var send = document.getElementById("teach-send");
+  var fire = function () {
+    if (!input || !input.value.trim()) return;
+    var v = input.value; input.value = "";
+    ensureAudio(); resumeAudio();
+    teachFocus = true;
+    teachGoblin(id, v);
+  };
+  if (send) send.addEventListener("click", function (e) { e.stopPropagation(); fire(); });
+  if (input) {
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); fire(); } });
+    input.addEventListener("click", function (e) { e.stopPropagation(); });
+    if (teachFocus) { try { input.focus(); } catch (e) {} teachFocus = false; }
+  }
+  var seal = document.getElementById("teach-seal");
+  if (seal) seal.addEventListener("click", function (e) { e.stopPropagation(); ensureAudio(); resumeAudio(); sealTeaching(); });
+  var nope = document.getElementById("teach-nope");
+  if (nope) nope.addEventListener("click", function (e) { e.stopPropagation(); dismissTeaching(); });
+}
+var teachFocus = false;
 
 function needBarHTML(kind, emoji, label, v) {
   return '<div class="nrow ' + kind + '">' +
@@ -4468,6 +4656,12 @@ window.WARREN_DEBUG = {
   luluSay: function (m) { luluSay(m); },
   luluOfflineReply: function (m) { return luluOfflineReply(m); },
   getLuluChat: function () { return S.lulu.chat; },
+  teach: function (id, text) { return teachGoblin(id, text); },
+  sealTeaching: function () { return sealTeaching(); },
+  dismissTeaching: function () { return dismissTeaching(); },
+  getTeaching: function () { return S.teaching; },
+  interpretLesson: function (t) { return interpretLesson(t); },
+  goblinCallback: function (id) { return goblinCallback(id); },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
