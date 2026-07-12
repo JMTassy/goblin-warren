@@ -150,7 +150,8 @@ function jitter(v, amt) { return clamp(v + rand(-amt, amt), 8, 92); }
    on top of it, so the zone name stays readable (a place, not a dashboard). */
 function zoneStandSpot(zoneId) {
   var z = zoneById(zoneId);
-  return { x: jitter(z.x, 12), y: clamp(z.y + 10 + rand(-3, 5), 8, 92) };
+  /* y-cap 86 keeps a goblin's speech bubble inside the map at the bottom zones */
+  return { x: jitter(z.x, 12), y: clamp(z.y + 10 + rand(-3, 5), 8, 86) };
 }
 function uid(prefix) { return prefix + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
 

@@ -298,6 +298,7 @@ html, body {
   top: calc(100% + 3px);
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
   max-width: 140px;
   background: rgba(28,21,51,0.95);
   border: 1px solid var(--panel-edge);
