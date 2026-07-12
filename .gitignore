@@ -16,3 +16,4 @@ node_modules/
 # Local development
 .env
 .env.local
+verify-results.json
