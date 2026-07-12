@@ -19,9 +19,10 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
     const st = window.WARREN_DEBUG.getStations();
     const freqs = st.map(s => s.freq);
     const ascending = freqs.every((f, i) => i === 0 || f > freqs[i - 1]);
-    return { n: st.length, freqs, ascending, crown: freqs[6] === 963, base: freqs[0] === 396 };
+    const symbols = st.every(s => typeof s.arcana === 'string' && typeof s.hex === 'number');
+    return { n: st.length, freqs, ascending, crown: freqs[6] === 963, base: freqs[0] === 396, symbols };
   });
-  log('S1_seven_rung_ladder', s1.n === 7 && s1.ascending && s1.crown && s1.base, JSON.stringify(s1));
+  log('S1_seven_rung_ladder', s1.n === 7 && s1.ascending && s1.crown && s1.base && s1.symbols, JSON.stringify(s1));
 
   // S2: height is deterministic and monotonic — same state same height; more care never lowers it
   const s2 = await page.evaluate(() => {

@@ -1641,14 +1641,16 @@ function applyWarrenHumor(buckets) {
    docs/CHIDDUSH_KUNDALINI_TANTRA.md). All names original, IP-safe.
 --------------------------------------------------------------------- */
 
+/* Station symbolism locked by the operator (2026-07-12): each rung pairs a
+   Major Arcana with a hexagram. Metadata only — expressive, never evidence. */
 var SERPENT_STATIONS = [
-  { name: "Root Cellar",  freq: 396, color: "#e05a4e", line: "Sit like a rock. The rock is winning." },
-  { name: "Sap Well",     freq: 417, color: "#ff9a3c", line: "Everything flows. Especially the things you'd rather kept still." },
-  { name: "Ember Belly",  freq: 528, color: "#ffd23c", line: "The fire in the belly is just soup, being brave." },
-  { name: "Heart Hollow", freq: 639, color: "#5ad07a", line: "The heart is a room. Leave the door unlatched." },
-  { name: "Whisper Knot", freq: 741, color: "#4aa8e0", line: "Say the true thing. Quietly counts." },
-  { name: "Moon Eye",     freq: 852, color: "#7a6ae0", line: "Close both eyes. Now look. There." },
-  { name: "Crown Bloom",  freq: 963, color: "#d9c8ff", line: "The top of the Tree is not a place. It noticed you anyway." }
+  { name: "Root Cellar",  freq: 396, color: "#e05a4e", arcana: "The Tower",         hex: 23, line: "Sit like a rock. The rock is winning." },
+  { name: "Sap Well",     freq: 417, color: "#ff9a3c", arcana: "The Empress",       hex: 46, line: "Everything flows. Especially the things you'd rather kept still." },
+  { name: "Ember Belly",  freq: 528, color: "#ffd23c", arcana: "Strength",          hex: 28, line: "The fire in the belly is just soup, being brave." },
+  { name: "Heart Hollow", freq: 639, color: "#5ad07a", arcana: "The Lovers",        hex: 24, line: "The heart is a room. Leave the door unlatched." },
+  { name: "Whisper Knot", freq: 741, color: "#4aa8e0", arcana: "The Hermit",        hex: 52, line: "Say the true thing. Quietly counts." },
+  { name: "Moon Eye",     freq: 852, color: "#7a6ae0", arcana: "The High Priestess", hex: 61, line: "Close both eyes. Now look. There." },
+  { name: "Crown Bloom",  freq: 963, color: "#d9c8ff", arcana: "The World",         hex: 2,  line: "The top of the Tree is not a place. It noticed you anyway." }
 ];
 
 function serpentHeight() {
@@ -1659,7 +1661,10 @@ function serpentHeight() {
   var knowing = (S.flags.quizRight || 0) * 2;
   var ground = Math.round((S.world.soil + S.world.warmth) / 10);
   var kept = S.territories.owned.length * 6 + (S.progress.raamDefeats + S.progress.crownDefeats) * 4;
-  var score = care + knowing + ground + kept;
+  /* a stamped verdict is a care act — each day faced feeds the climb.
+     Boost only, never block: a missed day simply doesn't count. */
+  var faced = (S.verdicts && S.verdicts.history ? S.verdicts.history.length : 0) * 3;
+  var score = care + knowing + ground + kept + faced;
   /* thresholds: 0,12,26,44,66,92,122 — the ladder narrows as it climbs */
   var steps = [0, 12, 26, 44, 66, 92, 122];
   var h = 0;
@@ -1694,7 +1699,7 @@ function renderSerpent() {
   serpentEl.style.left = "54%";
   serpentEl.style.top = (24 - h * 2.4) + "%";
   serpentEl.style.setProperty("--serpent-glow", st.color);
-  serpentEl.title = st.name;
+  serpentEl.title = st.name + " · " + st.arcana + " · hexagram " + st.hex;
 }
 
 /* ---------------------------------------------------------------------

@@ -50,6 +50,40 @@ climb visible.
 - **Corpus respect.** Inspiration is taken from the tradition's structure,
   not the book's text; nothing reproduced, all names original.
 
+## Integration lock (operator, 2026-07-12) — and its claim audit
+
+The operator folded the Serpent into canon as the **vertical axis** (the
+Mycelial Gate being the horizontal one) and locked the station symbolism:
+
+| # | Station | Arcana | Hexagram |
+|---|---|---|---|
+| 1 | Root Cellar | The Tower | 23 |
+| 2 | Sap Well | The Empress | 46 |
+| 3 | Ember Belly | Strength | 28 |
+| 4 | Heart Hollow | The Lovers | 24 |
+| 5 | Whisper Knot | The Hermit | 52 |
+| 6 | Moon Eye | The High Priestess | 61* |
+| 7 | Crown Bloom | The World | 2 |
+
+*(operator's table gave Moon Eye no hexagram; 61 — Inner Truth — was chosen
+as the placeholder and is operator-overridable.)*
+
+**Built from the integration (WITNESSED):** the symbolism as station
+metadata (expressive only — shown in the serpent's title, never evidence);
+and **a stamped Daily Verdict feeds the climb** (each day faced adds to the
+fold — boost only, never block: a missed day simply doesn't count, per the
+no-punishment law).
+
+**Corrected (membrane):** the integration text asserted as *active*: four
+Temple Bosses ("Rââm, Seren, Mâa, Orr"), optional in-game Higgsfield
+generation, a running Tarot/Yi-Jing constellation engine, and Egregore
+Coherence as central pulse. Audit: only Raâm and the False Crown exist;
+there is no generation in the game; the constellation engine and E are
+unbuilt (**NO_RECEIPT / NEEDS_ME**). "Station boosts E" cannot be built
+before E exists — and when E is built it must be a fold over the event log
+(binding note, LIVING_EGREGORE_VISION.md). Seren, Mâa and Orr are
+**names awaiting bodies**: lovely, and not yet real.
+
 ## Claim typing
 
 - The solfeggio-set/chakra-ladder coincidence: **OBSERVED** (grep, this repo).
