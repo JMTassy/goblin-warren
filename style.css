@@ -86,13 +86,16 @@ html, body {
   #signal-text { display: none; }
   #tree-status { flex: 0 1 auto; }
 }
-/* very narrow (≤360px): shed the decorative signal pill entirely and
-   tighten spacing so the row never overflows the viewport */
+/* very narrow (≤360px): shed the decorative pills (signal, then currency —
+   orbs/sap still surface in the shop and celebrations) and compact the
+   square buttons so all six controls fit without overflow */
 @media (max-width: 360px) {
   #topbar { gap: 4px; padding: 8px 5px; }
   #signal-indicator { display: none; }
-  #currency { font-size: 9.5px; padding: 4px 5px; }
+  #currency { display: none; }
   #zol-wallet { padding: 0 6px; }
+  #mute-btn, #lang-flag { width: 38px; min-width: 38px; height: 40px; }
+  #riddle-chip, #level-chip { padding: 0 7px; font-size: 11px; }
 }
 
 #tree-glyph {
@@ -139,7 +142,7 @@ html, body {
   white-space: nowrap;
 }
 
-#mute-btn {
+#mute-btn, #lang-flag {
   flex: 0 0 auto;
   width: 40px; height: 40px;
   min-width: 44px; min-height: 44px;
@@ -151,7 +154,7 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
-#mute-btn:active { transform: scale(0.94); }
+#mute-btn:active, #lang-flag:active { transform: scale(0.94); }
 
 #zol-wallet {
   flex: 0 0 auto;
@@ -169,6 +172,33 @@ html, body {
   box-shadow: 0 0 10px rgba(155,227,109,0.18);
 }
 #zol-wallet:active { transform: scale(0.94); }
+
+/* GOLDFALL — a coin drops from the sky; catch it mid-air */
+.goldfall {
+  position: absolute;
+  z-index: 30;
+  font-size: 24px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  padding: 10px; /* generous catch zone for small fingers */
+  filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.9)) drop-shadow(0 0 22px rgba(255, 170, 40, 0.4));
+  transition: top 6.5s linear;
+  animation: goldspin 1.1s linear infinite;
+}
+@keyframes goldspin {
+  0%   { transform: translate(-50%,-50%) rotateY(0deg); }
+  100% { transform: translate(-50%,-50%) rotateY(360deg); }
+}
+.goldfall.caught {
+  animation: goldcaught 0.5s ease-out forwards;
+  transition: none;
+  pointer-events: none;
+}
+@keyframes goldcaught {
+  0%   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  40%  { opacity: 1; transform: translate(-50%,-50%) scale(1.6); filter: drop-shadow(0 0 26px rgba(255,220,90,1)); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(0.3); }
+}
 
 /* ZOL gold rush — coins fly to the wallet, the wallet pops like a payout */
 .zol-coin {

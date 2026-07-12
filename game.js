@@ -3294,7 +3294,7 @@ function renderReplayStrip() {
     strip.appendChild(e);
     return;
   }
-  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋" };
+  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
     chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
@@ -4698,7 +4698,240 @@ function onTapGoblin(id) {
   renderSheetGoblin(id);
 }
 
+/* ---------------------------------------------------------------------
+   GOLDFALL — every so often a coin drops out of the sky. Catch it before
+   it reaches the ground and it's yours (the kilonova sheds; the quick
+   pocket profits). Missed coins vanish without comment — the sky owes
+   nothing. Rare on purpose: a gift, not a faucet.
+--------------------------------------------------------------------- */
+var goldfallEl = null, goldfallTimer = null, goldfallMissTimer = null;
+
+function scheduleGoldfall(delay) {
+  clearTimeout(goldfallTimer);
+  goldfallTimer = setTimeout(spawnGoldfall, delay == null ? randi(45000, 100000) : delay);
+}
+
+function spawnGoldfall() {
+  if (goldfallEl) { scheduleGoldfall(); return; }
+  var world = document.getElementById("world");
+  if (!world) { scheduleGoldfall(); return; }
+  var el = document.createElement("div");
+  el.className = "goldfall";
+  el.textContent = "🪙";
+  el.style.left = randi(10, 90) + "%";
+  el.style.top = "-6%";
+  world.appendChild(el);
+  goldfallEl = el;
+  el.addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    catchGoldfall(e);
+  });
+  /* let layout settle, then fall — a 6.5s glide, catchable the whole way */
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { el.style.top = "104%"; });
+  });
+  goldfallMissTimer = setTimeout(function () {
+    /* missed: the ground keeps it, silently */
+    if (goldfallEl === el) {
+      el.remove();
+      goldfallEl = null;
+      scheduleGoldfall();
+    }
+  }, 7000);
+}
+
+function catchGoldfall(e) {
+  var el = goldfallEl;
+  if (!el) return;
+  goldfallEl = null;
+  clearTimeout(goldfallMissTimer);
+  ensureAudio(); resumeAudio();
+  var amt = randi(2, 5);
+  S.learning.zolBalance += amt;
+  Sound.glingGling(amt);
+  var r = el.getBoundingClientRect();
+  zolCelebrate(amt, r.left + r.width / 2, r.top + r.height / 2);
+  el.classList.add("caught");
+  setTimeout(function () { el.remove(); }, 500);
+  pushReplay("The Sky", "Gold fell from the sky", "goldfall",
+    "a falling coin was caught mid-air. +" + amt + " ZOL", "I caught gold falling from the sky.");
+  saveState();
+  renderTopbar();
+  renderReplayStrip();
+  scheduleGoldfall();
+}
+
+/* ---------------------------------------------------------------------
+   🇫🇷 LE TERRIER — traduction française, style Thomas Lelu.
+   (Petit manuel du Terrier raté : phrases courtes. Ton pince-sans-rire.
+   Une légère déception, assumée avec élégance.)
+   Mechanism: an exact-match string table applied at the VIEW boundary —
+   a MutationObserver swaps known English text nodes for French ones as
+   they render. Zero game-logic changes; state and replay never see it.
+   Unknown strings stay English (the Warren is bilingual, like Lulu).
+--------------------------------------------------------------------- */
+var FR_STRINGS = {
+  /* --- topbar & splash --- */
+  "The Tree is watching.": "L'Arbre vous regarde. Il ne juge pas. Si, un peu.",
+  "quiet": "calme",
+  "🦋 Riddle": "🦋 Devinette",
+  "a tiny living Warren": "un petit Terrier vivant. Il ne demandait rien.",
+  "tap anything": "touchez n'importe quoi. c'est le concept.",
+
+  /* --- le manuel --- */
+  "How to Warren": "Petit manuel du Terrier raté",
+  "👆 Tap these to play": "👆 Touchez ceci pour jouer",
+  "Riddle chip (top bar) — answer to earn 🪙 ZOL": "La Devinette (en haut) — répondez, gagnez des 🪙 ZOL. C'est l'économie.",
+  "Your ZOL purse — tap to open the shop and grow the Warren": "Votre bourse de ZOL — touchez pour agrandir le Terrier. L'immobilier, déjà.",
+  "Level chip — travel between Warren levels": "La carte — voyagez entre les niveaux. Ils s'y attendent.",
+  "Tap any goblin to hear it, teach it, or care for it": "Touchez un gobelin pour l'écouter, l'instruire, ou vous en occuper. Il fera semblant de rien.",
+  "Tap the Tree up top — it remembers and quizzes you": "Touchez l'Arbre, là-haut — il se souvient de tout. C'est sa seule activité.",
+  "Lulu wants little things — give energy, curiosity, company": "Lulu veut de petites choses — de l'énergie, de la curiosité, de la compagnie. Comme tout le monde, en plus vert.",
+  "🤔 When a goblin has an idea": "🤔 Quand un gobelin a une idée",
+  "A goblin may bring you a proposal. Three buttons appear:": "Un gobelin peut vous apporter une proposition. Trois boutons apparaissent. C'est un moment important :",
+  "— let it happen ·": "— laissez faire ·",
+  "— wait and think ·": "— attendez en réfléchissant ·",
+  "— say no, and the idea rots into rich soil for later. Nothing changes the Warren unless": "— dites non, et l'idée pourrit en bon terreau. Rien ne change dans le Terrier sans que",
+  "tap.": "touchiez. C'est la loi.",
+  "🏆 What you're growing": "🏆 Ce que vous cultivez",
+  "Buy and evolve territories, teach your goblins, and keep Lulu happy. The Warren is a tiny place that notices you — the more you tend it, the more it becomes yours.": "Achetez des territoires, instruisez vos gobelins, gardez Lulu heureuse. Le Terrier est un petit endroit qui vous remarque — plus vous vous en occupez, plus il est à vous. C'est rare.",
+  "Tap ✕ to close · tap the 🌳 Tree anytime for a hint": "Touchez ✕ pour fermer · touchez l'Arbre 🌳 pour un indice. Il attendait ça.",
+
+  /* --- la feuille (sheet) --- */
+  "Tap a goblin to see what they're thinking.": "Touchez un gobelin pour voir ce qu'il pense. Préparez-vous à être déçu, mais gentiment.",
+  "TRY IT": "ON ESSAIE",
+  "HOLD IT": "ON VERRA",
+  "COMPOST IT": "AU COMPOST",
+  "The Memory Moth wonders": "Le Papillon de Mémoire se pose une question",
+  "mood:": "humeur :",
+  "intention:": "intention :",
+  "remembers:": "se souvient :",
+  "might:": "pourrait :",
+  "nothing yet — today is still new.": "rien pour l'instant — la journée est encore neuve.",
+
+  /* --- l'oracle --- */
+  "🕯️ The Cave Voice reads:": "🕯️ La Voix de la Grotte lit :",
+  "ground": "le sol",
+  "garden": "le jardin",
+  "sky": "le ciel",
+  "a reading, not a ruling — the Kernel did not stir": "une lecture, pas un verdict — le Noyau n'a pas bougé. Il fait ça très bien.",
+
+  /* --- la boutique --- */
+  "🪙 Expand the Warren": "🪙 Agrandir le Terrier",
+
+  /* --- l'école des gobelins --- */
+  "🔨 STAMP IT": "🔨 TAMPONNEZ",
+  "not yet": "pas tout de suite",
+  "nothing happens until you stamp — that is the whole game": "rien n'arrive tant que vous ne tamponnez pas — c'est tout le jeu, en fait",
+  "tell them how the world works. watch what they do with it.": "expliquez-lui le monde. regardez ce qu'il en fait. voilà.",
+
+  /* --- lulu, soins --- */
+  "🌙 ENERGY": "🌙 ÉNERGIE",
+  "✨ CURIOSITY": "✨ CURIOSITÉ",
+  "💜 CONNECTION": "💜 LIEN",
+  "TALK": "PARLER",
+  "REST": "DODO",
+  "EXPLORE": "EXPLORER",
+  "GIVE": "OFFRIR",
+  "say something to Lulu…": "dites quelque chose à Lulu…",
+  "tap to say hello": "touchez pour dire bonjour",
+  "LULU MISSED YOU": "LULU VOUS A ATTENDU",
+  "LULU WAS BUSY": "LULU ÉTAIT OCCUPÉE. ENFIN, DISONS.",
+  "LULU PRETENDED NOT TO MISS YOU": "LULU A FAIT SEMBLANT DE NE PAS VOUS ATTENDRE",
+
+  /* --- la frise mémoire --- */
+  "nothing replayed yet": "rien de rejoué pour l'instant. comme vos photos de vacances.",
+  "tap to re-remember — replaying keeps a memory true": "touchez pour vous re-souvenir — rejouer garde un souvenir vrai",
+  "this memory composted while un-replayed — soil now": "ce souvenir a composté sans être rejoué — c'est du terreau maintenant",
+
+  /* --- Raâm, le Masque Bruyant --- */
+  "CATCH ME IF YOU CAN!": "ATTRAPEZ-MOI SI VOUS POUVEZ !",
+  "TOO SLOW! LIKE A POLITE SNAIL!": "TROP LENT ! COMME UN ESCARGOT POLI !",
+  "OVER HERE! NO— HERE!": "PAR ICI ! NON— PAR LÀ !",
+  "YOU CANNOT BOOP THE WIND!": "ON NE BOOPE PAS LE VENT !",
+  "RAAAM! FEAR THE MASK!": "RAAAM ! CRAIGNEZ LE MASQUE ! ENFIN, SI VOUS AVEZ LE TEMPS.",
+  "EVERYTHING IS DOOMED! LOOSELY!": "TOUT EST PERDU ! GROSSO MODO !",
+  "I AM VERY SCARY! ASK ANYONE!": "JE SUIS TRÈS EFFRAYANT ! DEMANDEZ AUTOUR DE VOUS !",
+  "THE NIGHT IS FULL OF ME!": "LA NUIT EST PLEINE DE MOI !",
+  "TREMBLE! WHEN CONVENIENT!": "TREMBLEZ ! QUAND ÇA VOUS ARRANGE !",
+  "The loud mask is back… and it's RUNNING.": "Le masque bruyant est revenu… et il COURT. Évidemment.",
+  "…boo? …boop. …you caught me.": "…bouh ? …boop. …vous m'avez eu. Bravo, je suppose."
+};
+/* placeholders are attributes, not text nodes — the observer can't see them */
+var FR_PLACEHOLDERS = { "lulu-input": "parlez à Lulu…", "teach-input": "apprenez-lui un fait…" };
+
+var langObserver = null;
+var langOriginals = new WeakMap();
+
+function translateTextNode(t) {
+  var raw = t.nodeValue;
+  if (!raw) return;
+  var key = raw.trim();
+  var fr = FR_STRINGS[key];
+  if (fr && key !== fr) {
+    if (!langOriginals.has(t)) langOriginals.set(t, raw);
+    t.nodeValue = raw.replace(key, fr);
+  }
+}
+function translateTree(root) {
+  if (!root) return;
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var n;
+  while ((n = walker.nextNode())) translateTextNode(n);
+  Object.keys(FR_PLACEHOLDERS).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.placeholder = FR_PLACEHOLDERS[id];
+  });
+}
+function applyLang() {
+  var isFr = S.settings.lang === "fr";
+  var flag = document.getElementById("lang-flag");
+  if (flag) flag.textContent = isFr ? "🇬🇧" : "🇫🇷";
+  var app = document.getElementById("app");
+  if (!app) return;
+  if (isFr) {
+    translateTree(app);
+    if (!langObserver) {
+      langObserver = new MutationObserver(function (muts) {
+        muts.forEach(function (m) {
+          if (m.type === "characterData") translateTextNode(m.target);
+          if (m.addedNodes) m.addedNodes.forEach(function (nd) {
+            if (nd.nodeType === 3) translateTextNode(nd);
+            else if (nd.nodeType === 1) translateTree(nd);
+          });
+        });
+      });
+    }
+    langObserver.observe(app, { subtree: true, childList: true, characterData: true });
+  } else {
+    if (langObserver) langObserver.disconnect();
+    /* restore what we changed; a full re-render regenerates the rest */
+    var walker = document.createTreeWalker(app, NodeFilter.SHOW_TEXT);
+    var n;
+    while ((n = walker.nextNode())) {
+      if (langOriginals.has(n)) { n.nodeValue = langOriginals.get(n); langOriginals.delete(n); }
+    }
+    Object.keys(FR_PLACEHOLDERS).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.placeholder = id === "lulu-input" ? "talk to Lulu…" : "teach a fact…";
+    });
+    renderAll();
+  }
+}
+function toggleLang() {
+  S.settings.lang = S.settings.lang === "fr" ? "en" : "fr";
+  saveState();
+  applyLang();
+  Sound.bloom();
+}
+
 function wireInput() {
+  var langFlag = document.getElementById("lang-flag");
+  if (langFlag) langFlag.addEventListener("click", function (e) {
+    e.stopPropagation();
+    ensureAudio(); resumeAudio();
+    toggleLang();
+  });
   document.getElementById("mute-btn").addEventListener("click", function () {
     ensureAudio(); resumeAudio();
     S.settings.muted = !S.settings.muted;
@@ -4922,6 +5155,10 @@ window.WARREN_DEBUG = {
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
+  /* goldfall */
+  spawnGoldfall: function () { spawnGoldfall(); },
+  catchGoldfall: function () { catchGoldfall(); },
+  goldfallActive: function () { return !!goldfallEl; },
   /* healing sound layers */
   shamanicBurst: function (i) { Sound.shamanicBurst(i); },
   didgeridoo: function () { Sound.didgeridoo(); },
@@ -5026,6 +5263,12 @@ function boot() {
   } else {
     resumeAfterReload();
   }
+
+  /* le Terrier parle la langue qu'on lui a demandée, même après un rechargement */
+  applyLang();
+
+  /* the sky sheds a coin now and then — first one comes a little sooner */
+  scheduleGoldfall(randi(25000, 55000));
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
