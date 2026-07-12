@@ -424,5 +424,43 @@
     strengthens the case for the #20(b) symbol-legend slice — documenting
     Warren's own emoji vocabulary under "no decoration without logic."
 
+22. **HIVEMIND emergence ladder (E1–E10) + ESA egregor method — the
+    sharpest external statement of the Warren's own constitution.**
+    A HELEN-lineage dump (an isometric-city ASCII HUD, an E1–E10
+    emergent-properties ladder, an ESA create→attack→prove→receipt→merge
+    adversarial loop) from the operator's separate `helen-os-v1` repo.
+    Same split as #21: the *system* is another codebase (multi-castle
+    swarm, gossip, `town/ledger_v1.ndjson`), not this browser game —
+    nothing to build here. But three of its ten laws are Warren's own,
+    already shipped, and worth pinning with citations:
+    - **E7** (`VALIDATED ⊬ CANON · ADMIT ⇒ ALLOW_human`, "the human IS
+      the loop-closure") = CLAUDE.md's locked invariant "only player
+      admission mutates the world" (`resolveProposal`/
+      `applyVerdictStamp`). The Warren's spine, verbatim.
+    - **E8** (`DORMANT ∈ protocol · failure speaks · state preserved`) =
+      Lulu retreating to the cave when neglected — never dies, memories
+      stay valid, always reconnectable. Degradation as content.
+    - **E9** (`health = observable from receipts · no monitor`) =
+      `auraWeather`/`warrenWeather`/mood as pure derived views over the
+      event log; `memory = function(event_log)`.
+    - The **ESA method** (adversarial attack per law, failure receipts
+      first-class, `E_t ≠ agent_confidence`) = the council's forced
+      self-objections + the adversarial-verify pattern, formalized.
+    **Honest non-map:** E1/E2/E4/E6/E10 (local sovereignty across
+    castles, gossip-threshold truth, reputation field, spontaneous
+    topology, civilizational intelligence) do NOT apply — they require
+    the multi-castle swarm the Warren deliberately isn't. `/warren`
+    law is the inverse: "more Garden, not more sovereignty · a bigger
+    Kernel is probably a weaker Kernel." Single operator, one garden,
+    by design.
+    Meta-note (5th HELEN dump this session, #17/#19/#20a/#21/#22):
+    these keep landing as "compost the foreign engine, keep the laws,"
+    and the laws keep being Warren's own in another dialect. That
+    convergence is itself the finding; further dumps of the same shape
+    add confirmation, not new build surface. The one genuinely
+    buildable thread across all of them remains the #20(b) symbol
+    legend — documenting Warren's own emoji vocabulary under "no
+    decoration without logic."
+
 *The scroll waits. It never nags.* 📜
 
