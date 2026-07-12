@@ -1967,6 +1967,7 @@ window.WARREN_DEBUG = {
   spawnMoth: function () { spawnMoth(); },
   getQuiz: function () { return currentQuiz; },
   answerQuiz: function (opt) { answerQuiz(opt); },
+  getQuestDef: function (questId) { return questId ? window[questId + "_QUEST"] : MEMORY_SEED_QUEST; },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
