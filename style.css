@@ -198,6 +198,54 @@ html, body {
   100% { filter: drop-shadow(0 0 8px var(--serpent-glow)); }
 }
 
+/* THE AKASHIC ORGAN — stops latch, drones sustain, ratios get named */
+#organ {
+  position: fixed;
+  left: 50%;
+  bottom: calc(120px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 880;
+  width: min(380px, 94vw);
+  background: var(--panel, #171226);
+  border: 1px solid rgba(185, 140, 255, 0.4);
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.55);
+}
+.organ-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10.5px; color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+.organ-stops { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+.organ-stop {
+  flex: 0 0 auto;
+  width: 46px;
+  padding: 7px 2px;
+  border-radius: 10px;
+  border: 1px solid var(--stop-color, #888);
+  background: rgba(255,255,255,0.04);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.organ-stop .stop-freq { font-size: 11px; font-weight: 800; color: var(--stop-color); }
+.organ-stop .stop-name { font-size: 6.5px; color: var(--ink-dim); white-space: nowrap; }
+.organ-stop.latched {
+  background: var(--stop-color);
+  box-shadow: 0 0 14px var(--stop-color);
+}
+.organ-stop.latched .stop-freq, .organ-stop.latched .stop-name { color: #0c0a17; }
+.organ-stop.locked { opacity: 0.3; cursor: default; }
+#organ-harmony {
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--glow-lime, #9be36d);
+  margin-top: 8px;
+  min-height: 16px;
+}
+
 /* DAILY VERDICT — the scroll drops, the stamp seals, the split reveals */
 .verdict-scroll {
   position: absolute;

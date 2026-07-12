@@ -57,6 +57,29 @@
    a number. **Binding note already pinned in LIVING_EGREGORE_VISION.md:
    E must be a fold over the event log, never a stored mutable number.**
 
+8. **Egregore theory deep-dive** (Enoch → Lévi/Papus → Golden Dawn →
+   Crowley → chaos magic; formation mechanism; "egregore as living
+   process, not object") + 5 reference images.
+
+9. **Archetype Constellation** (mechanics + Tarot/Yi-Jing hybrid + the
+   "guru level" alchemical/theurgic reading). Engine unbuilt — the
+   adoption archetypes and serpent symbolism are its only shipped organs.
+
+10. **Alchemical phases of the ascent** (Nigredo/Albedo/Citrinitas/Rubedo
+    mapped to serpent stations, non-linear regression allowed) + **the
+    Four Temple Bosses** (Rââm the Unmasker · Seren the Silent · Mâa the
+    Bone-Bearer · Orr the Witness — full profiles, arcana, hexagrams).
+    ⚠️ MEMBRANE FLAG, needs operator ruling before build: Mâa's spec says
+    "if the player has been neglectful, she becomes punitive — damaging
+    coherence or creating lasting contradictions" and Seren "can
+    temporarily seal zones" — both collide with the locked kid-law (no
+    punishment, no guilt, absence is content). Their *tests* can ship;
+    their *punishments* cannot, as written.
+
+11. **The Akashic Organ effect-layer** (harmonies boost E, calm bosses,
+    trigger re-contextualization, verdict "charge" windows) — the
+    INSTRUMENT is built (organ-gates 5/5); the EFFECTS await E.
+
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
   operator re-orders; membrane-gates.js stands as their adversary).

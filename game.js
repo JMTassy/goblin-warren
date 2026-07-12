@@ -1672,6 +1672,141 @@ function serpentHeight() {
   return h;
 }
 
+/* ---------------------------------------------------------------------
+   THE AKASHIC ORGAN — play the ladder like a church organ. Each reached
+   station is a stop: latch several and the Tree sustains real drones;
+   the console names the Pythagorean interval you've built (3:2, 4:3,
+   2:1…). Pure instrument, by law: harmonies are FELT, never counted —
+   no state moves, no coherence number hides behind the music. The comma
+   is the lesson: perfect order never quite closes; neither does the
+   Warren. (Effects-on-E etc. remain proposal-grade until E exists.)
+--------------------------------------------------------------------- */
+
+var ORGAN_INTERVALS = [
+  { name: "octave",                     fr: "octave",                   cents: 1200, tol: 40 },
+  { name: "perfect fifth",              fr: "quinte parfaite",          cents: 702,  tol: 35 },
+  { name: "perfect fourth",             fr: "quarte juste",             cents: 498,  tol: 35 },
+  { name: "major sixth",                fr: "sixte majeure",            cents: 884,  tol: 30 },
+  { name: "minor sixth",                fr: "sixte mineure",            cents: 814,  tol: 30 },
+  { name: "major third",                fr: "tierce majeure",           cents: 408,  tol: 30 },
+  { name: "minor third",                fr: "tierce mineure",           cents: 316,  tol: 30 },
+  { name: "tritone — fertile tension",  fr: "triton — tension féconde", cents: 610,  tol: 48 }
+];
+
+function detectHarmony(freqs) {
+  /* name the most consonant relation present (priority = list order).
+     Pure function; the tolerance is the Pythagorean comma made kind. */
+  if (!freqs || freqs.length === 0) return null;
+  if (freqs.length === 1) return { name: "unison", fr: "unisson" };
+  var best = null;
+  for (var i = 0; i < freqs.length; i++) {
+    for (var j = i + 1; j < freqs.length; j++) {
+      var r = Math.max(freqs[i], freqs[j]) / Math.min(freqs[i], freqs[j]);
+      var cents = 1200 * (Math.log(r) / Math.log(2));
+      while (cents > 1240) cents -= 1200;
+      for (var k = 0; k < ORGAN_INTERVALS.length; k++) {
+        if (Math.abs(cents - ORGAN_INTERVALS[k].cents) <= ORGAN_INTERVALS[k].tol) {
+          if (best === null || k < best.k) best = { k: k, name: ORGAN_INTERVALS[k].name, fr: ORGAN_INTERVALS[k].fr };
+          break;
+        }
+      }
+    }
+  }
+  return best || { name: "wandering — the comma smiles", fr: "errance — le comma sourit" };
+}
+
+var organStops = {};   /* station idx → { osc1, osc2, gain } sustained voices */
+var organEl = null;
+
+function organVoiceStart(idx) {
+  if (S.settings.muted) return;
+  var ctx = ensureAudio();
+  if (!ctx || organStops[idx]) return;
+  var f = SERPENT_STATIONS[idx].freq;
+  var g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.4);
+  var o1 = ctx.createOscillator(); o1.type = "sine"; o1.frequency.value = f;
+  var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = f * 1.003; /* organ breath */
+  o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+  o1.start(); o2.start();
+  organStops[idx] = { o1: o1, o2: o2, g: g };
+}
+
+function organVoiceStop(idx) {
+  var v = organStops[idx];
+  if (!v) return;
+  delete organStops[idx];
+  try {
+    var ctx = ensureAudio();
+    v.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+    setTimeout(function () { try { v.o1.stop(); v.o2.stop(); } catch (e) {} }, 700);
+  } catch (e) {}
+}
+
+function organLatched() {
+  return Object.keys(organStops).map(function (k) { return parseInt(k, 10); });
+}
+
+function organUpdateHarmony() {
+  var el = document.getElementById("organ-harmony");
+  if (!el) return;
+  var idxs = organLatched();
+  var h = detectHarmony(idxs.map(function (i) { return SERPENT_STATIONS[i].freq; }));
+  el.textContent = h ? h.name : "silence — also a note";
+  var tree = document.getElementById("tree-glyph");
+  if (tree) tree.style.filter = idxs.length
+    ? "drop-shadow(0 0 " + (8 + idxs.length * 5) + "px " + SERPENT_STATIONS[idxs[idxs.length - 1]].color + ")"
+    : "";
+}
+
+function toggleOrganStop(idx) {
+  if (idx > serpentHeight()) return false; /* only stations the Serpent has earned */
+  if (organStops[idx]) organVoiceStop(idx);
+  else {
+    if (organLatched().length >= 4) return false; /* four hands maximum */
+    organVoiceStart(idx);
+  }
+  var btn = document.querySelector('#organ [data-stop="' + idx + '"]');
+  if (btn) btn.classList.toggle("latched", !!organStops[idx]);
+  organUpdateHarmony();
+  return true;
+}
+
+function closeOrgan() {
+  organLatched().forEach(organVoiceStop);
+  if (organEl) { organEl.remove(); organEl = null; }
+  var tree = document.getElementById("tree-glyph");
+  if (tree) tree.style.filter = "";
+}
+
+function openOrgan() {
+  if (organEl) { closeOrgan(); return; }
+  ensureAudio(); resumeAudio();
+  var h = serpentHeight();
+  organEl = document.createElement("div");
+  organEl.id = "organ";
+  organEl.innerHTML =
+    '<div class="organ-head"><span>🌳 Tree Song — hold stations, hear the ratios</span>' +
+    '<button class="card-close" id="organ-close">✕</button></div>' +
+    '<div class="organ-stops">' +
+    SERPENT_STATIONS.map(function (st, i) {
+      var locked = i > h;
+      return '<button class="organ-stop' + (locked ? " locked" : "") + '" data-stop="' + i + '"' +
+        ' style="--stop-color:' + st.color + '"' + (locked ? " disabled" : "") + '>' +
+        '<span class="stop-freq">' + st.freq + '</span><span class="stop-name">' + st.name + '</span></button>';
+    }).join("") +
+    '</div><div id="organ-harmony">silence — also a note</div>';
+  document.getElementById("app").appendChild(organEl);
+  document.getElementById("organ-close").addEventListener("click", function (e) { e.stopPropagation(); closeOrgan(); });
+  organEl.querySelectorAll(".organ-stop:not(.locked)").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleOrganStop(parseInt(btn.getAttribute("data-stop"), 10));
+    });
+  });
+}
+
 var serpentEl = null;
 
 function renderSerpent() {
@@ -1691,6 +1826,7 @@ function renderSerpent() {
       showBubbleFree(cur.name + " — “" + cur.line + "”", 56, Math.max(6, 20 - serpentHeight() * 2));
       serpentEl.classList.remove("singing"); void serpentEl.offsetWidth;
       serpentEl.classList.add("singing");
+      openOrgan(); /* the ladder is also an instrument — the console opens */
     });
     world.appendChild(serpentEl);
   }
@@ -5604,6 +5740,19 @@ var FR_STRINGS = {
   "Close both eyes. Now look. There.": "Fermez les deux yeux. Maintenant regardez. Là.",
   "The top of the Tree is not a place. It noticed you anyway.": "Le sommet de l'Arbre n'est pas un endroit. Il vous a remarqué quand même.",
 
+  /* --- l'Orgue Akashique --- */
+  "🌳 Tree Song — hold stations, hear the ratios": "🌳 Chant de l'Arbre — tenez les stations, écoutez les rapports",
+  "silence — also a note": "le silence — une note aussi",
+  "unison": "unisson",
+  "perfect fifth": "quinte parfaite",
+  "perfect fourth": "quarte juste",
+  "major sixth": "sixte majeure",
+  "minor sixth": "sixte mineure",
+  "major third": "tierce majeure",
+  "minor third": "tierce mineure",
+  "tritone — fertile tension": "triton — tension féconde",
+  "wandering — the comma smiles": "errance — le comma sourit",
+
   /* --- les questions de gobelins (éthique) --- */
   "wonders — there is no wrong answer": "se demande — il n'y a pas de mauvaise réponse",
   "what kind of caretaker am I becoming?": "quel genre de gardien suis-je en train de devenir ?",
@@ -6081,6 +6230,12 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* the akashic organ */
+  openOrgan: function () { openOrgan(); },
+  closeOrgan: function () { closeOrgan(); },
+  toggleOrganStop: function (i) { return toggleOrganStop(i); },
+  organLatched: function () { return organLatched(); },
+  detectHarmony: function (fs) { return detectHarmony(fs); },
   /* the serpent in the tree */
   serpentHeight: function () { return serpentHeight(); },
   getStations: function () { return SERPENT_STATIONS; },
