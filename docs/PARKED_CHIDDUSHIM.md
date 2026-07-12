@@ -381,5 +381,48 @@
     use, not a new mechanic, would be the honest next slice — CANDIDATE,
     not built.
 
+21. **CONQUEST / EMOWUL / WULmoji-ledger formal spec — composted engine,
+    kept the laws (the richest nutrient-yield of the external dumps).**
+    A large formal-mode dump: an EMOGLYPH clause grammar (EBNF), a
+    7-token canonical WULmoji ledger, a deterministic `foundry_town_mvp.py`
+    Python runner (N-castle sim, siege/dormancy, append-only ledger,
+    sha256 replay), a kaomoji "emotion of the day" avatar engine with
+    FNV-1a selection, and a CONQUEST-TAMAGOTCHI-IR JSON schema.
+    **AUDIT:** unlike #19/#20a, this isn't a foreign *project* — CLAUDE.md
+    says this repo IS "the published V0 canon of the conquest/personas
+    lineage," so EMOWUL is family. But the *code* is a different
+    implementation (Python + a DSL parser); this game is one browser
+    `game.js` with no parser, no Python. The runner is composted, not
+    built.
+    **The laws it articulates are the richest yield of any dump this
+    session, because they're Warren's own laws stated in another
+    dialect** — confirmation, and unusually sharp phrasing worth keeping:
+    - *"no decoration without logic · decorative ledger ≠ canonical
+      ledger · human semantic anchor ≠ proof hash."* This is exactly
+      Warren's membrane (expressive wrapper vs. the parseable/replayable
+      canonical line) and exactly the "WULmoji as grammar, not
+      decoration" discipline parked at #20(b) and shipped in miniature
+      in the boop-line seals. The spec's move — semantic anchor lives in
+      a `;;` comment, the ledger line stays fixed — is the same split
+      Warren draws between a goblin's *voice* and the *receipt* its
+      action writes.
+    - *append-only ledger + proof = hash(seed,tick,ctx,index) + sha256
+      replay.* Warren already has this: append-only event log,
+      `tinyHash`/`h32` FNV determinism, replay tested byte-identical
+      every commit. Two dialects, one ratchet.
+    - *deterministic avatar/emotion selection by
+      `hash(seed|day|agent_id)`.* Echoes the shipped mood-visual layer
+      (#15) and Warren's own FNV fold — a "emotion of the day" per
+      goblin, chosen by state-hash not RNG, would be a small, real,
+      determinism-safe slice if wanted.
+    - *overlay cap = 3, aggression clamp on blackout state.* Sound bounded-
+      resource + kill-switch discipline; boss-agnostic, filed with the
+      minigame-design principles (#16) for whenever a bounded mechanic
+      needs a cap or a safety clamp.
+    Net: nothing new to build from the engine; but this is the clearest
+    external statement of the exact laws Warren already enforces, and it
+    strengthens the case for the #20(b) symbol-legend slice — documenting
+    Warren's own emoji vocabulary under "no decoration without logic."
+
 *The scroll waits. It never nags.* 📜
 
