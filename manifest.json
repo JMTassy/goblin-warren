@@ -1,0 +1,10 @@
+{
+  "name": "Goblin Warren",
+  "short_name": "Warren",
+  "description": "A tiny place that notices you. Playable sandbox prototype — not a shipped product.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0c0a17",
+  "theme_color": "#0c0a17",
+  "orientation": "portrait"
+}
