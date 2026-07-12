@@ -4669,12 +4669,16 @@ var boopHistory = [];        // { id, at } — short combo memory, last 4 taps
 var lastBoopAt = {};
 var lastDanceAt = 0, lastPartyAt = 0;
 
+/* Goblin boop lines — each voice sharpened for sound and bite:
+   alliteration where it lands, Lelu-flat aphorism (the dry period
+   where a shout used to be), and one WULmoji signature per line —
+   a seal, not decoration: the glyph carries what the words don't. */
 var BOOP_LINES = {
-  lulu: ["Hee!", "Do it again.", "I felt that in my ears.", "Boop received. Emotionally."],
-  pip:  ["Careful — I'm fragile paperwork.", "Filed under: rude.", "My hat! Almost.", "Noted. Twice."],
-  nib:  ["Sparks!", "Again! For science.", "That rattled a bolt loose.", "Ooh, percussive."],
-  zaz:  ["Mmh. Leaf thoughts.", "Five more minutes.", "The soil felt that too.", "Gently — I'm blooming."],
-  tink: ["Mind the gears!", "I was calibrating that.", "Boop absorbed. Efficiency +1.", "Ooh — new input."]
+  lulu: ["Boop. Bliss. Begin again. ✨", "Again is my favorite word. 🔁", "I felt that in my ears. And my elbows. 👂", "Boop received. Emotionally. 💜"],
+  pip:  ["Careful. I'm fragile paperwork. 📄", "Filed under: rude. 🗂️", "Mind the manuscript. 📜", "Noted. Twice. ✍️"],
+  nib:  ["Sparks! Superb! 🔥", "Again. For science. 🔧", "A bolt broke loose. Progress. 🔩", "Ooh. Percussive. 🥁"],
+  zaz:  ["Mmh. Leaf thoughts. 🍃", "Five more minutes. Forever. 😴", "The soil felt that. So did I. 🌱", "Gently. I'm blooming. 🌸"],
+  tink: ["Mind the meshing gears. ⚙️", "I was calibrating that. 📐", "Boop absorbed. Efficiency plus one. 🔧", "Ooh. New input. Noted. 🔧"]
 };
 var BOOP_DROPS = { lulu: "🍄", pip: "📜", nib: "🔩", zaz: "🌱", tink: "🔧" };
 
