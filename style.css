@@ -389,9 +389,21 @@ html, body {
   transform: translate(-50%, -100%);
   font-size: 20px;
   text-align: center;
-  pointer-events: none;
+  pointer-events: auto; /* every object is an instrument — tap to ring it */
+  cursor: pointer;
   z-index: 5;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+/* the singing halo: a slow warm bloom while the bowl/drum rings — gentle
+   on purpose (no strobe, no snap) so the eye relaxes with the ear */
+.wobject.singing .wobj-emoji {
+  animation: singhalo 6s ease-out;
+}
+@keyframes singhalo {
+  0%   { filter: drop-shadow(0 0 2px rgba(255,214,140,0.0)); transform: scale(1); }
+  6%   { filter: drop-shadow(0 0 14px rgba(255,214,140,0.85)); transform: scale(1.12); }
+  30%  { filter: drop-shadow(0 0 10px rgba(214,180,255,0.55)); transform: scale(1.04); }
+  100% { filter: drop-shadow(0 0 0px rgba(214,180,255,0)); transform: scale(1); }
 }
 .wobject .wobj-sign {
   font-size: 7px;
@@ -404,7 +416,7 @@ html, body {
 }
 
 /* World signs (Signpost Grove) — readable, wrappable, transform-aware */
-.wobject.worldsign { transform: translate(0, -100%); }
+.wobject.worldsign { transform: translate(0, -100%); pointer-events: none; cursor: default; }
 .wobject.worldsign .wobj-sign {
   white-space: normal;
   max-width: 92px;

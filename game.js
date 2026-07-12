@@ -487,6 +487,30 @@ function tone(freq, start, dur, type, gain, glideTo) {
   osc.stop(ctx.currentTime + start + dur + 0.05);
 }
 
+/* Drum membrane: a sine that drops in pitch fast — djembe bass / tam-tam body. */
+function drumHit(freq, start, dur, gain, dropTo) {
+  tone(freq, start, dur, "sine", gain, dropTo || Math.max(30, freq * 0.4));
+}
+
+/* Filtered noise burst — djembe slap / rattle. Same mute + ctx discipline as tone(). */
+function noiseBurst(start, dur, gain, centerHz) {
+  if (S.settings.muted) return;
+  var ctx = ensureAudio();
+  if (!ctx) return;
+  var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  var src = ctx.createBufferSource(); src.buffer = buf;
+  var bp = ctx.createBiquadFilter(); bp.type = "bandpass";
+  bp.frequency.value = centerHz || 1800; bp.Q.value = 0.9;
+  var g = ctx.createGain();
+  g.gain.setValueAtTime(gain || 0.2, ctx.currentTime + start);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+  src.connect(bp).connect(g).connect(ctx.destination);
+  src.start(ctx.currentTime + start);
+}
+
 /* Musical scale frequencies (Do Re Mi Fa Sol La Si Do) */
 var SCALE_DO_RE_MI = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
 /* Solfeggio Sacred Frequencies (Hz) — for psychological engagement */
@@ -607,8 +631,79 @@ var Sound = {
     tone(SCALE_DO_RE_MI[2], 0, 0.8, "sine", 0.07); /* Mi */
     tone(SCALE_DO_RE_MI[4], 0, 0.8, "sine", 0.07); /* Sol */
     tone(SCALE_DO_RE_MI[0], 0.3, 0.5, "sine", 0.06); /* Do bass entry */
+  },
+
+  /* -------------------------------------------------------------------
+     HEALING LAYERS — additive, never replacing the existing recipe.
+     Shamanic drums · didgeridoo · Tibetan bowls, all Web Audio synthesis,
+     all resting on the same sacred-frequency tuning as the rest.
+  ------------------------------------------------------------------- */
+
+  shamanicBurst: function (patternIdx) {
+    /* ~5s of journey drumming, then silence. Pulse sits at 4–4.5 beats/s —
+       the classic shamanic tempo (theta-range entrainment). Five patterns
+       from broad drumming traditions, rendered as djembe bass (GUN),
+       tone (GO) and slap (PA) voices; a 174 Hz grounding drone underlies. */
+    var PATTERNS = [
+      /* steady journey pulse — the monotonous heartbeat */
+      "B.B.B.B.B.B.B.B.B.B.",
+      /* heartbeat pairs (lub-dub … lub-dub) */
+      "Bt..Bt..Bt..Bt..Bt..",
+      /* djembe call: bass-tone-slap round */
+      "B.tsB.tsB.tsB.tsB.ts",
+      /* gallop — triplet feel */
+      "Bt.Bt.Bt.Bt.Bt.Bt.Bt",
+      /* rising call — sparse to dense, ends open */
+      "B...B..tB.tsBtstB..."
+    ];
+    var pat = PATTERNS[(patternIdx == null ? Math.floor(Math.random() * PATTERNS.length) : patternIdx) % PATTERNS.length];
+    var STEP = 0.24; /* 20 steps ≈ 4.8s · pulse ≈ 4.2 Hz */
+    tone(SOLFEGGIO.grounding, 0, pat.length * STEP + 0.4, "sine", 0.035); /* grounding drone */
+    for (var i = 0; i < pat.length; i++) {
+      var t = i * STEP, c = pat[i];
+      if (c === "B") { drumHit(85, t, 0.30, 0.30, 42); noiseBurst(t, 0.05, 0.05, 300); }       /* bass GUN */
+      else if (c === "t") { drumHit(180, t, 0.16, 0.16, 120); }                                  /* tone GO */
+      else if (c === "s") { noiseBurst(t, 0.09, 0.16, 2400); drumHit(320, t, 0.06, 0.06, 250); } /* slap PA */
+    }
+  },
+
+  didgeridoo: function () {
+    /* ~4s hypnotic drone on success: low fundamental near 174 Hz's
+       sub-octave, breath-wobble via staggered detuned partials, a slow
+       formant sweep painted with short overlapping harmonic swells. */
+    var f = 87; /* sub-octave of 174 Hz grounding */
+    tone(f, 0, 4.2, "sawtooth", 0.055);
+    tone(f * 0.5, 0, 4.2, "sine", 0.05);            /* sub warmth */
+    tone(f * 1.005, 0.1, 4.0, "sawtooth", 0.03);    /* detune beat = breath */
+    for (var i = 0; i < 7; i++) {                    /* vocalised overtones sweeping up then down */
+      var h = [3, 4, 5, 6, 5, 4, 3][i];
+      tone(f * h, 0.3 + i * 0.5, 0.9, "sine", 0.022);
+    }
+    noiseBurst(0, 4.0, 0.012, 900);                  /* breath texture */
+  },
+
+  tibetanBowl: function (freq) {
+    /* One bowl strike: soft mallet transient, then long inharmonic partials
+       (×1, ×2.72, ×5.4 — measured bowl ratios) each doubled slightly detuned
+       so the ring *beats* like real bronze. 6–8s decay; overlapping strikes
+       from playful tapping stack into a sound bath, not noise. */
+    var f = freq || SOLFEGGIO.love;
+    noiseBurst(0, 0.04, 0.05, f * 2);                /* mallet contact */
+    [[1, 0.055, 7.5], [2.72, 0.028, 5.5], [5.4, 0.012, 3.5]].forEach(function (p) {
+      tone(f * p[0], 0.01, p[2], "sine", p[1]);
+      tone(f * p[0] * 1.003, 0.03, p[2] * 0.9, "sine", p[1] * 0.7); /* beating pair */
+    });
   }
 };
+
+/* Each world object rings its own bowl: the solfeggio frequency is chosen
+   deterministically from the object's id, so one object = one voice, always. */
+function bowlFreqFor(id) {
+  var keys = Object.keys(SOLFEGGIO), h = 0;
+  var s = String(id || "");
+  for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return SOLFEGGIO[keys[h % keys.length]];
+}
 
 /* ---------------------------------------------------------------------
    QUEST SYSTEM (v1.9 Goblin Maestro & Learning)
@@ -1463,6 +1558,7 @@ function endMinigame(success, line, reward, consequence) {
   if (success && reward) {
     S.learning.zolBalance += reward;
     Sound.glingGling(4);
+    Sound.didgeridoo(); /* the hypnotic victory drone settles under the coins */
     zolCelebrate(reward);
   } else {
     Sound.bloom();  /* failure is funny, never punished */
@@ -2979,6 +3075,19 @@ function renderObjects() {
       el.innerHTML = '<div class="wobj-emoji">' + o.emoji + '</div><div class="wobj-sign">' + o.sign + '</div>';
       layer.appendChild(el);
       objectEls[o.id] = el;
+      /* every object is an instrument: mushrooms carry the journey drums,
+         everything else rings its own Tibetan bowl (one object, one voice). */
+      (function (obj, node) {
+        node.addEventListener("click", function (e) {
+          e.stopPropagation();
+          ensureAudio(); resumeAudio();
+          if (obj.emoji === "🍄") Sound.shamanicBurst();
+          else Sound.tibetanBowl(bowlFreqFor(obj.id));
+          node.classList.remove("singing");
+          void node.offsetWidth; /* restart the halo */
+          node.classList.add("singing");
+        });
+      })(o, el);
     }
     el.style.left = o.x + "%";
     el.style.top = o.y + "%";
@@ -4495,6 +4604,8 @@ function answerQuiz(option) {
       S.learning.lastQuizLesson = currentQuiz.lesson || null;
     }
     Sound.riddleCorrect(); setTimeout(Sound.bloom, 300);
+    /* a streak of 3 earns the didgeridoo — the deep drone marks mastery */
+    if (streak >= 3 && streak % 3 === 0) setTimeout(Sound.didgeridoo, 600);
     if (mothG) { dropParticle(mothG, "✨", true); dropParticle(mothG, "✨"); }
 
     /* Gold rush: coins fly from the quiz sheet to the wallet. */
@@ -4785,6 +4896,11 @@ window.WARREN_DEBUG = {
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
+  /* healing sound layers */
+  shamanicBurst: function (i) { Sound.shamanicBurst(i); },
+  didgeridoo: function () { Sound.didgeridoo(); },
+  tibetanBowl: function (f) { Sound.tibetanBowl(f); },
+  bowlFreqFor: function (id) { return bowlFreqFor(id); },
   /* composting replay organism */
   getReplay: function () { return S.replay; },
   getWarrenTicks: function () { return S.world.warrenTicks || 0; },
