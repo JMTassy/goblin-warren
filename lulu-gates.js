@@ -99,7 +99,7 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   const ui = await page.evaluate(() => ({
     visible: !document.getElementById('card-care').classList.contains('hidden'),
     btns: document.querySelectorAll('.care-btn[data-care]').length,
-    needs: document.querySelectorAll('.care-needs span').length
+    needs: document.querySelectorAll('#card-care .nrow').length
   }));
   log('LU_care_panel_ui', ui.visible && ui.btns === 4 && ui.needs === 3, JSON.stringify(ui));
 

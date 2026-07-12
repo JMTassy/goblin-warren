@@ -908,7 +908,9 @@ function showCouncilLesson(card) {
   var lessonOverlay = document.getElementById("maestro-lesson");
   var lessonText = document.getElementById("maestro-lesson-text");
   if (!lessonOverlay || !lessonText) return;
-  lessonText.innerHTML = COUNCIL_EPISODE.lesson + "<br/><br/>" + card.teaches +
+  var careLine = (S.lulu && S.lulu.needs && S.lulu.needs.connection >= 70)
+    ? "<br/><br/>“Care is not control. Care is the root of consensus.”" : "";
+  lessonText.innerHTML = COUNCIL_EPISODE.lesson + "<br/><br/>" + card.teaches + careLine +
     "<br/><br/>" + COUNCIL_EPISODE.sigma + "<br/><br/>+" + COUNCIL_EPISODE.zolReward + " 🪙";
   lessonOverlay.classList.remove("hidden");
 }
@@ -2239,9 +2241,18 @@ function renderSheetGoblin(id) {
   renderLuluCare(id);
 }
 
-function needBar(v) {
-  var filled = Math.round(v / 20);
-  return "▮".repeat(filled) + "▯".repeat(5 - filled) + " " + Math.round(v);
+function needBarHTML(kind, emoji, label, v) {
+  return '<div class="nrow ' + kind + '">' +
+    '<span class="nlabel">' + emoji + ' ' + label + '</span>' +
+    '<span class="nnum">' + Math.round(v) + '/100</span>' +
+    '<div class="nbar"><i style="width:' + Math.round(v) + '%"></i></div>' +
+  '</div>';
+}
+
+function luluTodaysNote() {
+  /* One deterministic post-it per day — she wrote it whether you came or not. */
+  var day = new Date().getDate() + new Date().getMonth();
+  return ABSENCE_MESSAGES[day % ABSENCE_MESSAGES.length];
 }
 
 function renderLuluCare(id) {
@@ -2254,17 +2265,18 @@ function renderLuluCare(id) {
   var acc = luluAccessoryEmojis();
 
   var html =
-    '<div class="care-needs">' +
-      '<span>🌙 ' + needBar(n.energy) + '</span>' +
-      '<span>✨ ' + needBar(n.curiosity) + '</span>' +
-      '<span>💜 ' + needBar(n.connection) + '</span>' +
-    '</div>' +
-    '<div class="care-mood">' + m.emoji + ' ' + m.id + (acc ? ' · her things: ' + acc : '') + '</div>' +
+    needBarHTML("energy", "🌙", "ENERGY", n.energy) +
+    needBarHTML("curiosity", "✨", "CURIOSITY", n.curiosity) +
+    needBarHTML("connection", "💜", "CONNECTION", n.connection) +
+    '<div class="care-mood"><b>' + m.emoji + ' ' + m.id.toUpperCase() + '</b> — “' + m.line + '”' +
+      (acc ? '<br/>her things: ' + acc : '') + '</div>' +
+    '<div class="care-note">📌 today’s note: “' + luluTodaysNote() + '”</div>' +
+    '<div class="care-zol">🫙 ZOL JAR · ' + S.learning.zolBalance + '</div>' +
     '<div class="care-actions">' +
-      '<button class="care-btn" data-care="talk">💬 Talk</button>' +
-      '<button class="care-btn" data-care="rest">🌙 Rest</button>' +
-      '<button class="care-btn" data-care="explore">🗺️ Explore</button>' +
-      '<button class="care-btn" data-care="give">🎁 Give</button>' +
+      '<button class="care-btn talk" data-care="talk">💬<b>TALK</b></button>' +
+      '<button class="care-btn rest" data-care="rest">🛌<b>REST</b></button>' +
+      '<button class="care-btn explore" data-care="explore">🔍<b>EXPLORE</b></button>' +
+      '<button class="care-btn give" data-care="give">🎁<b>GIVE</b></button>' +
     '</div>';
 
   var req = LULU_REQUESTS.find(function (r) { return r.id === S.lulu.pendingRequest; });
@@ -2325,9 +2337,17 @@ function renderCouncil() {
   document.getElementById("council-title").textContent = COUNCIL_EPISODE.crisis;
   document.getElementById("council-intro").textContent = COUNCIL_EPISODE.intro;
 
-  /* Typed dialogue lines (opening statements, or the update round after the card). */
+  /* Typed dialogue lines (opening statements, or the update round after the card).
+     Lulu's inner state colors her council voice — needs affect behavior, never state. */
   var card = S.council.card ? COUNCIL_EPISODE.cards.find(function (c) { return c.id === S.council.card; }) : null;
-  var lines = card ? card.update : COUNCIL_EPISODE.opening;
+  var lines = (card ? card.update : COUNCIL_EPISODE.opening).map(function (l) {
+    if (l.speaker !== "lulu" || !S.lulu || !S.lulu.needs || card) return l;
+    var n = S.lulu.needs, t = l.text;
+    if (n.curiosity > 80)       t = "Gerald is ancestry. ALSO: what if the house could fly? Hear me out.";
+    else if (n.energy < 30)     t = "Gerald… ancestry… (yawning) can we decide this horizontally?";
+    else if (n.connection > 80) t = "I just want Gerald to feel welcome. That is my whole argument.";
+    return Object.assign({}, l, { text: t });
+  });
   var linesEl = document.getElementById("council-lines");
   linesEl.innerHTML = "";
   lines.forEach(function (l) {
