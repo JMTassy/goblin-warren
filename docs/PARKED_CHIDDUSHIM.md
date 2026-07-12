@@ -210,6 +210,61 @@
     including the stripped Matcha Brew slice already noted at #14.
     Reference image: `docs/concept-art/vision-07-boss-realm-minigames.jpeg`.
 
+17. **Motion Graphics as a Warren production tool** — six proposed uses
+    of `/motion-graphics` (Daily Verdict result cards, Serpent station
+    unlocks, memory re-contextualization moments, archetype activation
+    cards, boss manifestation teasers, coherence/resource milestone
+    cards), with a "starting five" priority list.
+    ⚠️ PREMISE CORRECTION: opens "we're now treating `/motion-graphics`
+    as a real production tool for Goblin Warren" — it isn't wired in as
+    one. The actual HyperFrames skill (Figma pull, live API fetch,
+    MP4/WebM render) isn't installed in this session; what got built
+    against the earlier request was a hand-authored HTML/CSS/JS analog
+    (one artifact, not a reusable pipeline). Nothing here runs through
+    a real motion-graphics tool yet.
+    **AUDIT of the "starting five," against what's actually built:**
+    - *Daily Verdict result card* — buildable now. The card already
+      exists and renders real outcome text after a stamp
+      (`applyVerdictStamp` L2045, `.verdict-scroll` L1945); it's
+      currently static markup, no staggered type-in, no particle/tree-
+      pulse tie-in. Pure motion polish on an existing, already-real
+      feature — same risk class as the mood-visual slice.
+    - *Serpent station unlock* — buildable, slightly more than pure
+      polish. The Serpent already climbs continuously (`renderSerpent`
+      L1812) but there's no distinct "crossed a threshold" event —
+      needs a small bit of new logic (detect the crossing, fire a
+      one-time card) before there's anything to animate.
+    - *Memory re-contextualization* — **not buildable, no data to
+      animate.** The re-contextualization engine is parked at #1/#2
+      (Relevance formula, δ table) and doesn't exist. Same principle
+      the operator's own HyperFrames example enforced ("real data
+      only," flagged a dishonest headline rather than fabricate one) —
+      a Warren motion graphic can't visualize a memory transform the
+      reducer never computed.
+    - *Archetype Strengthened* — not buildable; the Constellation
+      engine is #9, NEEDS_ME. No archetype-activation number exists to
+      count up.
+    - *Egregore Coherence milestone* — not buildable; E doesn't exist
+      as a system (parked at #7; the binding note in
+      `LIVING_EGREGORE_VISION.md` requires it be a fold over the event
+      log when it's built, never a stored mutable number). Nothing to
+      show going "78 → 84."
+    Net: 2 of 5 are real slices waiting on a "go"; 3 of 5 are motion
+    proposals for numbers that don't exist yet, same shape as #14 and
+    #15's archetype/boss sub-pieces.
+
+18. **Kinetic typography technique catalog** — six general techniques
+    (emotional pacing/rhythm, hierarchy through motion, spatial
+    direction, fragmentation/reconstruction, physicality/weight,
+    cross-element synchronization) mapped to Warren moments, plus a
+    good-prompt/weak-prompt framing ("describe the feeling, not the
+    effect"). This is reference technique, not a build request — no
+    membrane risk, nothing to audit against code. Filed for whenever
+    #17's buildable pieces (or any future motion work) get built: the
+    fragmentation/reconstruction technique is the natural fit for
+    memory re-contextualization once #1/#2 exist; staggered pacing is
+    the natural fit for the Daily Verdict slice today.
+
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
   operator re-orders; membrane-gates.js stands as their adversary).
@@ -230,5 +285,11 @@
 - 16 → needs an operator call reconciling it against #10 before either
   gets built further; the minigame-design principles are usable
   independent of that call, whenever a minigame slice is built.
+- 17 → Daily Verdict result-card motion is ready to jump the queue
+  standalone on a "go" (pure UI polish, existing real data); Serpent
+  station-unlock needs a small new detection hook first; the other
+  three wait on #1/#2, #9, and Egregore Coherence respectively.
+- 18 → technique reference, applies wherever #17's slices (or later
+  motion work) land; no build of its own.
 
 *The scroll waits. It never nags.* 📜
