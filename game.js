@@ -1516,6 +1516,71 @@ function renderWeather() {
 }
 
 /* ---------------------------------------------------------------------
+   THE WARREN DREAMS — the return constellation. Weather says how you
+   PLAY; the humor says what your ABSENCE did. On return the whole place
+   greets you in one of six archetypal humors — a Tree line, a slow dawn
+   wash, a shared goblin mood, a receipt. Curious, never punitive: no
+   resource moves, nothing is lost. "I wonder what happened while I was
+   gone" — never "I hope nothing bad happened."
+   Pure function of (state, folded absence buckets) — deterministic.
+--------------------------------------------------------------------- */
+
+var WARREN_HUMORS = {
+  LONELY:   { mood: "wistful", wash: "rgba(120,140,220,0.16)",
+              line: "The Warren counted the days. Twice." },
+  TRICKSTER:{ mood: "giggly",  wash: "rgba(214,160,255,0.16)",
+              line: "Things moved while you were away. The goblins deny everything." },
+  DREAMING: { mood: "dreamy",  wash: "rgba(160,120,255,0.18)",
+              line: "While you were gone, the Warren dreamed. It won't say of what." },
+  TENDER:   { mood: "warm",    wash: "rgba(255,190,120,0.16)",
+              line: "The Warren kept your spot warm." },
+  PROUD:    { mood: "proud",   wash: "rgba(255,215,110,0.16)",
+              line: "The Warren practiced looking impressive. For you." },
+  QUIET:    { mood: "calm",    wash: "rgba(155,227,109,0.10)",
+              line: "The Warren is here. It noticed you're back." }
+};
+
+function warrenHumor(buckets) {
+  /* ordered constellation rules — first match wins; same state, same humor */
+  var t = S.world.warrenTicks || 0;
+  var justComposted = S.replay.filter(function (r) {
+    return r.composted && r.compostedAtTick === t;
+  }).length;
+  var id;
+  if (S.lulu.inCave || S.lulu.needs.connection < 25) id = "LONELY";
+  else if (justComposted >= 2) id = "TRICKSTER";
+  else if (buckets >= 48) id = "DREAMING";
+  else if (S.lulu.needs.connection >= 70) id = "TENDER";
+  else if ((S.progress.raamDefeats + S.progress.crownDefeats) >= 2 || S.territories.owned.length >= 2) id = "PROUD";
+  else id = "QUIET";
+  var h = WARREN_HUMORS[id];
+  return { id: id, mood: h.mood, wash: h.wash, line: h.line };
+}
+
+function applyWarrenHumor(buckets) {
+  var h = warrenHumor(buckets);
+  /* the greeting holds the Tree's voice for a while — renderTopbar honors
+     it until it expires, so re-renders can't stomp the moment */
+  S.world.humorGreeting = { line: h.line, until: Date.now() + 45000 };
+  renderTopbar();
+  var world = document.getElementById("world");
+  if (world) {
+    world.style.setProperty("--dawn-wash", h.wash);
+    world.classList.remove("dawnwash");
+    void world.offsetWidth;
+    world.classList.add("dawnwash");
+    setTimeout(function () { world.classList.remove("dawnwash"); }, 18500);
+  }
+  Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = h.mood; });
+  pushReplay("The Warren", "It woke up " + h.id.toLowerCase(), "humor",
+    "the Warren greeted you: “" + h.line + "”", h.line);
+  renderGoblins();
+  renderReplayStrip();
+  saveState();
+  return h;
+}
+
+/* ---------------------------------------------------------------------
    SIDE QUESTS — WarioWare law: one rule + one thumb + 5-15s + one funny
    consequence. Opt-in via the 🎪 sparkle (attention is sacred — never
    forced). Success pays ZOL with the gold rush; failure is funny and
@@ -3136,7 +3201,9 @@ function renderTopbar() {
   var treeText = document.getElementById("tree-text");
   var glyph = document.getElementById("tree-glyph");
   var msg = "The Tree is watching.";
+  var hg = S.world.humorGreeting;
   if (S.activeProposal) msg = "The Tree feels something stirring.";
+  else if (hg && hg.until > Date.now()) msg = hg.line; /* the return greeting lingers */
   else if (S.world.treeHealth < 45) msg = "The Tree is holding its breath.";
   else if (S.world.gardenToxicity > 55) msg = "The Tree is holding its breath.";
   if (treeText) treeText.textContent = msg;
@@ -3294,7 +3361,7 @@ function renderReplayStrip() {
     strip.appendChild(e);
     return;
   }
-  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙" };
+  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
     chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
@@ -4844,6 +4911,14 @@ var FR_STRINGS = {
   "tap to re-remember — replaying keeps a memory true": "touchez pour vous re-souvenir — rejouer garde un souvenir vrai",
   "this memory composted while un-replayed — soil now": "ce souvenir a composté sans être rejoué — c'est du terreau maintenant",
 
+  /* --- les humeurs du Terrier au retour --- */
+  "The Warren counted the days. Twice.": "Le Terrier a compté les jours. Deux fois.",
+  "Things moved while you were away. The goblins deny everything.": "Des choses ont bougé pendant votre absence. Les gobelins nient tout.",
+  "While you were gone, the Warren dreamed. It won't say of what.": "Pendant votre absence, le Terrier a rêvé. Il ne dira pas de quoi.",
+  "The Warren kept your spot warm.": "Le Terrier a gardé votre place au chaud.",
+  "The Warren practiced looking impressive. For you.": "Le Terrier s'est entraîné à avoir l'air impressionnant. Pour vous.",
+  "The Warren is here. It noticed you're back.": "Le Terrier est là. Il a remarqué votre retour. Il ne fera pas de commentaire.",
+
   /* --- Raâm, le Masque Bruyant --- */
   "CATCH ME IF YOU CAN!": "ATTRAPEZ-MOI SI VOUS POUVEZ !",
   "TOO SLOW! LIKE A POLITE SNAIL!": "TROP LENT ! COMME UN ESCARGOT POLI !",
@@ -5155,6 +5230,9 @@ window.WARREN_DEBUG = {
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
+  /* the return constellation */
+  warrenHumor: function (b) { return warrenHumor(b || 0); },
+  applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
   /* goldfall */
   spawnGoldfall: function () { spawnGoldfall(); },
   catchGoldfall: function () { catchGoldfall(); },
@@ -5239,7 +5317,11 @@ function boot() {
     /* the whole Warren aged, not only Lulu: fold absence-as-data into ticks
        (clock read here, in the boot zone — never inside the compost fold),
        then un-tended memories compost into soil. */
-    warrenAbsenceTicks(away);
+    var foldedBuckets = warrenAbsenceTicks(away);
+    /* gone an hour or more → the place greets you in its current humor */
+    if (foldedBuckets >= 2) {
+      setTimeout(function () { applyWarrenHumor(foldedBuckets); }, 2600);
+    }
   }
   if (!isFreshBoot && away > 120000) {
     setTimeout(function () { luluReunion(away); }, 1200);

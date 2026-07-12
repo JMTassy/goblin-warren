@@ -173,6 +173,24 @@ html, body {
 }
 #zol-wallet:active { transform: scale(0.94); }
 
+/* THE WARREN DREAMS — the return dawn-wash: an 18s breath of colour that
+   greets you, then fades. Gentle by law — no strobe, no snap. */
+#world.dawnwash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(ellipse at 50% 20%, var(--dawn-wash, rgba(155,227,109,0.10)) 0%, transparent 70%);
+  animation: dawnwash 18s ease-out forwards;
+}
+@keyframes dawnwash {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  70%  { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
 /* GOLDFALL — a coin drops from the sky; catch it mid-air */
 .goldfall {
   position: absolute;
