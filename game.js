@@ -201,7 +201,8 @@ function makeState() {
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
                 pillarProgress: { promptAlchemy: 0, toolConjuration: 0, intelligenceDesign: 0, codeSpellicraft: 0 },
-                zolBalance: 0 }
+                zolBalance: 0, geraldQuest: { version: 1, stage: "LOCKED", t5aChoice: null, t5bChoice: null, t5cCorrect: false, rewardClaimed: false },
+                firstInteractionAt: null }
   };
 }
 
@@ -472,6 +473,42 @@ var MEMORY_SEED_QUEST = {
   },
   zolReward: 15,
   completed: false
+};
+
+var GERALD_QUEST = {
+  id: "gerald",
+  pillar: "promptAlchemy",
+  pillarName: "Prompt Alchemy",
+  title: "The Crash Called Gerald",
+  triggerDelay: 7000,
+  mutations: {
+    playerPrompt: "Build Gerald a small bridge before sunset.",
+    luluMutation: "Build Gerald a small bridge before sunset.",
+    pipMutation: "Build a bridge that looks like sunset.",
+    nibMutation: "Build a sunset-colored fridge."
+  },
+  betterPrompt: "Build Gerald a safe, small bridge across the stream before sunset. Use wood and rope. Strong enough for Gerald to cross. Test: Gerald crosses safely.",
+  outcomes: {
+    try: {
+      action: "Gerald crossed safely.",
+      goblinReaction: "Zaz smiled. The bridge held.",
+      worldChange: 2,
+      memory: "We built something that worked."
+    },
+    hold: {
+      action: "Gerald went into an observation jar.",
+      goblinReaction: "Pip recorded it carefully.",
+      worldChange: 1,
+      memory: "We watched, and waited."
+    },
+    compost: {
+      action: "Gerald became soil.",
+      goblinReaction: "A mushroom bloomed.",
+      worldChange: 3,
+      memory: "We turned it into something new."
+    }
+  },
+  zolReward: 10
 };
 
 function triggerMemorySeedQuest() {
@@ -909,7 +946,66 @@ function createSignal(type) {
   return signal;
 }
 
+function createGeraldQuestProposal(signal) {
+  /* Goblin Telephone quest: show prompt mutation through Lulu → Pip → Nib. */
+  S.learning.geraldQuest.stage = "T5A_TELEPHONE";
+
+  var mode = chooseLuluMode(signal.type);
+  S.lulu.previousMode = S.lulu.mode;
+  S.lulu.mode = mode;
+
+  S.activeProposal = {
+    id: uid("prop"), signalId: signal.id, proposerId: "lulu", luluMode: mode,
+    text: "", /* Gerald quest uses custom rendering */
+    choices: ["try", "hold", "compost"],
+    isGeraldQuest: true,
+    consequences: { hint: "A test of prompt precision" }
+  };
+  saveState();
+  Sound.chirp();
+  renderTopbar();
+  renderSheetGeraldTelephone();
+}
+
+function renderSheetGeraldTelephone() {
+  /* Hide other sheets and show the Goblin Telephone mutation chain. */
+  document.getElementById("sheet-idle").classList.add("hidden");
+  document.getElementById("sheet-goblin").classList.add("hidden");
+  document.getElementById("sheet-quiz").classList.add("hidden");
+  document.getElementById("sheet-oracle").classList.add("hidden");
+  document.getElementById("sheet-zol-shop").classList.add("hidden");
+
+  var sheet = document.getElementById("sheet-proposal");
+  if (!sheet) return;
+  sheet.classList.remove("hidden");
+
+  var modeId = S.activeProposal.luluMode || "bouffon-tendre";
+  var mode = modeById(modeId);
+  document.getElementById("proposal-mode-icon").textContent = mode.icon;
+  document.getElementById("proposal-mode-name").textContent = "Goblin Telephone";
+
+  var textContainer = document.getElementById("proposal-text");
+  if (textContainer) {
+    textContainer.innerHTML =
+      "<strong>The prompt travels through the Warren:</strong><br/>" +
+      "<div style=\"margin: 12px 0; font-size: 0.9em;\">" +
+      "<div style=\"margin: 8px 0;\"><span style=\"color: #9be8c5;\">Lulu:</span> \"" + GERALD_QUEST.mutations.luluMutation + "\"</div>" +
+      "<div style=\"margin: 8px 0;\"><span style=\"color: #8bb26b;\">Pip:</span> \"" + GERALD_QUEST.mutations.pipMutation + "\"</div>" +
+      "<div style=\"margin: 8px 0;\"><span style=\"color: #a9c98a;\">Nib:</span> \"" + GERALD_QUEST.mutations.nibMutation + "\"</div>" +
+      "</div>" +
+      "<strong>Better prompt:</strong><br/>" +
+      "<div style=\"margin: 8px 0; font-size: 0.9em; color: #6ee7a0;\">" +
+      GERALD_QUEST.betterPrompt +
+      "</div>";
+  }
+}
+
 function createProposalFromSignal(signal, forcedText) {
+  /* Check if Gerald quest is available (unlocked, not started, and no forced text). */
+  if (!forcedText && signal.type === "bug" && S.learning.geraldQuest && S.learning.geraldQuest.stage === "AVAILABLE") {
+    return createGeraldQuestProposal(signal);
+  }
+
   var mode = chooseLuluMode(signal.type);
   S.lulu.previousMode = S.lulu.mode;
   S.lulu.mode = mode;
@@ -949,6 +1045,40 @@ function fireAmbientSignal() {
 /* ---------------------------------------------------------------------
    RESOLUTION (TRY / HOLD / COMPOST)
 --------------------------------------------------------------------- */
+
+function resolveGeraldT5aProposal(choice) {
+  /* Resolve Gerald quest T5a: Goblin Telephone choice. */
+  if (!S.activeProposal || !S.learning.geraldQuest) return;
+
+  var outcome = GERALD_QUEST.outcomes[choice] || GERALD_QUEST.outcomes.try;
+  S.learning.geraldQuest.t5aChoice = choice;
+  S.learning.geraldQuest.stage = "T5A_RESOLVED";
+
+  /* Apply world changes and mood effects. */
+  S.world.treeHealth = Math.min(100, S.world.treeHealth + outcome.worldChange);
+  S.goblins.zaz.mood = choice === "try" ? "delighted" : (choice === "hold" ? "attentive" : "settled");
+  S.goblins.pip.mood = choice === "hold" ? "attentive" : (choice === "try" ? "pleased" : "calm");
+
+  /* Log the quest resolution. */
+  var replayText = "Lulu proposed building Gerald a bridge. The prompt mutated through the Warren. " +
+    "You chose " + choice.toUpperCase() + ". " + outcome.action;
+  pushReplay("lulu", "Gerald quest T5a", choice, replayText, outcome.memory);
+
+  /* Clear proposal and advance. */
+  S.activeProposal = null;
+  S.world.currentSignal = null;
+  S.flags.firstProposalResolved = true;
+
+  /* Play audio and update display. */
+  Sound.proposalAccepted();
+  renderSheetIdle();
+  var el = document.getElementById("signal-text");
+  if (el) el.textContent = "quiet";
+
+  saveState();
+  renderAll();
+  return;
+}
 
 function goblinForSignal(type) {
   var map = { bug: "nib", intrusion: "zaz", mystery: "pip", wonder: "lulu", fatigue: null, novelty: "lulu" };
@@ -997,6 +1127,12 @@ function layoutObjects() { // migrate saves made before slot layout (cosmetic)
 function resolveProposal(choice) {
   if (!S.activeProposal) return;
   var proposal = S.activeProposal;
+
+  /* Handle Gerald quest T5a proposal separately. */
+  if (proposal.isGeraldQuest && S.learning.geraldQuest.stage === "T5A_TELEPHONE") {
+    return resolveGeraldT5aProposal(choice);
+  }
+
   var signal = S.world.currentSignal;
   var type = signal ? signal.type : "wonder";
   var isFirstEverBugArc = (type === "bug" && !S.flags.firstProposalResolved && !S.flags.secondEventReferencedFirst);
@@ -2254,6 +2390,10 @@ window.WARREN_DEBUG = {
   purchaseTerritory: function (id) { S.learning.zolBalance += 100; return purchaseTerritory(id); },
   assignBuilders: function (ids) { return assignBuilders(ids); },
   getTerritories: function () { return { defs: TERRITORY_DEFS, owned: S.territories.owned, building: S.territories.building }; },
+  getGeraldQuest: function () { return S.learning.geraldQuest; },
+  unlockGeraldQuest: function () { S.learning.geraldQuest.stage = "AVAILABLE"; saveState(); return S.learning.geraldQuest; },
+  triggerGeraldProposal: function () { var s = createSignal("bug"); createGeraldQuestProposal(s); return true; },
+  resolveGeraldChoice: function (choice) { return resolveProposal(choice); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
@@ -2278,6 +2418,16 @@ function boot() {
   setTimeout(function () {
     if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
   }, 12000);
+
+  /* Gerald quest unlock gate: after 7s, unlock when player interacts */
+  if (S.learning.geraldQuest.stage === "LOCKED") {
+    setTimeout(function () {
+      if (S.learning.geraldQuest.stage === "LOCKED") {
+        S.learning.geraldQuest.stage = "AVAILABLE";
+        saveState();
+      }
+    }, GERALD_QUEST.triggerDelay);
+  }
 
   if (isFreshBoot) {
     S.startedAt = Date.now();
