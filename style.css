@@ -1110,6 +1110,7 @@ html, body {
 
 #maestro-quest.hidden {
   display: none;
+  pointer-events: none;
 }
 
 @keyframes maestroFadeIn {
@@ -1200,6 +1201,7 @@ html, body {
 
 #maestro-lesson.hidden {
   display: none;
+  pointer-events: none;
 }
 
 #maestro-lesson-modal {
