@@ -175,6 +175,9 @@ function makeGoblin(def) {
 }
 
 var TERRITORY_DEFS = [
+  { id: "signpost-grove", name: "Signpost Grove", zone: "gate", cost: 30, icon: "🧭", preferredRole: "Archivist",
+    pillar: "promptEngineering", pillarName: "Prompt Engineering", goblinAction: "clarifySignsAction",
+    actionDescription: "Pip clarifies vague signs and confusing messages into precise ones." },
   { id: "garden-north", name: "Northern Garden", zone: "garden", cost: 30, icon: "🌿", preferredRole: "Gardener" },
   { id: "forge-east", name: "Eastern Forge", zone: "forge", cost: 40, icon: "⚒️", preferredRole: "Archivist" },
   { id: "library-west", name: "Western Library", zone: "library", cost: 35, icon: "📚", preferredRole: "Chronicler" },
@@ -634,6 +637,55 @@ function closeMaestroLesson() {
   if (lessonOverlay) lessonOverlay.classList.add("hidden");
 }
 
+/* Territory Actions — Goblins take autonomous actions based on owned territories. */
+
+function triggerGoblinAction(actionName) {
+  /* Dispatcher for goblin territory actions. */
+  switch (actionName) {
+    case "clarifySignsAction":
+      return clarifySignsAction();
+    default:
+      return false;
+  }
+}
+
+function clarifySignsAction() {
+  /* Pip autonomously clarifies vague signs in the world. */
+  var g = S.goblins.pip;
+  if (!g) return;
+
+  /* Find all objects and make their signs more descriptive. */
+  var clarificationMap = {
+    "Gerald's Apartment": "Gerald's Apartment (warm straw bed, tiny door)",
+    "Observation Jar": "Observation Jar (sealed, labelled, carefully watched)",
+    "A New Mushroom": "A New Mushroom (spotted, smells of earth)",
+    "The Shrine": "The Shrine (built from broken sign, still standing)",
+    "Someone's Shiny Thing": "Someone's Shiny Thing (holds light, holds memory)",
+    "The New Path": "The New Path (safe, cleared, marked with stones)"
+  };
+
+  var clarified = 0;
+  S.objects.forEach(function (obj) {
+    if (clarificationMap[obj.sign]) {
+      obj.sign = clarificationMap[obj.sign];
+      clarified++;
+    }
+  });
+
+  /* Update Pip's state. */
+  g.task = "clarifying";
+  g.intention = "making things clearer so no one gets lost";
+  g.mood = "focused";
+  var memoryLine = "Better prompts make clearer results. I clarified " + clarified + " signs so the Warren reads true.";
+  g.memory = memoryLine;
+
+  /* Log the action. */
+  pushReplay("pip", "Territory Action: Clarified Signs", "goblin-action",
+    "Pip clarified " + clarified + " signs in the Warren. " + memoryLine, memoryLine);
+
+  return clarified > 0;
+}
+
 /* Territory system: Buy and build. */
 function purchaseTerritory(territoryId) {
   var territory = TERRITORY_DEFS.find(function (t) { return t.id === territoryId; });
@@ -718,6 +770,16 @@ function assignBuilders(goblinIds) {
 
     S.territories.owned.push({ id: territory.id, builders: goblinIds, completedAt: Date.now() });
     S.territories.building = null;
+
+    /* Trigger goblin action if this territory defines one. */
+    if (territory.goblinAction) {
+      setTimeout(function () {
+        triggerGoblinAction(territory.goblinAction);
+        saveState();
+        renderAll();
+      }, 500);
+    }
+
     saveState();
     renderAll();
     playBuildCompleteSound();
@@ -2394,6 +2456,8 @@ window.WARREN_DEBUG = {
   unlockGeraldQuest: function () { S.learning.geraldQuest.stage = "AVAILABLE"; saveState(); return S.learning.geraldQuest; },
   triggerGeraldProposal: function () { var s = createSignal("bug"); createGeraldQuestProposal(s); return true; },
   resolveGeraldChoice: function (choice) { return resolveProposal(choice); },
+  clarifySignsAction: function () { var result = clarifySignsAction(); saveState(); renderAll(); return result; },
+  getSignpostGrove: function () { return TERRITORY_DEFS.find(function (t) { return t.id === "signpost-grove"; }); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
