@@ -206,7 +206,7 @@ function makeState() {
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
                 pillarProgress: { promptAlchemy: 0, toolConjuration: 0, intelligenceDesign: 0, codeSpellicraft: 0 },
-                zolBalance: 0, geraldQuest: { version: 1, stage: "LOCKED", t5aChoice: null, t5bChoice: null, t5cCorrect: false, rewardClaimed: false },
+                zolBalance: 0, quizStreak: 0, geraldQuest: { version: 1, stage: "LOCKED", t5aChoice: null, t5bChoice: null, t5cCorrect: false, rewardClaimed: false },
                 firstInteractionAt: null, lastQuizTopic: null, lastQuizLesson: null },
     npcAbilities: { pip: { clarifySign: false } },
     worldSigns: { westPath: { text: "MUSHROOMS THIS WAY", clarity: 0.25, clarified: false } },
@@ -435,6 +435,17 @@ var Sound = {
     [SCALE_DO_RE_MI[2], SCALE_DO_RE_MI[1], SCALE_DO_RE_MI[0]].forEach(function (f, i) {
       tone(f, i * 0.10, 0.15, "sine", 0.08);
     });
+  },
+  glingGling: function (coins) {
+    /* Casino coin cascade: bright staggered dings with a rising sparkle tail. */
+    var n = Math.min(8, Math.max(4, coins || 5));
+    var base = [1568, 1760, 1976, 2093, 2349];
+    for (var i = 0; i < n; i++) {
+      var f = base[i % base.length] * (1 + (i % 3) * 0.01);
+      tone(f, i * 0.07, 0.14, "triangle", 0.10);
+      tone(f * 2, i * 0.07 + 0.02, 0.08, "sine", 0.05);
+    }
+    tone(3136, n * 0.07, 0.3, "sine", 0.07, 3520); /* final shimmer up */
   },
   territoryBuy: function () {
     /* Sol-La-Si-Do (ascending) for acquisition (achievement, progress) */
@@ -901,6 +912,7 @@ function assignBuilders(goblinIds) {
     saveState();
     renderAll();
     playBuildCompleteSound();
+    Sound.glingGling(4); /* jackpot flourish: the Warren just grew */
   }, 1600);
 
   var overlay = document.getElementById("territory-build");
@@ -1672,7 +1684,64 @@ function renderTopbar() {
   if (cur) cur.textContent = "✨" + S.progress.glowOrbs + " 🔮" + S.progress.magicSap;
 
   var zolBtn = document.getElementById("zol-wallet");
-  if (zolBtn) zolBtn.textContent = "🪙" + S.learning.zolBalance;
+  if (zolBtn && !zolCounting) zolBtn.textContent = "🪙" + S.learning.zolBalance;
+}
+
+/* ---------------------------------------------------------------------
+   ZOL CELEBRATION — goblins like gold. Coins fly to the wallet, the
+   wallet pops and counts up like a slot payout, the Warren goes
+   gling-gling. Pure cosmetics: state changed before, only shown here.
+--------------------------------------------------------------------- */
+
+var zolCounting = false;
+
+function zolCountUp(from, to) {
+  var el = document.getElementById("zol-wallet");
+  if (!el) return;
+  zolCounting = true;
+  var start = Date.now(), dur = 700;
+  (function tick() {
+    var p = Math.min(1, (Date.now() - start) / dur);
+    var eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = "🪙" + Math.round(from + (to - from) * eased);
+    if (p < 1) requestAnimationFrame(tick);
+    else { zolCounting = false; el.textContent = "🪙" + to; }
+  })();
+}
+
+function zolCelebrate(payout, fromX, fromY) {
+  var wallet = document.getElementById("zol-wallet");
+  if (!wallet) return;
+  var wr = wallet.getBoundingClientRect();
+  var toX = wr.left + wr.width / 2, toY = wr.top + wr.height / 2;
+  var startX = typeof fromX === "number" ? fromX : window.innerWidth / 2;
+  var startY = typeof fromY === "number" ? fromY : window.innerHeight * 0.7;
+
+  var coins = Math.min(8, Math.max(3, Math.round(payout / 5)));
+  for (var i = 0; i < coins; i++) {
+    (function (i) {
+      var c = document.createElement("div");
+      c.className = "zol-coin";
+      c.textContent = "🪙";
+      c.style.left = (startX + (Math.random() - 0.5) * 60) + "px";
+      c.style.top = (startY + (Math.random() - 0.5) * 40) + "px";
+      document.body.appendChild(c);
+      setTimeout(function () {
+        c.style.left = toX + "px";
+        c.style.top = toY + "px";
+        c.style.transform = "scale(0.4) rotate(360deg)";
+        c.style.opacity = "0.2";
+      }, 40 + i * 90);
+      setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 950 + i * 90);
+    })(i);
+  }
+
+  Sound.glingGling(coins);
+  var from = S.learning.zolBalance - payout;
+  setTimeout(function () {
+    flashClass(wallet, "zol-pop", 900);
+    zolCountUp(from, S.learning.zolBalance);
+  }, 350);
 }
 
 function renderReplayStrip() {
@@ -2485,21 +2554,36 @@ function answerQuiz(option) {
     S.world.warmth = clamp(S.world.warmth + 2, 0, 100);
     S.world.soil = clamp(S.world.soil + 1, 0, 100);
     earn(0, 2);
-    S.learning.zolBalance += 10;
+
+    /* Win streak: consecutive correct answers pay a rising bonus (cap +25). */
+    S.learning.quizStreak = (S.learning.quizStreak || 0) + 1;
+    var streak = S.learning.quizStreak;
+    var bonus = Math.min(25, (streak - 1) * 5);
+    var payout = 10 + bonus;
+    S.learning.zolBalance += payout;
+
     if (currentQuiz.topic) {
       S.learning.lastQuizTopic = currentQuiz.topic;
       S.learning.lastQuizLesson = currentQuiz.lesson || null;
     }
     Sound.riddleCorrect(); setTimeout(Sound.bloom, 300);
     if (mothG) { dropParticle(mothG, "✨", true); dropParticle(mothG, "✨"); }
+
+    /* Gold rush: coins fly from the quiz sheet to the wallet. */
+    var sheetEl = document.getElementById("sheet-quiz");
+    var sr = sheetEl ? sheetEl.getBoundingClientRect() : null;
+    zolCelebrate(payout, sr ? sr.left + sr.width / 2 : undefined, sr ? sr.top : undefined);
+
     if (result) result.textContent = (currentQuiz.explain ? currentQuiz.explain + " " : pick([
       "The Moth nods. It already knew. ",
       "Golden dust falls. The Garden feels warmer. ",
       "The Moth loops the loop! "
-    ])) + "+10 ZOL";
-    pushReplay("The Moth", "Memory Moth", "quiz", "the Moth's question was answered well. +10 ZOL", "");
+    ])) + "+" + payout + " ZOL" + (bonus > 0 ? " · STREAK ×" + streak + "!" : "");
+    pushReplay("The Moth", "Memory Moth", "quiz",
+      "the Moth's question was answered well. +" + payout + " ZOL" + (bonus > 0 ? " (streak ×" + streak + ")" : ""), "");
   } else {
     S.flags.quizWrong = (S.flags.quizWrong || 0) + 1;
+    S.learning.quizStreak = 0;
     Sound.riddleWrong();
     if (result) result.textContent = "Achoo! It was: " + currentQuiz.correct +
       (currentQuiz.explain ? " — " + currentQuiz.explain : "");
