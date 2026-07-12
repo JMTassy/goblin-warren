@@ -165,6 +165,11 @@ html, body {
               top 0.75s cubic-bezier(0.25, 0.6, 0.35, 1),
               transform 0.75s ease-in, opacity 0.75s ease-in;
 }
+.zol-coin.phys { transition: none; }  /* physics-driven: gravity owns these */
+
+/* Convective breathing — Rayleigh-Bénard tempo from warmth + tree health */
+.zone-glyph { animation-duration: var(--breath, 4s); }
+#reunion-sprite, .mg-sparkle { animation-duration: var(--breath, 2s); }
 
 #zol-wallet.zol-pop {
   animation: zolpop 0.9s ease-out;

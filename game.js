@@ -1610,6 +1610,11 @@ function assignBuilders(goblinIds) {
     renderAll();
     playBuildCompleteSound();
     Sound.glingGling(4); /* jackpot flourish: the Warren just grew */
+    var wr = document.getElementById("world");
+    if (wr) {
+      var r = wr.getBoundingClientRect();
+      coinBurst(r.left + r.width / 2, r.top + r.height * 0.45, 8);
+    }
   }, 1600);
 
   var overlay = document.getElementById("territory-build");
@@ -2413,6 +2418,74 @@ function renderTopbar() {
    gling-gling. Pure cosmetics: state changed before, only shown here.
 --------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------
+   PHYSICS-FEEL — the juice layer obeys real kinematics.
+   Coins fall under gravity and bounce with restitution (Candy-Crush
+   law); the world's breathing tempo follows Rayleigh-Bénard's rule
+   (witnessed in The Well): stronger driving → faster convective
+   turnover → a livelier Warren. Pure cosmetics over decided state.
+--------------------------------------------------------------------- */
+
+var PHYS = { g: 2400 /* px/s² */, rest: 0.55, drag: 0.9 };
+
+function physStep(p, dt) {
+  /* one kinematic step: gravity, integration, floor bounce */
+  p.vy += PHYS.g * dt;
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+  if (p.floor != null && p.y >= p.floor && p.vy > 0) {
+    p.y = p.floor;
+    p.vy = -p.vy * PHYS.rest;
+    p.vx *= PHYS.drag;
+    p.bounces = (p.bounces || 0) + 1;
+    p.justBounced = true;
+  } else p.justBounced = false;
+  return p;
+}
+
+function coinBurst(cx, cy, n) {
+  /* jackpot eruption: coins launch, arc, and BOUNCE on an invisible floor */
+  var floor = Math.min(window.innerHeight - 30, cy + 140);
+  var coins = [];
+  for (var i = 0; i < n; i++) {
+    var el = document.createElement("div");
+    el.className = "zol-coin phys";
+    el.textContent = "🪙";
+    document.body.appendChild(el);
+    coins.push({ el: el, x: cx + (Math.random() - 0.5) * 30, y: cy,
+                 vx: (Math.random() - 0.5) * 520, vy: -(380 + Math.random() * 420),
+                 floor: floor, bounces: 0, spin: (Math.random() - 0.5) * 720 });
+  }
+  var t0 = performance.now(), last = t0;
+  (function tick(now) {
+    var dt = Math.min(0.032, (now - last) / 1000); last = now;
+    var alive = false;
+    coins.forEach(function (p) {
+      if (!p.el) return;
+      physStep(p, dt);
+      if (p.justBounced && p.bounces <= 2) tone(1568 + p.bounces * 220, 0, 0.07, "triangle", 0.05);
+      var age = (now - t0) / 1000;
+      p.el.style.left = p.x + "px";
+      p.el.style.top = p.y + "px";
+      p.el.style.transform = "translate(-50%,-50%) rotate(" + (p.spin * age) + "deg)";
+      if (age > 1.6 || p.bounces > 3) { p.el.style.opacity = String(Math.max(0, 2.1 - age * 1.1)); }
+      if (age > 2.1) { p.el.remove(); p.el = null; } else alive = true;
+    });
+    if (alive) requestAnimationFrame(tick);
+  })(t0);
+}
+
+function renderBreath() {
+  /* Rayleigh-Bénard tempo: hotter, healthier Warren convects faster */
+  var drive = clamp((S.world.warmth + S.world.treeHealth) / 200, 0, 1);
+  var period = (6.2 - 3.4 * drive).toFixed(2);
+  var world = document.getElementById("world");
+  if (world && world.style.getPropertyValue("--breath") !== period + "s") {
+    world.style.setProperty("--breath", period + "s");
+  }
+  return parseFloat(period);
+}
+
 var zolCounting = false;
 
 function zolCountUp(from, to) {
@@ -2457,6 +2530,8 @@ function zolCelebrate(payout, fromX, fromY) {
   }
 
   Sound.glingGling(coins);
+  /* big payouts ERUPT: ballistic coins bounce off an invisible floor */
+  if (payout >= 20) coinBurst(startX, startY, Math.min(10, Math.round(payout / 4)));
   var from = S.learning.zolBalance - payout;
   setTimeout(function () {
     flashClass(wallet, "zol-pop", 900);
@@ -2756,6 +2831,7 @@ function renderAll() {
   renderObjects();
   renderReplayStrip();
   renderWeather();
+  renderBreath();
   if (S.activeProposal) renderSheetProposal();
 }
 
@@ -3749,6 +3825,9 @@ window.WARREN_DEBUG = {
   mgRepairSet: function (pct) { mg.data.pct = pct; mg.data.holding = false; mgRepairRelease(); },
   spawnSparkle: function () { spawnSparkle(); },
   weather: function () { return warrenWeather(); },
+  physStep: function (p, dt) { return physStep(p, dt); },
+  breath: function () { return renderBreath(); },
+  coinBurst: function (x, y, n) { coinBurst(x || 200, y || 300, n || 6); },
   qcmCount: function () { return AI_QCM.length; },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
