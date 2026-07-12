@@ -215,7 +215,9 @@ function makeState() {
     npcAbilities: { pip: { clarifySign: false } },
     worldSigns: { westPath: { text: "MUSHROOMS THIS WAY", clarity: 0.25, clarified: false } },
     memories: [],
-    council: { done: false, stage: "IDLE", card: null }
+    council: { done: false, stage: "IDLE", card: null },
+    /* echoes: consequences one mini-game leaves for another system to find */
+    echoes: { nibHyper: false, memoryFact: null, mushroomNoticed: false }
   };
 }
 
@@ -260,6 +262,7 @@ function mergeDefaults(loaded) {
     out.worldSigns = { westPath: Object.assign({}, d.worldSigns.westPath, (loaded.worldSigns && loaded.worldSigns.westPath) || {}) };
     out.memories = Array.isArray(loaded.memories) ? loaded.memories : [];
     out.council = Object.assign({}, d.council, loaded.council || {});
+    out.echoes = Object.assign({}, d.echoes, loaded.echoes || {});
   } catch (e) { return d; }
   return out;
 }
@@ -1365,7 +1368,10 @@ function mgRepairRelease() {
   else if (p <= 85) endMinigame(true, "Functional. Nib is quietly impressed.", 10,
     function () { addObject("🏺", "A Properly Repaired Pot", "forge"); });
   else endMinigame(false, "Nib improved it beyond recognition. It may be a telescope now.", 0,
-    function () { addObject("🔭", "Improved Beyond Recognition", "forge"); });
+    function () {
+      addObject("🔭", "Improved Beyond Recognition", "forge");
+      S.echoes.nibHyper = true;   // Nib is wound up — the next Council will feel it
+    });
 }
 
 /* --- LEVEL 2 · THE GLADE --- */
@@ -1426,7 +1432,7 @@ function mgNoMushRound() {
       if (b.getAttribute("data-mush") === "1") {
         d.done = true;
         endMinigame(false, "You tapped the mushroom. The mushroom has noticed.", 0,
-          function () { addObject("🍄", "The Noticed Mushroom", "nursery"); });
+          function () { addObject("🍄", "The Noticed Mushroom", "nursery"); S.echoes.mushroomNoticed = true; });
       } else if (!b.disabled) {
         b.disabled = true; b.style.opacity = "0.3"; Sound.chirp(); d.remaining--;
         if (d.remaining === 0) {
@@ -1550,7 +1556,8 @@ function mgMemoryPlay() {
         e.stopPropagation();
         if (mg.data.done) return; mg.data.done = true;
         if (b.getAttribute("data-x") === o.right.replace(/"/g, '')) {
-          endMinigame(true, "\"" + o.right + "\". Correct. The Council will remember this.", 12, null);
+          endMinigame(true, "\"" + o.right + "\". Correct. The Council will remember this.", 12,
+            function () { S.echoes.memoryFact = o.right; });   // resurfaces as a Council aside
         } else {
           endMinigame(false, "Close. It was the " + o.right + ". Memories are slippery.", 0, null);
         }
@@ -1760,10 +1767,12 @@ var LEVELS = [
   { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
     bg: "bg/level2-glade.jpeg",
     tint: "saturate(1.05)" },
-  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
-    tint: "hue-rotate(-18deg) brightness(0.82) saturate(1.1)" },
-  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
-    tint: "hue-rotate(24deg) brightness(1.05)" }
+  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"],
+    bg: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
+    tint: "saturate(1.05)" },
+  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"],
+    bg: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
+    tint: "saturate(1.05)" }
 ];
 
 function currentLevel() {
@@ -3101,7 +3110,14 @@ function renderCouncil() {
   /* Typed dialogue lines (opening statements, or the update round after the card).
      Lulu's inner state colors her council voice — needs affect behavior, never state. */
   var card = S.council.card ? COUNCIL_EPISODE.cards.find(function (c) { return c.id === S.council.card; }) : null;
+  var ech = S.echoes || {};
   var lines = (card ? card.update : COUNCIL_EPISODE.opening).map(function (l) {
+    /* Cross-game echoes: what happened in the side quests shows up here.
+       Behavior only — the typed act/position never changes, so admission
+       stays deterministic (Dialogue ⊬ WorldMutation holds). */
+    if (l.speaker === "nib" && ech.nibHyper && !card) {
+      return Object.assign({}, l, { text: "I HAVE ALREADY BUILT SIX WALLS. And a spare wall. For the wall." });
+    }
     if (l.speaker !== "lulu" || !S.lulu || !S.lulu.needs || card) return l;
     var n = S.lulu.needs, t = l.text;
     if (n.curiosity > 80)       t = "Gerald is ancestry. ALSO: what if the house could fly? Hear me out.";
@@ -3109,6 +3125,15 @@ function renderCouncil() {
     else if (n.connection > 80) t = "I just want Gerald to feel welcome. That is my whole argument.";
     return Object.assign({}, l, { text: t });
   });
+  /* An aside from an earlier Memory Match win, and the mushroom that noticed */
+  if (!card && ech.memoryFact) {
+    lines = lines.concat([{ speaker: "pip", act: "SUPPORT", targetProposal: "observe",
+      reason: "recalled", text: "For the record: the " + ech.memoryFact + ". You confirmed it." }]);
+  }
+  if (!card && ech.mushroomNoticed) {
+    lines = lines.concat([{ speaker: "zaz", act: "OBJECT", targetProposal: "move",
+      reason: "watched", text: "Also — a mushroom is watching us. It has noticed things. Just so we know." }]);
+  }
   var linesEl = document.getElementById("council-lines");
   linesEl.innerHTML = "";
   lines.forEach(function (l) {
@@ -4252,6 +4277,8 @@ window.WARREN_DEBUG = {
   getLevels: function () { return LEVELS; },
   currentLevel: function () { return currentLevel(); },
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
+  getEchoes: function () { return S.echoes; },
+  setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
