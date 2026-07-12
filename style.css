@@ -1561,6 +1561,78 @@ html, body {
   animation: zonebob 1.6s ease-in-out infinite;
 }
 
+/* level chip */
+#level-chip {
+  flex: 0 0 auto;
+  min-width: 44px; min-height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--glow-cyan);
+  background: linear-gradient(135deg, rgba(80,208,255,0.14), rgba(80,208,255,0.05));
+  color: var(--glow-cyan);
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#level-chip:active { transform: scale(0.94); }
+
+/* shared mini-game widgets (levels 2-4) */
+.mg-big {
+  min-height: 52px;
+  border-radius: 14px;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(170deg, #e0973f, #b06d20);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.35);
+  cursor: pointer;
+  margin-top: 10px;
+}
+.mg-big:active { transform: translateY(2px); }
+.mg-grid, .mg-choices, .mg-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+.mg-cell, .mg-goblin-slot {
+  min-width: 54px; min-height: 54px;
+  font-size: 26px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  cursor: pointer;
+}
+.mg-cell.sel, .mg-goblin-slot.sel { border-color: var(--glow-lime); box-shadow: 0 0 12px rgba(155,227,109,0.5); }
+.mg-goblin-slot { font-size: 13px; min-width: 84px; padding: 6px; }
+.mg-goblin-slot.fed { border-color: var(--glow-lime); background: rgba(155,227,109,0.15); }
+.mg-cell:active { transform: scale(0.9); }
+.mg-choicebtn {
+  min-height: 46px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--glow-cyan);
+  background: linear-gradient(160deg, rgba(80,208,255,0.12), rgba(80,208,255,0.04));
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.mg-choicebtn:active { transform: scale(0.95); }
+.mg-bigicon { font-size: 72px; margin: 24px 0; animation: zonebob 1.4s ease-in-out infinite; }
+.mg-bubble { font-size: 13px; color: var(--ink); background: rgba(139,124,255,0.1); border-radius: 10px; padding: 10px; margin: 8px 0; }
+.mg-stack { position: relative; height: 200px; }
+.mg-lulu { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-size: 40px; }
+.mg-hat {
+  position: absolute; left: 50%; transform: translateX(-50%) rotate(var(--wob, 0deg));
+  font-size: 30px; transition: bottom 0.3s ease;
+}
+#mg-rain { position: relative; height: 300px; overflow: hidden; }
+.mg-drop { position: absolute; font-size: 26px; cursor: pointer; }
+.mg-drop.real { filter: drop-shadow(0 0 8px rgba(255,200,60,0.9)); }
+.mg-drop.fake { filter: drop-shadow(0 0 8px rgba(180,180,255,0.5)); opacity: 0.85; }
+#mg-rain-score { font-size: 20px; font-weight: 900; color: var(--glow-cream); }
+#mg-inflate { border: none; background: none; cursor: pointer; font-size: 40px; margin: 20px; }
+#mg-recipe { font-size: 28px; min-height: 34px; letter-spacing: 6px; }
+#mg-bell-demo { font-size: 16px; color: var(--ink-dim); letter-spacing: 3px; margin: 12px 0; }
+
 /* ---------- THE STAMP — signature moment ---------- */
 .stamp-seal {
   position: fixed;

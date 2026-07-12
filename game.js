@@ -1368,7 +1368,349 @@ function mgRepairRelease() {
     function () { addObject("🔭", "Improved Beyond Recognition", "forge"); });
 }
 
+/* --- LEVEL 2 · THE GLADE --- */
+
+/* Stack the Hats 🎩 — tap to drop hats on Lulu; each wobbles more, 4th topples */
+var STACK_HATS = ["🍄", "📜", "👑", "🏠", "🐛"];
+function mgStackPlay() {
+  var arena = document.getElementById("mg-arena");
+  arena.innerHTML = '<div class="mg-note">tap to drop a hat — three is a trophy, four topples</div>' +
+    '<div id="mg-stack"><div class="mg-lulu">🟢</div></div>' +
+    '<button class="mg-big" id="mg-drop">DROP A HAT</button>';
+  mg.data.hats = 0;
+  document.getElementById("mg-drop").addEventListener("pointerdown", function (e) {
+    e.stopPropagation(); mgStackDrop();
+  });
+}
+function mgStackDrop() {
+  var d = mg.data, stack = document.getElementById("mg-stack");
+  if (!stack || d.done) return;
+  d.hats++;
+  var h = document.createElement("div");
+  h.className = "mg-hat";
+  h.textContent = STACK_HATS[(d.hats - 1) % STACK_HATS.length];
+  h.style.bottom = (10 + d.hats * 26) + "px";
+  h.style.setProperty("--wob", (d.hats * 2.5) + "deg");
+  stack.appendChild(h);
+  Sound.squeak("lulu");
+  if (d.hats >= 4) {
+    d.done = true;
+    endMinigame(false, "Lulu has exceeded the recommended governance height.", 0, null);
+  } else if (d.hats === 3) {
+    d.done = true;
+    setTimeout(function () {
+      endMinigame(true, "Three hats. Perfectly balanced. A trophy.", 12,
+        function () { addObject("🎩", "The Three-Hat Trophy", "garden"); });
+    }, 700);
+  }
+}
+
+/* Do Not Tap the Mushroom 🍄 — tap everything EXCEPT the mushroom */
+var NOMUSH_ITEMS = ["🐛", "🥄", "🧾", "🎩", "🪙", "🔩", "🍂"];
+function mgNoMushPlay() { mg.data.round = 0; mg.data.hits = 0; mgNoMushRound(); }
+function mgNoMushRound() {
+  var d = mg.data, arena = document.getElementById("mg-arena");
+  if (!arena || !mg.active) return;
+  d.round++;
+  var decoys = [];
+  for (var i = 0; i < 3; i++) decoys.push(NOMUSH_ITEMS[randi(0, NOMUSH_ITEMS.length - 1)]);
+  var mushSize = 26 + d.round * 8;
+  var cells = decoys.map(function (e) { return '<button class="mg-cell" data-mush="0">' + e + '</button>'; });
+  cells.splice(randi(0, 3), 0, '<button class="mg-cell mush" data-mush="1" style="font-size:' + mushSize + 'px">🍄</button>');
+  arena.innerHTML = '<div class="mg-note">round ' + d.round + '/3 — tap all but the mushroom</div>' +
+    '<div class="mg-grid">' + cells.join("") + '</div>';
+  d.remaining = 3;
+  arena.querySelectorAll(".mg-cell").forEach(function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      if (b.getAttribute("data-mush") === "1") {
+        d.done = true;
+        endMinigame(false, "You tapped the mushroom. The mushroom has noticed.", 0,
+          function () { addObject("🍄", "The Noticed Mushroom", "nursery"); });
+      } else if (!b.disabled) {
+        b.disabled = true; b.style.opacity = "0.3"; Sound.chirp(); d.remaining--;
+        if (d.remaining === 0) {
+          if (d.round >= 3) { d.done = true; endMinigame(true, "You resisted the mushroom. Discipline.", 12, null); }
+          else setTimeout(mgNoMushRound, 400);
+        }
+      }
+    });
+  });
+}
+
+/* ZOL Rain 🪙 — coins FALL under gravity; tap real ZOL, avoid fake glitter */
+function mgZolRainPlay() {
+  var arena = document.getElementById("mg-arena");
+  arena.innerHTML = '<div class="mg-note">tap 🪙 real ZOL — avoid ✨ fake glitter</div><div id="mg-rain"></div>' +
+    '<div id="mg-rain-score">0</div>';
+  mg.data.caught = 0; mg.data.spawned = 0; mg.data.drops = [];
+  mg.data.rainT0 = performance.now();
+  mgZolRainSpawn();
+  mgZolRainLoop();
+}
+function mgZolRainSpawn() {
+  if (!mg.active || mg.data.done) return;
+  var rain = document.getElementById("mg-rain");
+  if (!rain) return;
+  var real = Math.random() < 0.65;
+  var el = document.createElement("div");
+  el.className = "mg-drop " + (real ? "real" : "fake");
+  el.textContent = real ? "🪙" : "✨";
+  var p = { el: el, x: 20 + Math.random() * 260, y: -20, vx: (Math.random() - 0.5) * 40, vy: 60 + Math.random() * 80,
+            floor: 360, real: real, caught: false };
+  el.style.left = p.x + "px"; el.style.top = p.y + "px";
+  el.addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    if (p.caught) return; p.caught = true; el.remove();
+    if (p.real) { mg.data.caught++; Sound.glingGling(2); }
+    else { Sound.compostPlop(); }
+    var sc = document.getElementById("mg-rain-score"); if (sc) sc.textContent = String(mg.data.caught);
+  });
+  rain.appendChild(el);
+  mg.data.drops.push(p);
+  mg.data.spawned++;
+  if (mg.data.spawned < 14) setTimeout(mgZolRainSpawn, 520);
+}
+function mgZolRainLoop() {
+  var d = mg.data;
+  if (!mg.active || d.done) return;
+  var last = d.rainLast || performance.now();
+  var now = performance.now(), dt = Math.min(0.04, (now - last) / 1000); d.rainLast = now;
+  d.drops.forEach(function (p) {
+    if (!p.el || p.caught) return;
+    p.vy += 400 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.y > p.floor) { p.el.remove(); p.el = null; }
+    else { p.el.style.left = p.x + "px"; p.el.style.top = p.y + "px"; }
+  });
+  if ((now - d.rainT0) / 1000 > 9) {
+    d.done = true;
+    if (d.caught >= 5) endMinigame(true, "GLING GLING! You have an eye for real gold.", 15, null);
+    else endMinigame(false, "Shiny. Not valuable. You'll know next time.", 0, null);
+    return;
+  }
+  requestAnimationFrame(mgZolRainLoop);
+}
+
+/* --- LEVEL 3 · THE DEEP --- */
+
+/* Call the Ingredients — tap symbols in the right order */
+var INGREDIENT_RECIPE = ["🌱", "🍄", "✨"];
+function mgIngredientsPlay() {
+  var arena = document.getElementById("mg-arena");
+  var shuffled = INGREDIENT_RECIPE.concat(["🔨", "🍵"]).slice();
+  for (var i = shuffled.length - 1; i > 0; i--) { var j = randi(0, i); var t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t; }
+  arena.innerHTML = '<div class="mg-note">summon in order: 🌱 then 🍄 then ✨</div>' +
+    '<div id="mg-recipe"></div>' +
+    '<div class="mg-grid">' + shuffled.map(function (e) { return '<button class="mg-cell" data-e="' + e + '">' + e + '</button>'; }).join("") + '</div>';
+  mg.data.step = 0;
+  arena.querySelectorAll(".mg-cell").forEach(function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation(); mgIngredientTap(b.getAttribute("data-e"));
+    });
+  });
+}
+function mgIngredientTap(sym) {
+  var d = mg.data;
+  if (d.done) return;
+  var rec = document.getElementById("mg-recipe");
+  if (sym === INGREDIENT_RECIPE[d.step]) {
+    d.step++; if (rec) rec.textContent += sym; Sound.bloom();
+    if (d.step >= INGREDIENT_RECIPE.length) {
+      d.done = true;
+      endMinigame(true, "A glowing question mushroom blooms. Order matters!", 12,
+        function () { addObject("🍄", "The Question Mushroom", "garden"); });
+    }
+  } else {
+    d.done = true;
+    endMinigame(false, "Nib invents hot mechanical matcha. Nobody asked. Order matters!", 0,
+      function () { addObject("🍵", "Hot Mechanical Matcha", "forge"); });
+  }
+}
+
+/* Memory Match 🧠 — show an object, hide it, pick the right memory */
+var MEMORY_OBJECTS = [
+  { icon: "🥄", right: "Minister of Navigation", wrong: ["Gerald's breakfast", "Nib's medical license"] },
+  { icon: "🔩", right: "Nib's proudest bolt", wrong: ["A very small moon", "Lulu's earring"] },
+  { icon: "📜", right: "The receipt we named", wrong: ["A map to nowhere", "Pip's grocery list"] },
+  { icon: "🍄", right: "The Noticed Mushroom", wrong: ["Lunch", "A tiny umbrella"] }
+];
+function mgMemoryPlay() {
+  var arena = document.getElementById("mg-arena");
+  var o = MEMORY_OBJECTS[randi(0, MEMORY_OBJECTS.length - 1)];
+  mg.data.obj = o;
+  arena.innerHTML = '<div class="mg-note">remember this…</div><div class="mg-bigicon">' + o.icon + '</div>';
+  setTimeout(function () {
+    if (!mg.active) return;
+    var opts = o.wrong.concat([o.right]);
+    for (var i = opts.length - 1; i > 0; i--) { var j = randi(0, i); var t = opts[i]; opts[i] = opts[j]; opts[j] = t; }
+    arena.innerHTML = '<div class="mg-note">what was it, really?</div>' +
+      '<div class="mg-choices">' + opts.map(function (x) { return '<button class="mg-choicebtn" data-x="' + x.replace(/"/g, '') + '">' + x + '</button>'; }).join("") + '</div>';
+    arena.querySelectorAll(".mg-choicebtn").forEach(function (b) {
+      b.addEventListener("pointerdown", function (e) {
+        e.stopPropagation();
+        if (mg.data.done) return; mg.data.done = true;
+        if (b.getAttribute("data-x") === o.right.replace(/"/g, '')) {
+          endMinigame(true, "\"" + o.right + "\". Correct. The Council will remember this.", 12, null);
+        } else {
+          endMinigame(false, "Close. It was the " + o.right + ". Memories are slippery.", 0, null);
+        }
+      });
+    });
+  }, 2000);
+}
+
+/* Feed the Right Goblin 🍪 — match item to the goblin who wants it */
+var FEED_PAIRS = [
+  { goblin: "Pip 📓", want: "📜", wants: "documentation" },
+  { goblin: "Zaz 🌱", want: "🌰", wants: "soil" },
+  { goblin: "Nib 🔧", want: "🔩", wants: "a tool" }
+];
+function mgFeedPlay() {
+  var arena = document.getElementById("mg-arena");
+  mg.data.matched = 0;
+  var items = FEED_PAIRS.map(function (p) { return p.want; });
+  for (var i = items.length - 1; i > 0; i--) { var j = randi(0, i); var t = items[i]; items[i] = items[j]; items[j] = t; }
+  mg.data.pick = null;
+  arena.innerHTML = '<div class="mg-note">tap an item, then the goblin who wants it</div>' +
+    '<div class="mg-row" id="mg-items">' + items.map(function (e) { return '<button class="mg-cell" data-item="' + e + '">' + e + '</button>'; }).join("") + '</div>' +
+    '<div class="mg-row" id="mg-goblins">' + FEED_PAIRS.map(function (p) { return '<button class="mg-goblin-slot" data-want="' + p.want + '">' + p.goblin + '</button>'; }).join("") + '</div>';
+  arena.querySelectorAll("[data-item]").forEach(function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      arena.querySelectorAll("[data-item]").forEach(function (x) { x.classList.remove("sel"); });
+      b.classList.add("sel"); mg.data.pick = b;
+    });
+  });
+  arena.querySelectorAll("[data-want]").forEach(function (g) {
+    g.addEventListener("pointerdown", function (e) {
+      e.stopPropagation(); mgFeedDrop(g);
+    });
+  });
+}
+function mgFeedDrop(g) {
+  var d = mg.data;
+  if (!d.pick || d.done) return;
+  var item = d.pick.getAttribute("data-item"), want = g.getAttribute("data-want");
+  if (item === want) {
+    g.classList.add("fed"); g.disabled = true; d.pick.disabled = true; d.pick.style.opacity = "0.3";
+    d.pick.classList.remove("sel"); d.pick = null; d.matched++;
+    Sound.bloom();
+    if (d.matched >= FEED_PAIRS.length) { d.done = true; endMinigame(true, "Everyone got the right thing. Tool-fit!", 15, null); }
+  } else {
+    d.done = true;
+    var joke = { "📜": "Pip filed the flower. It is now evidence.", "🌰": "Zaz planted the hammer. A tool tree, maybe.", "🔩": "Nib repaired the cookie. It is crunchier." }[want] || "Wrong department, gently.";
+    endMinigame(false, joke + " Match the tool to the goblin!", 0, null);
+  }
+}
+
+/* --- LEVEL 4 · THE SPIRE --- */
+
+/* Council Bubble Pop 🏛️ — tap the right intervention for the goblin's line */
+var BUBBLE_CASES = [
+  { line: "Everybody knows Gerald is suspicious.", right: "EVIDENCE" },
+  { line: "The bridge should become a poem.", right: "CLARIFY" },
+  { line: "I'll observe AND move AND build, alone.", right: "SPLIT" },
+  { line: "Let's decide right now, no thinking.", right: "HOLD" }
+];
+var BUBBLE_OPTS = ["CLARIFY", "EVIDENCE", "SPLIT", "HOLD"];
+function mgBubblePlay() { mg.data.round = 0; mg.data.right = 0; mgBubbleRound(); }
+function mgBubbleRound() {
+  var d = mg.data, arena = document.getElementById("mg-arena");
+  if (!arena || !mg.active) return;
+  d.round++;
+  var c = BUBBLE_CASES[randi(0, BUBBLE_CASES.length - 1)];
+  d.current = c;
+  arena.innerHTML = '<div class="mg-note">round ' + d.round + '/3 — pick the right nudge</div>' +
+    '<div class="mg-bubble">🧌 “' + c.line + '”</div>' +
+    '<div class="mg-choices">' + BUBBLE_OPTS.map(function (o) { return '<button class="mg-choicebtn" data-o="' + o + '">' + o + '</button>'; }).join("") + '</div>';
+  arena.querySelectorAll(".mg-choicebtn").forEach(function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation(); mgBubblePick(b.getAttribute("data-o"));
+    });
+  });
+}
+function mgBubblePick(o) {
+  var d = mg.data;
+  if (d.picked) return; d.picked = true;
+  if (o === d.current.right) { d.right++; Sound.bloom(); } else Sound.compostPlop();
+  setTimeout(function () {
+    d.picked = false;
+    if (d.round >= 3) {
+      d.done = true;
+      if (d.right >= 3) endMinigame(true, "Three clean nudges. You think like a Council.", 15, null);
+      else if (d.right >= 2) endMinigame(true, "Good instincts. The Warren agrees, mostly.", 10, null);
+      else endMinigame(false, "The Council is confused but grateful. Keep listening.", 0, null);
+    } else mgBubbleRound();
+  }, 700);
+}
+
+/* Mushroom Inflation 🍄 — tap spores before it fills the screen */
+function mgInflationPlay() {
+  var arena = document.getElementById("mg-arena");
+  arena.innerHTML = '<div class="mg-note">tap the mushroom — shrink it before it takes over</div>' +
+    '<button id="mg-inflate">🍄</button>';
+  mg.data.size = 40; mg.data.taps = 0;
+  mg.data.el = document.getElementById("mg-inflate");
+  mg.data.el.addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    mg.data.size = Math.max(20, mg.data.size - 14); mg.data.taps++;
+    Sound.squeak("nib");
+    if (mg.data.taps >= 8) {
+      mg.data.done = true;
+      endMinigame(true, "Growth has been respectfully negotiated.", 12, null);
+    }
+  });
+  mgInflationTick();
+}
+function mgInflationTick() {
+  var d = mg.data;
+  if (!mg.active || d.done) return;
+  d.size += 3.2;
+  if (d.el) d.el.style.fontSize = d.size + "px";
+  if (d.size > 190) {
+    d.done = true;
+    endMinigame(false, "The mushroom has acquired the interface.", 0,
+      function () { addObject("🍄", "The Interface Mushroom", "nursery"); });
+    return;
+  }
+  setTimeout(mgInflationTick, 140);
+}
+
+/* Wake the Goblins 🔔 — tap the bell rhythm: tap tap pause tap */
+function mgBellPlay() {
+  var arena = document.getElementById("mg-arena");
+  arena.innerHTML = '<div class="mg-note">ring: tap · tap · (wait) · tap</div>' +
+    '<div id="mg-bell-demo">🔔 . . 🔔 . . . . 🔔</div>' +
+    '<button class="mg-big" id="mg-bell">🔔 RING</button>';
+  mg.data.taps = []; mg.data.done = false;
+  document.getElementById("mg-bell").addEventListener("pointerdown", function (e) {
+    e.stopPropagation(); mgBellTap();
+  });
+  mg.data.bellTimeout = setTimeout(function () {
+    if (!mg.data.done && mg.data.taps.length < 3) { mg.data.done = true; endMinigame(false, "The goblins slept through it. Try the rhythm.", 0, null); }
+  }, 8000);
+}
+function mgBellTap() {
+  var d = mg.data;
+  if (d.done) return;
+  var now = performance.now();
+  d.taps.push(now);
+  Sound.bell();
+  if (d.taps.length === 3) {
+    clearTimeout(d.bellTimeout);
+    d.done = true;
+    var gap1 = d.taps[1] - d.taps[0];      // should be short
+    var gap2 = d.taps[2] - d.taps[1];      // should be long (the pause)
+    if (gap1 < 600 && gap2 > 700 && gap2 < 2500) {
+      endMinigame(true, "Perfect rhythm. The goblins wake, mildly impressed.", 12, null);
+    } else {
+      endMinigame(false, "Lulu says: “I was awake in another interpretation.”", 0, null);
+    }
+  }
+}
+
 var MINIGAMES = {
+  /* Level 1 · THE WARREN */
   mask: {
     title: "THE MASK 👹", problem: "Tap it three times before it gets comfortable.",
     play: function () {
@@ -1395,8 +1737,68 @@ var MINIGAMES = {
       btn.addEventListener("pointerup", function (e) { e.stopPropagation(); mgRepairRelease(); });
       btn.addEventListener("pointerleave", function () { if (mg.data.holding) mgRepairRelease(); });
     }
-  }
+  },
+  /* Level 2 · THE GLADE */
+  stackhats: { title: "STACK THE HATS 🎩", problem: "Three hats is a trophy. Four is a governance incident.", play: mgStackPlay },
+  nomush:    { title: "DO NOT TAP THE MUSHROOM 🍄", problem: "Tap everything else. The mushroom is a trap.", play: mgNoMushPlay },
+  zolrain:   { title: "ZOL RAIN 🪙", problem: "Catch real gold. Ignore the pretty fakes.", play: mgZolRainPlay },
+  /* Level 3 · THE DEEP */
+  ingredients: { title: "CALL THE INGREDIENTS ✨", problem: "Summon in order: 🌱 then 🍄 then ✨.", play: mgIngredientsPlay },
+  memory:      { title: "MEMORY MATCH 🧠", problem: "Watch the object. Then remember what it truly was.", play: mgMemoryPlay },
+  feed:        { title: "FEED THE RIGHT GOBLIN 🍪", problem: "Match each thing to the goblin who wants it.", play: mgFeedPlay },
+  /* Level 4 · THE SPIRE */
+  bubblepop: { title: "COUNCIL BUBBLE POP 🏛️", problem: "Pick the right nudge for each goblin's line.", play: mgBubblePlay },
+  inflation: { title: "MUSHROOM INFLATION 🍄", problem: "Tap it smaller before it eats the screen.", play: mgInflationPlay },
+  bell:      { title: "WAKE THE GOBLINS 🔔", problem: "Ring the rhythm: tap · tap · wait · tap.", play: mgBellPlay }
 };
+
+/* Levels: each is a themed chapter with its own backdrop + 3 side quests.
+   Level 1 is the Warren (current CSS scene); Level 2 uses the glade art. */
+var LEVELS = [
+  { id: 1, name: "THE WARREN", mgs: ["mask", "gerald", "repair"], bg: null,
+    tint: "" },
+  { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
+    bg: "bg/level2-glade.jpeg",
+    tint: "saturate(1.05)" },
+  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
+    tint: "hue-rotate(-18deg) brightness(0.82) saturate(1.1)" },
+  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
+    tint: "hue-rotate(24deg) brightness(1.05)" }
+];
+
+function currentLevel() {
+  var lv = (S.progress && S.progress.level) || 1;
+  return LEVELS[clamp(lv - 1, 0, LEVELS.length - 1)];
+}
+
+function applyLevelBackdrop() {
+  var lv = currentLevel();
+  var world = document.getElementById("world");
+  if (!world) return;
+  if (lv.bg) {
+    /* readability scrim over the level art (image sits under the goblins) */
+    world.style.backgroundImage =
+      "linear-gradient(rgba(10,7,20,0.32), rgba(10,7,20,0.42) 62%, rgba(8,5,16,0.6)), url('" + lv.bg + "')";
+    world.style.backgroundSize = "cover";
+    world.style.backgroundPosition = "center";
+  } else {
+    world.style.backgroundImage = "";
+    world.style.backgroundSize = "";
+    world.style.backgroundPosition = "";
+  }
+}
+
+function setLevel(n) {
+  n = clamp(n, 1, LEVELS.length);
+  S.progress.level = n;
+  applyLevelBackdrop();
+  var lv = currentLevel();
+  showBubble("lulu", "Welcome to " + lv.name.toLowerCase() + ".", 3200);
+  pushReplay("level", lv.name, "level-enter", "Entered " + lv.name, "");
+  saveState();
+  renderAll();
+  return n;
+}
 
 /* The sparkle: opt-in doorway. Appears sometimes when the Warren is calm. */
 var sparkleTimer = null;
@@ -1420,8 +1822,8 @@ function spawnSparkle() {
   sp.addEventListener("pointerdown", function (e) {
     e.stopPropagation();
     sp.remove();
-    var ids = Object.keys(MINIGAMES);
-    startMinigame(ids[randi(0, ids.length - 1)]);
+    var pool = currentLevel().mgs;
+    startMinigame(pool[randi(0, pool.length - 1)]);
   });
   world.appendChild(sp);
   setTimeout(function () { if (sp.parentNode) sp.remove(); }, 25000);
@@ -2410,6 +2812,9 @@ function renderTopbar() {
 
   var zolBtn = document.getElementById("zol-wallet");
   if (zolBtn && !zolCounting) zolBtn.textContent = "🪙" + S.learning.zolBalance;
+
+  var lvChip = document.getElementById("level-chip");
+  if (lvChip) lvChip.textContent = "🗺️ L" + ((S.progress && S.progress.level) || 1);
 }
 
 /* ---------------------------------------------------------------------
@@ -3683,6 +4088,20 @@ function wireInput() {
   }
   var zolClose = document.getElementById("zol-shop-close");
   if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
+
+  /* Level chip — cycle to the next chapter (a 🎪 sparkle there brings its 3 quests) */
+  var lvChip = document.getElementById("level-chip");
+  if (lvChip) {
+    lvChip.addEventListener("click", function () {
+      ensureAudio(); resumeAudio();
+      var next = ((S.progress.level || 1) % LEVELS.length) + 1;
+      setLevel(next);
+      var lv = currentLevel();
+      showBubble("lulu", lv.name + " — its games: " + lv.mgs.length + ". Find the 🎪.", 3600);
+      /* offer the sparkle immediately so travel always has something to do */
+      setTimeout(spawnSparkle, 600);
+    });
+  }
   document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
   document.getElementById("btn-hold").addEventListener("click", function () { stampFX("hold"); resolveProposal("hold"); });
   document.getElementById("btn-compost").addEventListener("click", function () { stampFX("compost"); resolveProposal("compost"); });
@@ -3829,6 +4248,10 @@ window.WARREN_DEBUG = {
   breath: function () { return renderBreath(); },
   coinBurst: function (x, y, n) { coinBurst(x || 200, y || 300, n || 6); },
   qcmCount: function () { return AI_QCM.length; },
+  setLevel: function (n) { return setLevel(n); },
+  getLevels: function () { return LEVELS; },
+  currentLevel: function () { return currentLevel(); },
+  mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
@@ -3854,6 +4277,7 @@ function boot() {
   buildStaticWorld();
   wireInput();
   layoutObjects();
+  applyLevelBackdrop();
   renderAll();
   renderSheetIdle();
 
