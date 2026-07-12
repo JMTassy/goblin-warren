@@ -297,5 +297,48 @@
   the other three wait on #1/#2, #9, and Egregore Coherence respectively.
 - 18 → technique reference, applies wherever #17's slices (or later
   motion work) land; no build of its own.
+- 19 → composted. The three real nuggets are already absorbed into this
+  entry's writeup; nothing further to build, no bead to track.
+
+19. **"AGENTIC OS / POC Factory" dump — COMPOSTED, not admitted.** The
+    operator asked to add ChatDev and AI Town as inspiration, then pasted
+    a large, separate design packet: an isometric "Agentic OS" world
+    (TV5MONDE Studio, Google Cloud Tower, DAO Court, Hackathon Plaza),
+    a LaTeX hackathon demo script, and working SQL/TypeScript for a
+    memory-orchestrator MVP (Postgres + AgentDB, `tasks` table, QuDAG
+    commit stamps, φ-calibration, UoV tokens).
+    **AUDIT: this is a different, unrelated project.** None of it
+    references goblin-warren's code, uses this repo's data model, or
+    fits its single-file/no-build architecture. The SQL migration and
+    TypeScript orchestrator are real, functioning code — for a
+    different codebase entirely; running them here would do nothing
+    (no `tasks` table, no `agentx` package, no Postgres connection in
+    this project). Composted whole, not built, not partially adopted.
+    Also worth flagging on its own terms (not a Warren concern, just an
+    honest read): baking real trademarks (TV5MONDE, Google Cloud) into
+    playable world content as done there is exactly the trap this
+    repo's IP-safe rule exists to avoid — good that it isn't landing
+    here.
+    **What's real and worth keeping, composted into nutrients:**
+    - **ChatDev** (role-played agents — CEO/CTO/Programmer/Tester in
+      structured phases building software together) and **AI Town**
+      (open-source pixel-town of autonomous NPCs with memory and
+      conversation) are genuine, well-known open-source projects, and
+      a fair lineage to name for this game's own goblin-NPC design —
+      this repo already independently arrived at a similar shape
+      (goblins with roles, mood, memory, dialogue) before either was
+      named here; worth crediting as kindred prior art, not importing
+      code from.
+    - **Bubble-copy discipline**: "every NPC has one obsession," "setup
+      + punchline within two bubbles," "max ~48 characters per bubble."
+      Concrete and portable — a real craft note for `showBubble`/goblin
+      dialogue content, independent of anything else in the dump.
+    - **Scripted-choreography pattern**: short (under 10s), readable,
+      deterministic multi-actor "shows" as the moment of delight,
+      rather than open-ended simulation. This repo already does this
+      (Council, Daily Verdict, Tree Party combo) — the dump is
+      confirmation the pattern generalizes, not a new idea to adopt.
+    Nothing here is a bead to build. It's compost: read, absorbed for
+    the two real nutrients above, the rest left to break down.
 
 *The scroll waits. It never nags.* 📜
