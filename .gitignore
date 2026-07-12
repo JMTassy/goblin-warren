@@ -19,3 +19,4 @@ node_modules/
 verify-results.json
 __pycache__/
 *.pyc
+lulu/.lulu_state.json*

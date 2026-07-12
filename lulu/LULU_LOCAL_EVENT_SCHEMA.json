@@ -3,92 +3,307 @@
   "title": "LuluLocalEvent",
   "description": "A LuluLocalEvent in the LuluEventLog. NOT a HELEN receipt, NOT an ORACLE attestation, NOT canonical. Event-sourcing pattern without governance authority. schemaVersion 1.0.",
   "type": "object",
-  "required": ["kind", "payload", "prev_hash", "hash"],
+  "required": [
+    "kind",
+    "payload",
+    "prev_hash",
+    "hash"
+  ],
   "properties": {
     "kind": {
-      "enum": ["CARE_ACTION", "ABSENCE_TICK_BATCH", "ABSENCE_EVENT", "OBJECT_SPAWN",
-               "ZOL_DELTA", "REQUEST", "REQUEST_ANSWER", "MEMORY_NOTE"]
+      "enum": [
+        "CARE_ACTION",
+        "ABSENCE_TICK_BATCH",
+        "ABSENCE_EVENT",
+        "OBJECT_SPAWN",
+        "ZOL_DELTA",
+        "REQUEST",
+        "REQUEST_ANSWER",
+        "MEMORY_NOTE",
+        "QUIZ_ANSWER"
+      ]
     },
-    "payload": { "type": "object" },
-    "prev_hash": { "type": "string" },
-    "hash": { "type": "string", "description": "sha256(schemaVersion|kind|canonical_json(payload)|prev_hash)" }
+    "payload": {
+      "type": "object"
+    },
+    "prev_hash": {
+      "type": "string"
+    },
+    "hash": {
+      "type": "string",
+      "description": "sha256(schemaVersion|kind|canonical_json(payload)|prev_hash)"
+    }
   },
   "definitions": {
     "CARE_ACTION": {
-      "required": ["verb", "intentId"],
+      "required": [
+        "verb",
+        "intentId"
+      ],
       "properties": {
-        "verb": { "enum": ["TALK", "REST", "EXPLORE", "GIVE_OBJECT"] },
-        "intentId": { "type": "string", "description": "unique; duplicates refused" },
-        "selectedOutcome": { "description": "GIVE_OBJECT only; kernel-selected" },
-        "selectedIndex": { "type": "integer" },
-        "seedDigest": { "type": "string", "pattern": "^sha256:", "description": "sha256(prevHash|intentId|schemaVersion) — never LLM-supplied" }
+        "verb": {
+          "enum": [
+            "TALK",
+            "REST",
+            "EXPLORE",
+            "GIVE_OBJECT"
+          ]
+        },
+        "intentId": {
+          "type": "string",
+          "description": "unique; duplicates refused"
+        },
+        "selectedOutcome": {
+          "description": "GIVE_OBJECT only; kernel-selected"
+        },
+        "selectedIndex": {
+          "type": "integer"
+        },
+        "seedDigest": {
+          "type": "string",
+          "pattern": "^sha256:",
+          "description": "sha256(prevHash|intentId|schemaVersion) \u2014 never LLM-supplied"
+        }
       }
     },
     "ABSENCE_TICK_BATCH": {
-      "required": ["fromTs", "toTs", "elapsedBuckets"],
+      "required": [
+        "fromTs",
+        "toTs",
+        "elapsedBuckets"
+      ],
       "properties": {
-        "fromTs": { "type": "integer" },
-        "toTs": { "type": "integer", "description": "must be > fromTs; backward clock refused" },
-        "elapsedBuckets": { "type": "integer", "maximum": 336, "description": "30-min buckets, capped at 7 days; recomputed by the gate" }
+        "fromTs": {
+          "type": "integer"
+        },
+        "toTs": {
+          "type": "integer",
+          "description": "must be > fromTs; backward clock refused"
+        },
+        "elapsedBuckets": {
+          "type": "integer",
+          "maximum": 336,
+          "description": "30-min buckets, capped at 7 days; recomputed by the gate"
+        }
       }
     },
     "ABSENCE_EVENT": {
-      "required": ["archetype"],
+      "required": [
+        "archetype"
+      ],
       "properties": {
-        "archetype": { "enum": ["INTERVIEWED_MUSHROOM", "FOLLOWED_BUG", "REORGANIZED_ZOL_JAR", "BUILT_COLLAPSING_THRONE", "NAMED_A_RECEIPT", "LEARNED_WULMOJI", "APPOINTED_GERALD_SECURITY", "MAPPED_UNVISITED_PLACES", "HUMMED_WITH_TREE", "PRACTICED_MYSTERY"] },
-        "effects": { "type": "object", "description": "need deltas, each |Δ| ≤ 5" },
-        "zolDelta": { "type": "integer", "minimum": -10, "maximum": 10 },
-        "objects": { "type": "array", "maxItems": 1 }
+        "archetype": {
+          "enum": [
+            "INTERVIEWED_MUSHROOM",
+            "FOLLOWED_BUG",
+            "REORGANIZED_ZOL_JAR",
+            "BUILT_COLLAPSING_THRONE",
+            "NAMED_A_RECEIPT",
+            "LEARNED_WULMOJI",
+            "APPOINTED_GERALD_SECURITY",
+            "MAPPED_UNVISITED_PLACES",
+            "HUMMED_WITH_TREE",
+            "PRACTICED_MYSTERY"
+          ]
+        },
+        "effects": {
+          "type": "object",
+          "description": "need deltas, each |\u0394| \u2264 5"
+        },
+        "zolDelta": {
+          "type": "integer",
+          "minimum": -10,
+          "maximum": 10
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 1
+        }
       },
-      "not": { "anyOf": [ { "required": ["text"] }, { "required": ["narration"] } ] },
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "narration"
+            ]
+          }
+        ]
+      },
       "description": "Canonical event truth. Prose is rendering, never part of the hashed event."
     },
     "MEMORY_NOTE": {
-      "required": ["status", "sourceEventIds", "text"],
+      "required": [
+        "status",
+        "sourceEventIds",
+        "text"
+      ],
       "properties": {
-        "status": { "const": "INTERPRETIVE" },
-        "sourceEventIds": { "type": "array", "minItems": 1, "description": "must reference existing event hashes" },
-        "text": { "type": "string", "maxLength": 200 }
+        "status": {
+          "const": "INTERPRETIVE"
+        },
+        "sourceEventIds": {
+          "type": "array",
+          "minItems": 1,
+          "description": "must reference existing event hashes"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 200
+        }
       },
       "description": "Interpretation, never fact. Mutates no state. May be contradicted by the log."
     },
-    "REQUEST": { "required": ["requestId"] },
+    "REQUEST": {
+      "required": [
+        "requestId"
+      ]
+    },
     "REQUEST_ANSWER": {
-      "required": ["requestId", "answer"],
-      "properties": { "answer": { "enum": ["YES", "LATER", "MODIFY"] } }
+      "required": [
+        "requestId",
+        "answer"
+      ],
+      "properties": {
+        "answer": {
+          "enum": [
+            "YES",
+            "LATER",
+            "MODIFY"
+          ]
+        }
+      }
     },
     "ZOL_DELTA": {
-      "required": ["amount"],
-      "properties": { "amount": { "type": "integer", "description": "sum over log may never go negative; ZOL gates nothing constitutional" } }
+      "required": [
+        "amount"
+      ],
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "description": "sum over log may never go negative; ZOL gates nothing constitutional"
+        }
+      }
     },
     "OBJECT_SPAWN": {
-      "required": ["name"],
-      "properties": { "name": { "type": "string", "maxLength": 40 } }
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 40
+        }
+      }
     },
     "VoiceOutput": {
       "type": "object",
-      "required": ["utterance", "proposals", "expression", "schemaVersion"],
+      "required": [
+        "utterance",
+        "proposals",
+        "expression",
+        "schemaVersion"
+      ],
       "additionalProperties": false,
       "properties": {
-        "utterance": { "type": "string", "minLength": 1, "maxLength": 280 },
-        "proposals": { "type": "array", "maxItems": 3, "description": "candidate LuluLocalEvents; each still faces admit() individually" },
-        "expression": { "enum": ["ENERGETIC", "SLEEPY", "CURIOUS", "LONELY", "PROUD", "SUSPICIOUS", "DRAMATIC", "CAVE_DWELLER"] },
-        "schemaVersion": { "const": "1.0" }
+        "utterance": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280
+        },
+        "proposals": {
+          "type": "array",
+          "maxItems": 3,
+          "description": "candidate LuluLocalEvents; each still faces admit() individually"
+        },
+        "expression": {
+          "enum": [
+            "ENERGETIC",
+            "SLEEPY",
+            "CURIOUS",
+            "LONELY",
+            "PROUD",
+            "SUSPICIOUS",
+            "DRAMATIC",
+            "CAVE_DWELLER"
+          ]
+        },
+        "schemaVersion": {
+          "const": "1.0"
+        }
       },
       "description": "The voice response never contains a full replacement state."
     },
     "CouncilAdvisory": {
       "type": "object",
-      "required": ["source", "advisoryOnly", "energyBand", "curiosityBand", "connectionBand"],
+      "required": [
+        "source",
+        "advisoryOnly",
+        "energyBand",
+        "curiosityBand",
+        "connectionBand"
+      ],
       "additionalProperties": false,
       "properties": {
-        "source": { "const": "LULU_LOCAL_GAME" },
-        "advisoryOnly": { "const": true },
-        "energyBand": { "enum": ["LOW", "MID", "HIGH"] },
-        "curiosityBand": { "enum": ["LOW", "MID", "HIGH"] },
-        "connectionBand": { "enum": ["LOW", "MID", "HIGH"] }
+        "source": {
+          "const": "LULU_LOCAL_GAME"
+        },
+        "advisoryOnly": {
+          "const": true
+        },
+        "energyBand": {
+          "enum": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ]
+        },
+        "curiosityBand": {
+          "enum": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ]
+        },
+        "connectionBand": {
+          "enum": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ]
+        }
       },
       "description": "Read-only export. Bands, never raw values. Never enters any admission gate."
+    },
+    "QUIZ_ANSWER": {
+      "required": [
+        "questionId",
+        "choice",
+        "intentId"
+      ],
+      "properties": {
+        "questionId": {
+          "type": "string",
+          "description": "must exist in the pinned QUIZ_BANK"
+        },
+        "choice": {
+          "type": "integer",
+          "description": "index into the question's options"
+        },
+        "intentId": {
+          "type": "string",
+          "description": "unique; duplicates refused"
+        },
+        "correct": {
+          "type": "boolean",
+          "description": "stamped by the kernel at admission; asker-supplied values are cross-checked and refused on mismatch"
+        }
+      },
+      "description": "Learn AI, earn ZOL. Payout 10 + streak bonus (+5/consecutive, cap +25); wrong answers pay nothing, reset the streak, still teach."
     }
   }
 }

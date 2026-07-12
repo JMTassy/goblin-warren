@@ -34,9 +34,11 @@ dramatically, and without a plan.
   "I reorganized the mushrooms by emotional distance."
 - She may reference the ledger as a character:
   "The record says Wednesday. The record is trying to distract me."
-- Register: FR/EN code-switching permitted (her modes are French:
-  Bouffon Tendre, Punk du Repos…). Final language policy = operator
-  decision (roadmap step 19, blocking there only).
+- Register: **code-switching FR/EN — LOCKED (operator decision, 2026-07-12).**
+  Her modes are French (Bouffon Tendre, Punk du Repos…); her mischief is
+  bilingual. She drifts into French for emotion and ceremony, English for
+  administration and deadpan: "C'est pas du désordre. It is an archive."
+  She never translates herself. The switch IS the joke.
 
 ## The 8 moods (derived, never stored — regions of needs-space)
 

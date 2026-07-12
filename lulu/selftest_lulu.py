@@ -223,6 +223,55 @@ def test_schema_version():
     assert "schema" in msg, msg
 
 
+# G18 quiz: kernel decides correctness; right pays, wrong pays nothing + teaches
+def test_quiz_correctness():
+    from lulu_kernel import QUIZ_BANK
+    qid = sorted(QUIZ_BANK.keys())[0]
+    q = QUIZ_BANK[qid]
+    log = []
+    log = admit(log, "QUIZ_ANSWER", {"questionId": qid, "choice": q["correct"],
+                                     "intentId": "QZ1"})
+    s = replay(log)
+    assert s["zol"] == 10 and s["quiz_streak"] == 1, "first correct pays base 10"
+    wrong = (q["correct"] + 1) % len(q["options"])
+    log = admit(log, "QUIZ_ANSWER", {"questionId": qid, "choice": wrong,
+                                     "intentId": "QZ2"})
+    s = replay(log)
+    assert s["zol"] == 10 and s["quiz_streak"] == 0, "wrong pays nothing, resets streak"
+    assert s["quiz_wrong"] == 1 and s["needs"]["curiosity"] > 70, "a wrong answer still teaches"
+    # the asker may not stamp its own correctness
+    msg = refuse(log, "QUIZ_ANSWER", {"questionId": qid, "choice": wrong,
+                                      "intentId": "QZ3", "correct": True})
+    assert "kernel" in msg, msg
+
+
+# G19 quiz streak bonus: +5 per consecutive correct, capped at +25
+def test_quiz_streak_economy():
+    from lulu_kernel import QUIZ_BANK
+    qid = sorted(QUIZ_BANK.keys())[0]
+    q = QUIZ_BANK[qid]
+    log = []
+    payouts = []
+    for i in range(8):
+        before = replay(log)["zol"]
+        log = admit(log, "QUIZ_ANSWER", {"questionId": qid, "choice": q["correct"],
+                                         "intentId": "ST%d" % i})
+        payouts.append(replay(log)["zol"] - before)
+    assert payouts == [10, 15, 20, 25, 30, 35, 35, 35], payouts   # cap at +25 bonus
+
+
+# G20 quiz refusals: unknown question, out-of-range choice, duplicate intent
+def test_quiz_refusals():
+    from lulu_kernel import QUIZ_BANK
+    qid = sorted(QUIZ_BANK.keys())[0]
+    log = admit([], "QUIZ_ANSWER", {"questionId": qid, "choice": 0, "intentId": "X1"})
+    before = json.dumps(log)
+    refuse(log, "QUIZ_ANSWER", {"questionId": "invented-question", "choice": 0, "intentId": "X2"})
+    refuse(log, "QUIZ_ANSWER", {"questionId": qid, "choice": 99, "intentId": "X3"})
+    refuse(log, "QUIZ_ANSWER", {"questionId": qid, "choice": 0, "intentId": "X1"})
+    assert json.dumps(log) == before, "refused quiz candidates leave the log untouched"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(
             ((k, v) for k, v in list(globals().items()) if k.startswith("test_")),

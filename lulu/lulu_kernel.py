@@ -17,7 +17,47 @@ SCHEMA_VERSION = "1.0"
 GENESIS_HASH = "LULU-GENESIS"
 
 KINDS = ("CARE_ACTION", "ABSENCE_TICK_BATCH", "ABSENCE_EVENT", "OBJECT_SPAWN",
-         "ZOL_DELTA", "REQUEST", "REQUEST_ANSWER", "MEMORY_NOTE")
+         "ZOL_DELTA", "REQUEST", "REQUEST_ANSWER", "MEMORY_NOTE", "QUIZ_ANSWER")
+
+# Learn AI, earn ZOL — the quiz layer. Correctness is decided by the kernel
+# against this pinned bank, never by the asker. Payout: 10 + streak bonus
+# (+5 per consecutive correct, capped at +25). Wrong answers pay nothing,
+# reset the streak, and still teach (the lesson line renders either way).
+QUIZ_PAYOUT_BASE = 10
+QUIZ_STREAK_STEP = 5
+QUIZ_STREAK_CAP = 25
+QUIZ_BANK = {
+    "prompt-clear":  {"q": "What makes an instruction clear?",
+                      "options": ["A goal, a place, and a limit", "Bigger letters", "More exclamation marks"],
+                      "correct": 0, "lesson": "Better prompt = objective + context + constraints."},
+    "llm-what":      {"q": "What is a large language model?",
+                      "options": ["A robot that walks", "AI trained on text to understand and generate language", "A database of images"],
+                      "correct": 1, "lesson": "It learns patterns from text to predict language."},
+    "memory-how":    {"q": "What gives an AI helper a memory?",
+                      "options": ["Shouting louder", "A bigger hat", "Writing events down and rereading them"],
+                      "correct": 2, "lesson": "Memory is a log you reread — like the Warren's replay."},
+    "evidence":      {"q": "Zaz claims moon cabbage makes goblins 400% smarter. First step?",
+                      "options": ["Test it", "Believe it — she sparkles", "Eat it all"],
+                      "correct": 0, "lesson": "Confidence is not correctness. Run a small test."},
+    "agent-fit":     {"q": "Who should carry a seed to the Garden?",
+                      "options": ["The loudest goblin", "The one who loves gardens", "Everyone at once"],
+                      "correct": 1, "lesson": "Tool Conjuration: match the agent to the task."},
+    "telephone":     {"q": "Why did Nib build a sunset-colored fridge instead of a bridge?",
+                      "options": ["Fridges are better", "The sunset asked", "The instruction mutated between agents"],
+                      "correct": 2, "lesson": "Goblin Telephone: every handoff can distort a prompt."},
+    "replay-why":    {"q": "Why does the Warren replay its history?",
+                      "options": ["So every change can be checked", "It looks pretty", "It scares bugs"],
+                      "correct": 0, "lesson": "A replayable log makes behavior inspectable."},
+    "feedback":      {"q": "An AI helper keeps failing a task. Best next step?",
+                      "options": ["Never use it again", "Give feedback and let it retry", "Hide the task"],
+                      "correct": 1, "lesson": "Iteration beats blame: adjust, retry, compare."},
+    "who-decides":   {"q": "Four goblins disagree. Who decides?",
+                      "options": ["The loudest goblin", "A coin flip", "You do — goblins propose, you choose"],
+                      "correct": 2, "lesson": "Agents propose; a person decides."},
+    "compost":       {"q": "What does composting a bad idea do?",
+                      "options": ["Turns it into soil for better ideas", "Deletes it forever", "Punishes the goblin"],
+                      "correct": 0, "lesson": "Rejected ideas become raw material."},
+}
 
 CARE_VERBS = ("TALK", "REST", "EXPLORE", "GIVE_OBJECT")
 
@@ -71,6 +111,7 @@ def fresh_state():
             "needs": {"energy": 70.0, "curiosity": 70.0, "connection": 55.0},
             "zol": 0, "in_cave": False, "low_connection_streak": 0,
             "room": [], "notes": [], "pending_requests": [], "answered_requests": [],
+            "quiz_streak": 0, "quiz_right": 0, "quiz_wrong": 0,
             "last_wall_ts": 0}
 
 
@@ -127,6 +168,17 @@ def replay(log):
                     needs["connection"] += 6; needs["curiosity"] += 4
                 else:
                     needs["connection"] -= 2
+        elif k == "QUIZ_ANSWER":
+            if p["correct"]:
+                s["quiz_streak"] += 1
+                s["quiz_right"] += 1
+                bonus = min(QUIZ_STREAK_CAP, (s["quiz_streak"] - 1) * QUIZ_STREAK_STEP)
+                s["zol"] += QUIZ_PAYOUT_BASE + bonus
+                needs["curiosity"] += 2
+            else:
+                s["quiz_streak"] = 0
+                s["quiz_wrong"] += 1
+                needs["curiosity"] += 1   # a wrong answer still teaches
         elif k == "MEMORY_NOTE":
             s["notes"].append({"text": p["text"], "sources": p["sourceEventIds"],
                                "status": p["status"]})   # informs, never decides
@@ -251,6 +303,22 @@ def admit(log, kind, payload):
             raise RefusalError("answer must be YES/LATER/MODIFY")
         if payload.get("requestId") not in state["pending_requests"]:
             raise RefusalError("no such pending request")
+    elif kind == "QUIZ_ANSWER":
+        qid = payload.get("questionId")
+        if qid not in QUIZ_BANK:
+            raise RefusalError("unknown questionId")
+        choice = payload.get("choice")
+        q = QUIZ_BANK[qid]
+        if not (isinstance(choice, int) and 0 <= choice < len(q["options"])):
+            raise RefusalError("choice out of range")
+        iid = payload.get("intentId")
+        if not iid:
+            raise RefusalError("intentId required")
+        if any(e["kind"] == "QUIZ_ANSWER" and e["payload"].get("intentId") == iid for e in log):
+            raise RefusalError("duplicate intentId")
+        if "correct" in payload and payload["correct"] != (choice == q["correct"]):
+            raise RefusalError("correctness is decided by the kernel, not the asker")
+        payload = dict(payload, correct=(choice == q["correct"]))
     elif kind == "MEMORY_NOTE":
         if payload.get("status") != "INTERPRETIVE":
             raise RefusalError("memory notes are INTERPRETIVE, never fact")
@@ -309,15 +377,17 @@ def validate_voice_output(obj):
     return True
 
 
+# Code-switching FR/EN — LOCKED (operator decision). French for emotion
+# and ceremony, English for administration and deadpan. Never translated.
 FALLBACK_LINES = {m: l for m, l in zip(MOODS, (
-    "Let's do everything!",
-    "Nothing is urgent after a blanket.",
-    "What happens if we press both buttons?",
-    "I reorganized the mushrooms by emotional distance.",
-    "I fixed it by not touching it.",
-    "The Warren has become suspiciously reasonable.",
-    "Do not panic. We are almost wealthy enough to make bad decisions.",
-    "I was not neglected. I entered a period of private mythology."))}
+    "On fait TOUT aujourd'hui. Everything. C'est décidé.",
+    "Rien n'est urgent après une couverture. Nothing. Rien.",
+    "What happens if we press both buttons? Juste pour savoir.",
+    "J'ai trié les champignons by emotional distance.",
+    "I fixed it by not touching it. C'est une technique.",
+    "The Warren has become suspiciously raisonnable.",
+    "Do not panic. On est presque assez riches to make bad decisions.",
+    "Je suis partie à la grotte to become mysterious."))}
 
 
 def offline_fallback(state):
