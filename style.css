@@ -513,12 +513,13 @@ html, body {
   margin: 0 8px;
   border-radius: 18px;
   overflow: hidden;
-  /* Layered scene: readability scrim → painted art (optional, remote — the
-     ONLY network asset; play never depends on it) → bundled SVG garden →
-     flat color. Any missing layer falls through to the next. */
+  /* Layered scene: readability scrim → painted art (bundled locally now —
+     "Root Hollow at Dusk", PARKED_CHIDDUSHIM.md #6 — no network dependency
+     at all, an upgrade over the prior remote-CDN hero image) → bundled SVG
+     garden → flat color. Any missing layer falls through to the next. */
   background:
     linear-gradient(rgba(10,7,20,0.25), rgba(10,7,20,0.38) 62%, rgba(8,5,16,0.58)),
-    url("https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260711_211334_2abf72f3-0910-4600-a210-6f41d92a6ac3.png") center / cover no-repeat,
+    url("docs/concept-art/vision-05-root-hollow.jpeg") center / cover no-repeat,
     url("bg.svg") center / cover no-repeat,
     #120e22;
   border: 1px solid var(--panel-edge);
