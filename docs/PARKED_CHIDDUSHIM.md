@@ -299,6 +299,10 @@
   motion work) land; no build of its own.
 - 19 → composted. The three real nuggets are already absorbed into this
   entry's writeup; nothing further to build, no bead to track.
+- 20 → (a) composted, same as #19, nothing to build. (b) parked as a
+  genuine candidate: a symbol legend documenting the emoji this game
+  already speaks, whenever there's appetite for it — small, additive,
+  no reducer touch.
 
 19. **"AGENTIC OS / POC Factory" dump — COMPOSTED, not admitted.** The
     operator asked to add ChatDev and AI Town as inspiration, then pasted
@@ -341,4 +345,41 @@
     Nothing here is a bead to build. It's compost: read, absorbed for
     the two real nutrients above, the rest left to break down.
 
+20. **Two more drops, COMPOSTED — a Python "HELEN Autoresearch" kernel,
+    and a bare symbol-class list.**
+    **(a) The autoresearch/claim-type-gate transcript** — a full session
+    log building `helen_kernel/` in a *different* repo: Python 3.14,
+    pytest, `.venv/`, paths like `town/ledger_v1.ndjson` and
+    `oracle_town/skills/ops/dan_goblin/` that don't exist here and
+    never will (this repo has zero Python, zero build step, one
+    `game.js`). Composted whole, same reasoning as #19: different
+    project, different architecture, nothing to run.
+    The one real nutrient, and it's confirmation rather than news: its
+    core doctrine — "jurisdiction before cognition," a pre-dispatch
+    gate checking `claim_type ∈ admissible_set(operation)` before
+    generation, `authority=false / admission=forbidden` on exploratory
+    work — is the *same discipline* this session has run all along
+    under different names (WITNESSED/REPORTED/CANDIDATE/NEEDS_ME claim
+    typing, "operator's hand is the only admission," parking every
+    chiddush instead of building blind). Two independent lines arriving
+    at the same gate shape is a mild validation signal, not a reason to
+    import Python into a browser game.
+    **(b) The symbol-class list** (`#WUL #o-conquest
+    NEW_LANGAGE_NO_WORDS`) — emoji/ASCII/math/astrological/chess/
+    weather/musical/etc. symbol categories, framed as a wordless
+    communication palette. **AUDIT:** this game already leans on emoji
+    as its primary expressive language (mood particles `✨🌟〜♡◆❣`
+    added this session; verdict stones `🌱⏳🍂`; signal icons
+    `🐛😴✨🌫️🧭🌳`; dozens more across `game.js`) but has never
+    formalized it into a named grammar — the WARREN TOWN mockup's
+    "WULMOJI GRAMMAR" panel (simple/advanced tabs, one fixed meaning
+    per glyph) is the closest reference for what that would look like,
+    and "WUL" is already a named concept in this project's own
+    concept-art (`WUL TRUTH` invariant, the WUL coin relic) — so unlike
+    (a), this isn't composted as *foreign*, it's parked as genuinely
+    on-topic but unscoped: a formal legend of the symbols already in
+    use, not a new mechanic, would be the honest next slice — CANDIDATE,
+    not built.
+
 *The scroll waits. It never nags.* 📜
+
