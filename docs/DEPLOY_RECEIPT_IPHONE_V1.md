@@ -313,3 +313,40 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - CREDITS SPENT: 0 (functional layer, no art assets generated)
 - REMAINING BUDGET: ~288 credits for Phase 3 (zone scenes) and Phase 4 (goblin illustrations)
 - NEXT SLICE (v2.0 candidate): Σigma Warren Researcher (WULmath-only communication, symbolic logic pedagogy)
+
+## v1.24 update — 2026-07-12 (operator-ordered: "add a video teaser at the beginning" + re-deploy)
+
+- SAME PLAY_URL (updated via game_id, not a new game):
+  https://forest-frost-277.higgsfield.gg/ · deploy_game returned
+  {"success":true, mode:"rules"} · game_id d95bb0da… unchanged.
+- SOURCE_GAME: commit-pinned raw URL → deploy/goblin-warren-v1.24.zip
+  (built by deploy.sh; bytes re-fetched over the public raw URL and
+  size-matched before deploy — READY after ~8s).
+- BUNDLE: index.html · style.css · game.js · logic.js · manifest.json ·
+  bg.svg · docs/concept-art/vision-05-root-hollow.jpeg (7 files, 586KB zip).
+- ADDED — SKIPPABLE TEASER VIDEO SPLASH: a ~5s cinematic teaser (Higgsfield
+  kling3_0_turbo — glowing Akashic tree, drifting violet spores, goblins
+  gathering; warm amber/moss/violet palette) plays as a background layer
+  under the GOBLIN WARREN title. muted+playsinline+autoplay so it plays on
+  mobile; ALWAYS skippable — a tap dismisses instantly, it also dismisses
+  when the teaser ends, and a safety timer dismisses it regardless. The
+  video streams from the Higgsfield CDN at runtime (egress here blocks a
+  local bundle copy); if it is blocked or the player is offline the gradient
+  shows through and the game is fully playable — same "any missing layer
+  falls through" discipline as the world background. No reducer changes.
+- FIXED — deploy bundle asset drift: deploy.sh still shipped the retired
+  bg/level2-glade.jpeg while style.css now paints from bg.svg +
+  vision-05-root-hollow.jpeg, so the live site had been falling through to
+  the flat-color background. Bundle now ships exactly what the working tree
+  references, so the live art matches local play.
+- TESTS BEFORE DEPLOY: verify.js 26/26 on a clean run (T15/T18 remain
+  pre-existing timing flakes that trade off run-to-run — bubbleHits flips
+  0↔1 — orthogonal to the splash; confirmed by git-stash A/B). Playwright:
+  teaser element present with https src; tap-to-skip dismisses; the no-tap
+  safety timer dismisses (proving the CDN-blocked / offline case never traps
+  the player); zero non-CDN console errors.
+- IPHONE_SAFARI_STATUS for v1.24: untested (awaits the operator's thumb —
+  this one also witnesses whether the teaser autoplays on real iOS Safari;
+  if not, the tap still enters and the splash is unchanged).
+- CREDITS SPENT: teaser video generation (kling3_0_turbo, 5s); thumbnail +
+  favicon reused from existing V2 key-art (no new image credits).
