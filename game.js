@@ -291,7 +291,80 @@ function ensureAudio() {
   try { var Ctx = window.AudioContext || window.webkitAudioContext; actx = new Ctx(); } catch (e) { actx = null; }
   return actx;
 }
-function resumeAudio() { if (actx && actx.state === "suspended") actx.resume(); }
+function resumeAudio() { if (actx && actx.state === "suspended") actx.resume(); startAmbient(); }
+
+/* ---------------------------------------------------------------------
+   AMBIENT PLAYLIST — optional remote layer; play NEVER depends on it.
+   Two generated music tracks rotate quietly under the game's tone SFX;
+   a night-forest loop breathes underneath; soft birds visit sometimes.
+   Starts only after the first user gesture (autoplay law). Any network
+   or decode error mutes that layer silently — the Warren plays on.
+--------------------------------------------------------------------- */
+
+var MUSIC_TRACKS = [    /* generated for this game; quiet, wordless, looped */
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013718_97969d0f-a54a-413e-af37-6229492dde2e.m4a",
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013720_e5d6eb53-0b55-4d7d-a186-055f886faade.m4a"
+];
+var NATURE_LOOP =        /* continuous crickets / owl / leaves */
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013723_b852b6f0-649a-4a99-a31b-5711180b419a.mp3";
+var BIRD_CLIP =          /* occasional soft birds one-shot */
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013728_6740726c-9d11-4809-8b8d-03a210140515.mp3";
+
+var ambient = { started: false, music: null, nature: null, birds: null, trackIndex: 0, birdTimer: null };
+
+function ambientAllowed() { return !S.settings.muted; }
+
+function startAmbient() {
+  if (ambient.started) { applyAmbientMute(); return; }
+  ambient.started = true;
+
+  if (MUSIC_TRACKS.length) {
+    ambient.music = new Audio();
+    ambient.music.volume = 0.22;
+    ambient.music.preload = "auto";
+    ambient.music.addEventListener("ended", function () {
+      ambient.trackIndex = (ambient.trackIndex + 1) % MUSIC_TRACKS.length;
+      setTimeout(function () {
+        if (!ambient.music) return;
+        ambient.music.src = MUSIC_TRACKS[ambient.trackIndex];
+        if (ambientAllowed()) ambient.music.play().catch(function () {});
+      }, 6000);
+    });
+    ambient.music.addEventListener("error", function () { ambient.music = null; });
+    ambient.music.src = MUSIC_TRACKS[0];
+    if (ambientAllowed()) ambient.music.play().catch(function () {});
+  }
+
+  if (NATURE_LOOP) {
+    ambient.nature = new Audio(NATURE_LOOP);
+    ambient.nature.loop = true;
+    ambient.nature.volume = 0.13;
+    ambient.nature.addEventListener("error", function () { ambient.nature = null; });
+    if (ambientAllowed()) ambient.nature.play().catch(function () {});
+  }
+
+  if (BIRD_CLIP) {
+    ambient.birds = new Audio(BIRD_CLIP);
+    ambient.birds.volume = 0.11;
+    ambient.birds.addEventListener("error", function () { ambient.birds = null; });
+    var visit = function () {
+      if (ambient.birds && ambientAllowed()) { ambient.birds.currentTime = 0; ambient.birds.play().catch(function () {}); }
+      ambient.birdTimer = setTimeout(visit, 45000 + Math.random() * 60000);
+    };
+    ambient.birdTimer = setTimeout(visit, 20000);
+  }
+}
+
+function applyAmbientMute() {
+  var muted = !ambientAllowed();
+  ["music", "nature", "birds"].forEach(function (k) {
+    var a = ambient[k];
+    if (!a) return;
+    a.muted = muted;
+    if (muted) a.pause();
+    else if (k !== "birds") a.play().catch(function () {});
+  });
+}
 
 function tone(freq, start, dur, type, gain, glideTo) {
   if (S.settings.muted) return;
@@ -1602,6 +1675,9 @@ function renderTopbar() {
 
   var cur = document.getElementById("currency");
   if (cur) cur.textContent = "✨" + S.progress.glowOrbs + " 🔮" + S.progress.magicSap;
+
+  var zolBtn = document.getElementById("zol-wallet");
+  if (zolBtn) zolBtn.textContent = "🪙" + S.learning.zolBalance;
 }
 
 function renderReplayStrip() {
@@ -2419,12 +2495,26 @@ function wireInput() {
   document.getElementById("mute-btn").addEventListener("click", function () {
     ensureAudio(); resumeAudio();
     S.settings.muted = !S.settings.muted;
+    applyAmbientMute();
     saveState();
     renderTopbar();
     if (!S.settings.muted) Sound.chirp();
   });
   document.getElementById("card-close").addEventListener("click", function () { renderSheetIdle(); });
   document.getElementById("oracle-close").addEventListener("click", closeOracle);
+
+  /* ZOL wallet — tappable shop access (mobile-first; 'B' remains the shortcut) */
+  var zolWallet = document.getElementById("zol-wallet");
+  if (zolWallet) {
+    zolWallet.addEventListener("click", function () {
+      ensureAudio(); resumeAudio();
+      var shop = document.getElementById("sheet-zol-shop");
+      if (shop && shop.classList.contains("hidden")) { Sound.chirp(); renderTerritoryShop(); }
+      else renderSheetIdle();
+    });
+  }
+  var zolClose = document.getElementById("zol-shop-close");
+  if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
   document.getElementById("btn-try").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("try"); });
   document.getElementById("btn-hold").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("hold"); });
   document.getElementById("btn-compost").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("compost"); });

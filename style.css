@@ -137,6 +137,23 @@ html, body {
 }
 #mute-btn:active { transform: scale(0.94); }
 
+#zol-wallet {
+  flex: 0 0 auto;
+  min-width: 44px; min-height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--glow-lime);
+  background: linear-gradient(135deg, rgba(155,227,109,0.14), rgba(120,170,60,0.10));
+  color: var(--glow-lime);
+  font-size: 12px;
+  font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(155,227,109,0.18);
+}
+#zol-wallet:active { transform: scale(0.94); }
+
 /* ---------- CENTER: the living world ---------- */
 #world {
   position: relative;
@@ -1416,7 +1433,9 @@ html, body {
   font-size: 16px;
   font-weight: bold;
   color: var(--glow-cream);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 16px;
 }
 

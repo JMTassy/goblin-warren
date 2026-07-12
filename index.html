@@ -22,6 +22,7 @@
       <span id="signal-text">quiet</span>
     </div>
     <div id="currency" aria-label="glow orbs and magic sap">✨0 🔮0</div>
+    <button id="zol-wallet" aria-label="open the ZOL shop">🪙0</button>
     <button id="mute-btn" aria-label="mute sound">🔊</button>
   </header>
 
@@ -178,8 +179,11 @@
       </div>
 
       <div id="sheet-zol-shop" class="hidden">
-        <div class="zol-shop-head">💰 Expand the Warren</div>
-        <div id="zol-shop-balance">You have <span id="zol-balance-amount">0</span> ✨</div>
+        <div class="zol-shop-head">
+          <span>🪙 Expand the Warren</span>
+          <button class="card-close" id="zol-shop-close" aria-label="close shop">✕</button>
+        </div>
+        <div id="zol-shop-balance">You have <span id="zol-balance-amount">0</span> ZOL — earn more from the Memory Moth 🦋</div>
         <div id="zol-territories"></div>
       </div>
     </div>
