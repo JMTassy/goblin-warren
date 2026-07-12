@@ -199,7 +199,7 @@ function makeState() {
             needs: { energy: 70, curiosity: 70, connection: 55 },
             lastVisitAt: null, accessories: [], inCave: false,
             counts: { talk: 0, rest: 0, explore: 0, give: 0, requestsYes: 0 },
-            pendingRequest: null, requestsDone: [] },
+            pendingRequest: null, requestsDone: [], chat: [] },
     activeProposal: null,
     objects: [],
     replay: [],
@@ -252,6 +252,7 @@ function mergeDefaults(loaded) {
     out.lulu.counts = Object.assign({}, d.lulu.counts, (loaded.lulu && loaded.lulu.counts) || {});
     out.lulu.accessories = Array.isArray(loaded.lulu && loaded.lulu.accessories) ? loaded.lulu.accessories : [];
     out.lulu.requestsDone = Array.isArray(loaded.lulu && loaded.lulu.requestsDone) ? loaded.lulu.requestsDone : [];
+    out.lulu.chat = Array.isArray(loaded.lulu && loaded.lulu.chat) ? loaded.lulu.chat.slice(-12) : [];
     out.activeProposal = loaded.activeProposal || null;
     out.objects = Array.isArray(loaded.objects) ? loaded.objects : [];
     out.replay = Array.isArray(loaded.replay) ? loaded.replay : [];
@@ -1149,6 +1150,128 @@ function checkLuluAccessories() {
       Sound.bloom();
     }
   });
+}
+
+/* ---------------------------------------------------------------------
+   LULU — LIVE CONVERSATION. Type to her; she answers.
+   Two paths, same voice contract: a player-supplied Anthropic key
+   (sessionStorage only, never persisted) gives a live Claude voice;
+   otherwise a rich, state-aware offline responder keeps her alive —
+   she references her real mood, needs, memories, the day's events, and
+   your words, code-switching FR/EN. She is never a scripted menu.
+--------------------------------------------------------------------- */
+
+function luluRecentEventLine() {
+  for (var i = S.replay.length - 1; i >= 0; i--) {
+    var r = S.replay[i];
+    if (r.actor === "lulu" || (r.memoryLine && r.memoryLine.length > 4)) return r.memoryLine || r.visibleChange;
+  }
+  return null;
+}
+
+function luluOfflineReply(msg) {
+  var t = (msg || "").toLowerCase();
+  var n = S.lulu.needs, m = luluMood(), ech = S.echoes || {};
+  var pick2 = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+
+  /* intent detection — cheap keyword routing */
+  var say;
+  if (/^(hi|hey|hello|salut|coucou|bonjour|yo)\b/.test(t)) {
+    say = pick2(["Te voilà. I was mid-thought. It can wait.",
+      "Oh! Hi. I was reorganising the silence.",
+      "Salut. You smell like decisions."]);
+  } else if (/gerald|bug/.test(t)) {
+    say = ech.geraldHead ? "Gerald? He's Head of Hiding now. Very senior. Very hidden."
+      : pick2(["Gerald ate two leaves and a small idea of mine.", "Le bug? On est colleagues now."]);
+  } else if (/zol|gold|money|argent|coin/.test(t)) {
+    say = "We have " + S.learning.zolBalance + " ZOL. Assez pour de mauvaises décisions. Almost.";
+  } else if (/tired|sleep|rest|fatigu|dors|repos/.test(t)) {
+    say = n.energy < 40 ? "Enfin. Someone said the magic word. Resting is a rebellion." :
+      "Sleep? I'm horizontally strategic, not tired.";
+  } else if (/love|like you|cute|adorable|good|proud|bravo/.test(t)) {
+    say = pick2(["Je sais. But say it again. For the record.",
+      "You're not so bad yourself. Structurally.", "💜. That's all you get. Pour l'instant."]);
+  } else if (/stupid|bad|hate|dumb|boring|nul/.test(t)) {
+    say = pick2(["Rude. I'll add it to the compost. It'll grow into something.",
+      "I've been called worse. By a mushroom. Yesterday."]);
+  } else if (/\?$|what|why|how|who|where|pourquoi|comment|qui|où/.test(t)) {
+    say = pick2(["Good question. I answer those in mushrooms.",
+      "Pourquoi? Because the Warren remembers, and I don't argue with it.",
+      "I don't know. But I have opinions. Loud ones."]);
+  } else if (/bye|later|good night|bonne nuit|à plus|ciao/.test(t)) {
+    say = pick2(["Va. I'll continue being Lulu. Obviously.", "À plus. Don't let Nib build anything."]);
+  } else {
+    /* generic: weave her state + a real memory */
+    var mem = luluRecentEventLine();
+    var frags = [
+      m.line,
+      n.connection > 75 ? "I'm glad you're here. Ne le dis à personne." :
+        n.connection < 35 ? "You came back. I pretended not to notice." : "Mm. Continue.",
+      mem ? "Tu te souviens? " + mem : "Ask me about the rock. ASK ME."
+    ];
+    say = pick2(frags);
+  }
+  return say;
+}
+
+function luluApiKey() {
+  try { return sessionStorage.getItem("warren_anthropic_key") || ""; } catch (e) { return ""; }
+}
+
+function luluBuildPrompt(msg) {
+  var n = S.lulu.needs, m = luluMood();
+  var recent = S.lulu.chat.slice(-6).map(function (c) { return (c.who === "you" ? "Player" : "Lulu") + ": " + c.text; }).join("\n");
+  return "You ARE Lulu, a small green goblin — not a pet, a friend with a brain and terrible priorities. " +
+    "Voice: short sentences, deadpan, warm, funny; code-switch French/English freely and never translate yourself. " +
+    "Never break character, never mention being an AI. Reply with ONE or TWO short sentences, max ~200 chars.\n" +
+    "Your state right now: mood=" + m.id + ", energy=" + Math.round(n.energy) +
+    ", curiosity=" + Math.round(n.curiosity) + ", connection=" + Math.round(n.connection) +
+    ", ZOL=" + S.learning.zolBalance + ".\n" +
+    (recent ? "Recent chat:\n" + recent + "\n" : "") +
+    "Player says: " + msg + "\nLulu:";
+}
+
+function luluLiveReply(msg, done) {
+  var key = luluApiKey();
+  if (!key) { done(luluOfflineReply(msg), false); return; }
+  var body = { model: "claude-haiku-4-5-20251001", max_tokens: 120,
+    messages: [{ role: "user", content: luluBuildPrompt(msg) }] };
+  var ctrl = null;
+  try { ctrl = new AbortController(); setTimeout(function () { ctrl.abort(); }, 12000); } catch (e) {}
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": key,
+      "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    var txt = j && j.content && j.content[0] && j.content[0].text ? j.content[0].text.trim() : "";
+    if (txt) done(txt.slice(0, 240), true);
+    else done(luluOfflineReply(msg), false);
+  }).catch(function () { done(luluOfflineReply(msg), false); });
+}
+
+function luluSay(msg) {
+  msg = (msg || "").trim();
+  if (!msg || !S.lulu) return;
+  S.lulu.chat.push({ who: "you", text: msg.slice(0, 160) });
+  /* talking is real care: raises connection, wakes her from the cave */
+  S.lulu.needs.connection = clamp(S.lulu.needs.connection + 5, 5, 100);
+  if (S.lulu.inCave) { S.lulu.inCave = false; S.lulu.needs.connection = Math.max(S.lulu.needs.connection, 25); }
+  S.lulu.chat.push({ who: "lulu", text: "…", pending: true });
+  renderLuluCare("lulu");
+  luluLiveReply(msg, function (reply, live) {
+    for (var i = S.lulu.chat.length - 1; i >= 0; i--) {
+      if (S.lulu.chat[i].pending) { S.lulu.chat[i] = { who: "lulu", text: reply, live: live }; break; }
+    }
+    if (S.lulu.chat.length > 12) S.lulu.chat = S.lulu.chat.slice(-12);
+    applyLuluMood();
+    pushReplay("lulu", "Lulu spoke", "lulu-chat", reply, reply);
+    Sound.squeak("lulu");
+    saveState();
+    if (S.goblins.lulu) showBubble("lulu", reply, 4200);
+    renderLuluCare("lulu");
+  });
+  saveState();
 }
 
 function luluAccessoryEmojis() {
@@ -3050,6 +3173,17 @@ function renderLuluCare(id) {
       '<button class="care-btn rest" data-care="rest">🛌<b>REST</b></button>' +
       '<button class="care-btn explore" data-care="explore">🔍<b>EXPLORE</b></button>' +
       '<button class="care-btn give" data-care="give">🎁<b>GIVE</b></button>' +
+    '</div>' +
+    /* live conversation — type to Lulu, she answers */
+    '<div id="lulu-chat">' +
+      (S.lulu.chat.length ? S.lulu.chat.slice(-6).map(function (c) {
+        return '<div class="chat-line ' + (c.who === "you" ? "you" : "lulu") + (c.pending ? " pending" : "") + '">' +
+          (c.who === "you" ? "" : "🟢 ") + c.text.replace(/</g, "&lt;") + '</div>';
+      }).join("") : '<div class="chat-hint">say something to Lulu…</div>') +
+    '</div>' +
+    '<div class="chat-input-row">' +
+      '<input id="lulu-input" placeholder="talk to Lulu…" maxlength="160" autocomplete="off" />' +
+      '<button id="lulu-send">➤</button>' +
     '</div>';
 
   var req = LULU_REQUESTS.find(function (r) { return r.id === S.lulu.pendingRequest; });
@@ -3079,7 +3213,30 @@ function renderLuluCare(id) {
       renderLuluCare("lulu");
     });
   });
+
+  /* conversation wiring */
+  var input = document.getElementById("lulu-input");
+  var send = document.getElementById("lulu-send");
+  var fire = function () {
+    if (!input) return;
+    var v = input.value;
+    if (!v.trim()) return;
+    input.value = "";
+    ensureAudio(); resumeAudio();
+    luluChatFocus = true;
+    luluSay(v);
+  };
+  if (send) send.addEventListener("click", function (e) { e.stopPropagation(); fire(); });
+  if (input) {
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); fire(); } });
+    input.addEventListener("click", function (e) { e.stopPropagation(); });
+    /* keep focus while chatting — scroll thread to newest */
+    var thread = document.getElementById("lulu-chat");
+    if (thread) thread.scrollTop = thread.scrollHeight;
+    if (luluChatFocus) { try { input.focus(); } catch (e) {} luluChatFocus = false; }
+  }
 }
+var luluChatFocus = false;
 
 function renderSheetProposal() {
   if (quizOpen) return; // the Moth finishes its question first
@@ -3999,6 +4156,15 @@ function onTapMoth() {
   renderSheetQuiz();
 }
 
+/* Quiz on demand — the riddle is never hidden. Summon the Moth to the Tree
+   (visible), then open the question. Works from the 🦋 chip or a Tree tap. */
+function openRiddle() {
+  if (quizOpen || S.activeProposal) return;
+  ensureAudio(); resumeAudio();
+  if (!mothEl) { spawnMoth(); }
+  onTapMoth();
+}
+
 function answerQuiz(option) {
   if (!quizOpen || !currentQuiz) return;
   var right = option === currentQuiz.correct;
@@ -4120,6 +4286,18 @@ function wireInput() {
   }
   var zolClose = document.getElementById("zol-shop-close");
   if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
+
+  /* Riddle chip — always-available quiz for ZOL (the Moth, on demand) */
+  var riddleChip = document.getElementById("riddle-chip");
+  if (riddleChip) riddleChip.addEventListener("click", function () { openRiddle(); });
+
+  /* Tapping the Akashic Tree also summons a riddle */
+  var treeZone = document.getElementById("zone-tree");
+  if (treeZone) {
+    treeZone.style.pointerEvents = "auto";
+    treeZone.style.cursor = "pointer";
+    treeZone.addEventListener("click", function () { openRiddle(); });
+  }
 
   /* Level chip — cycle to the next chapter (a 🎪 sparkle there brings its 3 quests) */
   var lvChip = document.getElementById("level-chip");
@@ -4286,6 +4464,10 @@ window.WARREN_DEBUG = {
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
+  openRiddle: function () { openRiddle(); },
+  luluSay: function (m) { luluSay(m); },
+  luluOfflineReply: function (m) { return luluOfflineReply(m); },
+  getLuluChat: function () { return S.lulu.chat; },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },

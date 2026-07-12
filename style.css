@@ -63,8 +63,8 @@ html, body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 5px;
+  padding: 8px 8px;
   min-height: 44px;
   z-index: 40;
 }
@@ -75,8 +75,16 @@ html, body {
   gap: 6px;
   font-size: 13px;
   color: var(--ink-dim);
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+#tree-text { overflow: hidden; text-overflow: ellipsis; }
+/* on narrow screens the decorative signal text folds away; chips stay */
+@media (max-width: 430px) {
+  #signal-text { display: none; }
+  #tree-status { flex: 0 1 auto; }
 }
 
 #tree-glyph {
@@ -1561,6 +1569,24 @@ html, body {
   animation: zonebob 1.6s ease-in-out infinite;
 }
 
+/* riddle chip — always-available quiz entry */
+#riddle-chip {
+  flex: 0 0 auto;
+  min-width: 44px; min-height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--glow-pink);
+  background: linear-gradient(135deg, rgba(255,110,166,0.16), rgba(255,110,166,0.05));
+  color: var(--glow-pink);
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  animation: riddlepulse 3s ease-in-out infinite;
+}
+#riddle-chip:active { transform: scale(0.94); }
+@keyframes riddlepulse { 0%,100% { box-shadow: 0 0 4px rgba(255,110,166,0.2); } 50% { box-shadow: 0 0 14px rgba(255,110,166,0.6); } }
+
 /* level chip */
 #level-chip {
   flex: 0 0 auto;
@@ -1743,6 +1769,65 @@ html, body {
   box-shadow: 2px 3px 6px rgba(0,0,0,0.35);
 }
 .care-zol { font-size: 10px; color: var(--glow-cream); font-weight: 700; }
+
+/* Lulu conversation — the live NPC feel */
+#lulu-chat {
+  margin-top: 8px;
+  max-height: 128px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  background: rgba(0,0,0,0.18);
+  border-radius: 10px;
+}
+.chat-hint { font-size: 10px; color: var(--ink-dim); font-style: italic; text-align: center; padding: 8px; }
+.chat-line {
+  font-size: 11.5px;
+  line-height: 1.35;
+  padding: 5px 8px;
+  border-radius: 10px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+.chat-line.you {
+  align-self: flex-end;
+  background: rgba(80,208,255,0.16);
+  color: var(--ink);
+  border-bottom-right-radius: 3px;
+}
+.chat-line.lulu {
+  align-self: flex-start;
+  background: rgba(255,110,166,0.14);
+  color: var(--ink);
+  border-bottom-left-radius: 3px;
+}
+.chat-line.pending { opacity: 0.5; animation: dotpulse 1s ease-in-out infinite; }
+.chat-input-row { display: flex; gap: 6px; margin-top: 6px; }
+#lulu-input {
+  flex: 1 1 auto;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--glow-pink);
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+}
+#lulu-input::placeholder { color: var(--ink-dim); }
+#lulu-send {
+  flex: 0 0 auto;
+  min-width: 44px; min-height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(160deg, #c25580, #93325c);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+#lulu-send:active { transform: scale(0.94); }
 .care-actions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
