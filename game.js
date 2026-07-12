@@ -210,7 +210,8 @@ function makeState() {
                 firstInteractionAt: null, lastQuizTopic: null, lastQuizLesson: null },
     npcAbilities: { pip: { clarifySign: false } },
     worldSigns: { westPath: { text: "MUSHROOMS THIS WAY", clarity: 0.25, clarified: false } },
-    memories: []
+    memories: [],
+    council: { done: false, stage: "IDLE", card: null }
   };
 }
 
@@ -218,7 +219,7 @@ function validAndComplete(s) {
   return s && s.version === STATE_VERSION && s.world && s.goblins &&
     s.goblins.lulu && s.goblins.pip && s.goblins.zaz && s.goblins.nib &&
     Array.isArray(s.replay) && s.flags && s.progress && s.settings && s.learning &&
-    s.npcAbilities && s.worldSigns && Array.isArray(s.memories);
+    s.npcAbilities && s.worldSigns && Array.isArray(s.memories) && s.council;
 }
 
 function mergeDefaults(loaded) {
@@ -249,6 +250,7 @@ function mergeDefaults(loaded) {
     out.npcAbilities = { pip: Object.assign({}, d.npcAbilities.pip, (loaded.npcAbilities && loaded.npcAbilities.pip) || {}) };
     out.worldSigns = { westPath: Object.assign({}, d.worldSigns.westPath, (loaded.worldSigns && loaded.worldSigns.westPath) || {}) };
     out.memories = Array.isArray(loaded.memories) ? loaded.memories : [];
+    out.council = Object.assign({}, d.council, loaded.council || {});
   } catch (e) { return d; }
   return out;
 }
@@ -740,6 +742,168 @@ function closeMaestroLesson() {
   if (lessonOverlay) lessonOverlay.classList.add("hidden");
 }
 
+/* ---------------------------------------------------------------------
+   GOBLIN COUNCIL V0 — NPC debate → player nudge → consensus →
+   ridiculous action → visible consequence.
+   Dialogue lines are typed acts (PROPOSE/OBJECT/UPDATE/REFUSE/JOKE)
+   that compile into positions; dialogue itself NEVER mutates world
+   state — only executeCouncilPlan() does.
+--------------------------------------------------------------------- */
+
+var COUNCIL_EPISODE = {
+  id: "gerald-hearing",
+  crisis: "CRISIS: GERALD'S CITIZENSHIP HEARING",
+  intro: "Gerald ate two leaves and slept inside Pip's archive. The Warren must decide.",
+  proposals: [
+    { id: "house",   label: "BUILD A HOUSE", icon: "🏠" },
+    { id: "observe", label: "OBSERVE",       icon: "🏺" },
+    { id: "move",    label: "MOVE GARDEN",   icon: "🌱" }
+  ],
+  opening: [
+    { speaker: "lulu", act: "PROPOSE", targetProposal: "house",   reason: "ancestry",        text: "Gerald has lived here forty-seven seconds. That is practically ancestry." },
+    { speaker: "pip",  act: "OBJECT",  targetProposal: "observe", reason: "missing_record",  text: "Gerald has no record, no address and possibly no surname." },
+    { speaker: "zaz",  act: "PROPOSE", targetProposal: "move",    reason: "garden_first",    text: "The garden was here first. Gerald has eaten part of the evidence." },
+    { speaker: "nib",  act: "MISUNDERSTAND", targetProposal: "wall", reason: "already_built", text: "I have already built a wall." }
+  ],
+  cards: [
+    { id: "clarify",  title: "CLARIFY THE GOAL", text: "Protect both Gerald and the seedlings.",
+      teaches: "A good prompt = objective + constraints.",
+      outcome: "house", plan: "Build Gerald a shelter, away from the seedlings.",
+      update: [
+        { speaker: "zaz",  act: "UPDATE",  targetProposal: "house",   reason: "both_protected", text: "A shelter away from my seedlings protects both. Fine." },
+        { speaker: "nib",  act: "UPDATE",  targetProposal: "house",   reason: "roof_upgrade",   text: "The wall can be a house if I add a roof." },
+        { speaker: "pip",  act: "REFUSE",  targetProposal: "observe", reason: "not_an_embassy", text: "I support the shelter. I do not support calling it an embassy." },
+        { speaker: "lulu", act: "JOKE",    targetProposal: "house",   reason: "scrolls",        text: "I will prepare the ancestral scrolls. Both of them." }
+      ] },
+    { id: "evidence", title: "SHOW EVIDENCE", text: "Gerald ate two leaves, sleeps in corners, avoids mushrooms.",
+      teaches: "A claim is not evidence. Evidence moves goblins.",
+      outcome: "observe", plan: "Observe Gerald officially. He keeps his corner.",
+      update: [
+        { speaker: "lulu", act: "UPDATE",  targetProposal: "observe", reason: "taste",          text: "Avoids mushrooms? Gerald has taste. Observation granted." },
+        { speaker: "nib",  act: "UPDATE",  targetProposal: "observe", reason: "wall_window",    text: "I will observe him through a small window in the wall." },
+        { speaker: "zaz",  act: "REFUSE",  targetProposal: "move",    reason: "still_eaten",    text: "The garden was still eaten. I am moving the seedlings anyway." },
+        { speaker: "pip",  act: "SUPPORT", targetProposal: "observe", reason: "record_started", text: "Two leaves, corners, no mushrooms. Now THAT is a record." }
+      ] },
+    { id: "split", title: "SPLIT THE TASK", text: "Pip observes. Zaz moves seedlings. Nib builds shelter.",
+      teaches: "One complex task → complementary agents.",
+      outcome: "coalition", plan: "Pip observes. Zaz relocates seedlings. Nib builds. Lulu flags.",
+      update: [
+        { speaker: "pip",  act: "SUPPORT", targetProposal: "observe", reason: "clipboard",      text: "I observe. Officially. With a clipboard." },
+        { speaker: "zaz",  act: "UPDATE",  targetProposal: "move",    reason: "dawn_move",      text: "Seedlings relocate at dawn. Gerald keeps the corner." },
+        { speaker: "nib",  act: "UPDATE",  targetProposal: "house",   reason: "fortified",      text: "One shelter. Unnecessarily fortified. You are welcome." },
+        { speaker: "lulu", act: "JOKE",    targetProposal: "house",   reason: "flag_budget",    text: "I am in charge of the flag. There was no flag budget. There is now." }
+      ] }
+  ],
+  lesson: "The team solved the original problem and accidentally created foreign policy.",
+  sigma: "🐛 + 🏠 ⇒ 🐛🐛",
+  zolReward: 15
+};
+
+/* C1: opening positions derive from live goblin state (role), never hardcoded UI. */
+function councilPositionFor(id) {
+  var g = S.goblins[id];
+  if (!g) return "observe";
+  if (g.role === "Archivist") return "observe";
+  if (g.role === "Gardener") return "move";
+  if (g.role === "Detour Specialist") return "house";
+  return "wall"; /* Nib: something nobody requested */
+}
+
+function councilPositions() {
+  var pos = {};
+  ["lulu", "pip", "zaz", "nib"].forEach(function (id) {
+    pos[id] = S.council.card
+      ? (COUNCIL_EPISODE.cards.find(function (c) { return c.id === S.council.card; })
+          .update.find(function (l) { return l.speaker === id; }).targetProposal)
+      : councilPositionFor(id);
+  });
+  return pos;
+}
+
+var councilTimer = null;
+function maybeStartCouncil() {
+  if (S.council.done || S.council.stage !== "IDLE") return;
+  if (S.learning.geraldQuest.stage !== "T5A_RESOLVED") return;
+  if (S.activeProposal || quizOpen) { clearTimeout(councilTimer); councilTimer = setTimeout(maybeStartCouncil, 15000); return; }
+  startCouncil();
+}
+
+function startCouncil() {
+  if (S.council.done) return false;
+  S.council.stage = "DEBATE";
+  pushReplay("council", COUNCIL_EPISODE.crisis, "council-open",
+    "The Warren convened on Gerald: house, observation, or moving the garden.", "");
+  saveState();
+  Sound.bell();
+  renderCouncil();
+  return true;
+}
+
+function councilIntervene(cardId) {
+  /* C3: the player intervenes exactly once. */
+  if (S.council.stage !== "DEBATE" || S.council.card) return false;
+  var card = COUNCIL_EPISODE.cards.find(function (c) { return c.id === cardId; });
+  if (!card) return false;
+  S.council.card = cardId;
+  S.council.stage = "UPDATED";
+  pushReplay("council", "Intervention: " + card.title, "council-card",
+    "You played " + card.title + ": “" + card.text + "”. Positions shifted.", "");
+  saveState();
+  Sound.chirp();
+  renderCouncil();
+  setTimeout(function () { executeCouncilPlan(card); }, 2600);
+  return true;
+}
+
+function executeCouncilPlan(card) {
+  /* C6/C7: the ONLY place council changes the world. */
+  if (S.council.stage !== "UPDATED" || S.council.done) return;
+  S.council.stage = "RESOLVED";
+  S.council.done = true;
+
+  /* The goblins execute autonomously — and overdeliver. */
+  showBubble("pip", "Gerald: registered.", 2600);
+  setTimeout(function () { showBubble("zaz", "Seedlings relocated. Gently.", 2600); }, 900);
+  setTimeout(function () { showBubble("nib", "The shelter is unnecessarily fortified.", 2600); }, 1800);
+  setTimeout(function () { showBubble("lulu", "I added a flag.", 2600); }, 2700);
+
+  addObject("🏛️", "The Embassy of Bug", "nursery");
+  if (card.outcome !== "observe") addObject("🌱", "Relocated Seedlings", "garden");
+  S.world.treeHealth = clamp(S.world.treeHealth + 2, 0, 100);
+  S.goblins.pip.memory = "I registered a bug today. Officially.";
+  S.goblins.lulu.memory = "We have a flag now. Nobody asked. Everybody needed it.";
+  S.learning.zolBalance += COUNCIL_EPISODE.zolReward;
+  S.learning.pillarProgress.intelligenceDesign += 15;
+
+  pushReplay("council", "The plan executed", "council-executed",
+    "Consensus: " + card.plan + " The shelter became The Embassy of Bug.", "");
+
+  /* C8: the absurd side effect — successful systems attract new demand. */
+  setTimeout(function () {
+    addObject("🐛", "Second Bug — Asylum Request", "nursery");
+    showBubble("zaz", "Another one arrived. It has paperwork.", 3200);
+    pushReplay("council", "Foreign policy", "council-side-effect",
+      "A second bug arrived requesting asylum. " + COUNCIL_EPISODE.sigma, "");
+    saveState();
+    renderAll();
+  }, 2200);
+
+  zolCelebrate(COUNCIL_EPISODE.zolReward);
+  saveState();
+  renderAll();
+  renderSheetIdle();
+  setTimeout(function () { showCouncilLesson(card); }, 3400);
+}
+
+function showCouncilLesson(card) {
+  var lessonOverlay = document.getElementById("maestro-lesson");
+  var lessonText = document.getElementById("maestro-lesson-text");
+  if (!lessonOverlay || !lessonText) return;
+  lessonText.innerHTML = COUNCIL_EPISODE.lesson + "<br/><br/>" + card.teaches +
+    "<br/><br/>" + COUNCIL_EPISODE.sigma + "<br/><br/>+" + COUNCIL_EPISODE.zolReward + " 🪙";
+  lessonOverlay.classList.remove("hidden");
+}
+
 /* Territory Actions — territories unlock ABILITIES, not scripted events.
    The goblin decides on its own tick when to use one, from world state.
    unlock ability ≠ press ability button. */
@@ -1180,6 +1344,7 @@ function renderSheetGeraldTelephone() {
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   document.getElementById("sheet-zol-shop").classList.add("hidden");
 
   var sheet = document.getElementById("sheet-proposal");
@@ -1284,6 +1449,10 @@ function resolveGeraldT5aProposal(choice) {
 
   saveState();
   renderAll();
+
+  /* The hearing convenes once the dust settles. */
+  clearTimeout(councilTimer);
+  councilTimer = setTimeout(maybeStartCouncil, 25000);
   return;
 }
 
@@ -1786,6 +1955,7 @@ function renderSheetIdle() {
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   document.getElementById("sheet-zol-shop").classList.add("hidden");
 }
 
@@ -1795,6 +1965,7 @@ function renderSheetGoblin(id) {
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   document.getElementById("sheet-zol-shop").classList.add("hidden");
   var sheet = document.getElementById("sheet-goblin");
   sheet.classList.remove("hidden");
@@ -1816,6 +1987,7 @@ function renderSheetProposal() {
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   document.getElementById("sheet-zol-shop").classList.add("hidden");
   var sheet = document.getElementById("sheet-proposal");
   sheet.classList.remove("hidden");
@@ -1825,12 +1997,72 @@ function renderSheetProposal() {
   document.getElementById("proposal-text").textContent = mode.voice + " " + S.activeProposal.text;
 }
 
+function renderCouncil() {
+  if (S.council.stage !== "DEBATE" && S.council.stage !== "UPDATED") return;
+  ["sheet-idle", "sheet-goblin", "sheet-proposal", "sheet-quiz", "sheet-oracle", "sheet-zol-shop"].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.classList.add("hidden");
+  });
+  var sheet = document.getElementById("sheet-council");
+  if (!sheet) return;
+  sheet.classList.remove("hidden");
+
+  document.getElementById("council-title").textContent = COUNCIL_EPISODE.crisis;
+  document.getElementById("council-intro").textContent = COUNCIL_EPISODE.intro;
+
+  /* Typed dialogue lines (opening statements, or the update round after the card). */
+  var card = S.council.card ? COUNCIL_EPISODE.cards.find(function (c) { return c.id === S.council.card; }) : null;
+  var lines = card ? card.update : COUNCIL_EPISODE.opening;
+  var linesEl = document.getElementById("council-lines");
+  linesEl.innerHTML = "";
+  lines.forEach(function (l) {
+    var g = S.goblins[l.speaker];
+    var row = document.createElement("div");
+    row.className = "council-line" + (l.act === "REFUSE" ? " refuse" : "");
+    row.innerHTML = "<b style=\"color:" + (g ? g.color : "#9be8c5") + "\">" + (g ? g.name : l.speaker) + ":</b> " + l.text;
+    linesEl.appendChild(row);
+  });
+
+  /* Benches: goblins physically stand beside proposals — no percentage bars. */
+  var pos = councilPositions();
+  var benches = document.getElementById("council-benches");
+  benches.innerHTML = "";
+  COUNCIL_EPISODE.proposals.concat([{ id: "wall", label: "A WALL(?)", icon: "🧱" }]).forEach(function (p) {
+    var standing = Object.keys(pos).filter(function (id) { return pos[id] === p.id; });
+    if (p.id === "wall" && !standing.length) return; /* the wall bench appears only while Nib insists */
+    var col = document.createElement("div");
+    col.className = "council-bench";
+    col.innerHTML = "<div class=\"bench-label\">" + p.icon + " " + p.label + "</div>" +
+      "<div class=\"bench-goblins\">" + (standing.map(function (id) { return S.goblins[id].name; }).join(" · ") || "—") + "</div>";
+    benches.appendChild(col);
+  });
+
+  /* Intervention cards — playable exactly once. */
+  var cardsEl = document.getElementById("council-cards");
+  cardsEl.innerHTML = "";
+  if (!S.council.card) {
+    COUNCIL_EPISODE.cards.forEach(function (c) {
+      var btn = document.createElement("button");
+      btn.className = "council-card";
+      btn.setAttribute("data-card", c.id);
+      btn.innerHTML = "<b>" + c.title + "</b><small>" + c.text + "</small>";
+      btn.addEventListener("click", function () { ensureAudio(); resumeAudio(); councilIntervene(c.id); });
+      cardsEl.appendChild(btn);
+    });
+  } else if (card) {
+    var note = document.createElement("div");
+    note.className = "council-played";
+    note.textContent = "You played " + card.title + ". The Warren is deciding…";
+    cardsEl.appendChild(note);
+  }
+}
+
 function renderTerritoryShop() {
   document.getElementById("sheet-idle").classList.add("hidden");
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   var shop = document.getElementById("sheet-zol-shop");
   shop.classList.remove("hidden");
 
@@ -2219,6 +2451,7 @@ function renderSheetOracle(reading) {
 
 function closeOracle() {
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   if (S.activeProposal) renderSheetProposal(); else renderSheetIdle();
 }
 
@@ -2615,6 +2848,7 @@ function renderSheetQuiz() {
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   var sheet = document.getElementById("sheet-quiz");
   sheet.classList.remove("hidden");
   document.getElementById("quiz-text").textContent = currentQuiz.q;
@@ -2808,6 +3042,11 @@ window.WARREN_DEBUG = {
   tickPip: function () { tickGoblin("pip"); },
   forcePromptQuiz: function () { quizOpen = true; currentQuiz = promptEngineeringQuiz(); renderSheetQuiz(); return currentQuiz; },
   purchaseTerritoryRaw: function (id) { return purchaseTerritory(id); },
+  getCouncil: function () { return S.council; },
+  getCouncilEpisode: function () { return COUNCIL_EPISODE; },
+  getCouncilPositions: function () { return councilPositions(); },
+  startCouncil: function () { return startCouncil(); },
+  councilCard: function (id) { return councilIntervene(id); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
@@ -2841,6 +3080,16 @@ function boot() {
         saveState();
       }
     }, GERALD_QUEST.triggerDelay);
+  }
+
+  /* Council convenes for returning players who resolved Gerald but never held the hearing */
+  if (!S.council.done && S.learning.geraldQuest.stage === "T5A_RESOLVED") {
+    councilTimer = setTimeout(maybeStartCouncil, 30000);
+  }
+  if (S.council.stage === "DEBATE" || S.council.stage === "UPDATED") {
+    /* mid-hearing reload: reopen the chamber (an un-executed card re-runs) */
+    if (S.council.card) { S.council.card = null; S.council.stage = "DEBATE"; }
+    setTimeout(renderCouncil, 1500);
   }
 
   if (isFreshBoot) {
