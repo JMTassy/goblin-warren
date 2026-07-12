@@ -1453,6 +1453,59 @@ html, body {
 }
 
 /* ZOL Shop */
+/* ---------- THE STAMP — signature moment ---------- */
+.stamp-seal {
+  position: fixed;
+  z-index: 1500;
+  font-size: 46px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 20px rgba(244,228,161,0.95));
+  animation: stampdrop 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) forwards;
+}
+@keyframes stampdrop {
+  0%   { transform: translate(-50%, -170%) scale(2.8) rotate(-16deg); opacity: 0; }
+  50%  { transform: translate(-50%, -50%) scale(0.88) rotate(3deg);   opacity: 1; }
+  70%  { transform: translate(-50%, -50%) scale(1.16) rotate(-1deg); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg);      opacity: 0.95; }
+}
+.stamp-ripple {
+  position: fixed;
+  z-index: 1490;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(244,228,161,0.85);
+  box-shadow: 0 0 24px rgba(244,228,161,0.5), inset 0 0 12px rgba(244,228,161,0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  animation: stampripple 0.85s ease-out 0.16s forwards;
+}
+@keyframes stampripple {
+  0%   { opacity: 0.95; width: 20px;  height: 20px; }
+  100% { opacity: 0;    width: 380px; height: 380px; }
+}
+.stamp-receipt {
+  position: fixed;
+  z-index: 1510;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #1c1533;
+  background: linear-gradient(170deg, #f4e4a1, #e8ce7a);
+  border-radius: 6px;
+  padding: 4px 9px;
+  box-shadow: 0 0 22px rgba(244,228,161,0.95), 0 3px 8px rgba(0,0,0,0.4);
+  opacity: 1;
+  transition: top 0.9s ease-in, opacity 0.9s ease-in, transform 0.9s ease-in;
+}
+.g-body.beat { animation: beathop 0.45s ease-out; }
+@keyframes beathop { 35% { transform: scale(1.2) translateY(-3px); } }
+.zone-glyph.beat { animation: beatglow 0.45s ease-out; }
+@keyframes beatglow { 35% { transform: scale(1.16); filter: drop-shadow(0 0 18px #f4e4a1); } }
+
 /* ---------- LULU CARE — tamagotchi panel + reunion ---------- */
 #card-care {
   margin-top: 8px;

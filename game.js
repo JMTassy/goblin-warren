@@ -447,6 +447,14 @@ var Sound = {
       tone(f, i * 0.10, 0.15, "sine", 0.08);
     });
   },
+  stampThunk: function () {
+    /* The most satisfying button in any browser: click transient,
+       sub-bass drop, wooden knock. One hit, felt in the chest. */
+    tone(150, 0, 0.03, "square", 0.22, 90);
+    tone(55, 0.012, 0.24, "sine", 0.42, 36);
+    tone(220, 0.02, 0.05, "triangle", 0.14, 180);
+    tone(36, 0.03, 0.3, "sine", 0.3);
+  },
   solfeggioTouch: function () {
     /* The Warren is an instrument. Every touch rings one sacred frequency
        (174–852 Hz) with a soft octave shimmer; long low-gain envelopes let
@@ -2518,6 +2526,66 @@ function flashClass(el, cls, ms) {
 
 function appBounce() { flashClass(document.getElementById("app"), "bounce", 380); }
 
+/* ---------------------------------------------------------------------
+   THE STAMP — signature moment. Seal drops, bass thunks, screen ripples,
+   a hash-glow receipt materializes, and the whole warren reacts for one
+   beat. Pure spectacle: state was already decided by the reducer.
+--------------------------------------------------------------------- */
+
+var STAMP_GLYPHS = { try: "🌱", hold: "⏳", compost: "🍂" };
+
+function tinyHash(s) {
+  var h = 2166136261;
+  for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).slice(0, 4);
+}
+
+function stampFX(choice) {
+  ensureAudio(); resumeAudio();
+  Sound.stampThunk();
+  var sheet = document.getElementById("sheet") || document.body;
+  var r = sheet.getBoundingClientRect();
+  var cx = r.left + r.width / 2, cy = r.top + 44;
+
+  var seal = document.createElement("div");
+  seal.className = "stamp-seal";
+  seal.textContent = STAMP_GLYPHS[choice] || "🔨";
+  seal.style.left = cx + "px"; seal.style.top = cy + "px";
+  document.body.appendChild(seal);
+
+  var rip = document.createElement("div");
+  rip.className = "stamp-ripple";
+  rip.style.left = cx + "px"; rip.style.top = cy + "px";
+  document.body.appendChild(rip);
+  appBounce();
+
+  /* the warren reacts — one synchronized beat */
+  setTimeout(function () {
+    Object.keys(goblinEls).forEach(function (id) {
+      var b = goblinEls[id] && goblinEls[id].querySelector(".g-body");
+      if (b) flashClass(b, "beat", 500);
+    });
+    document.querySelectorAll(".zone-glyph").forEach(function (z) { flashClass(z, "beat", 500); });
+  }, 220);
+
+  /* the receipt materializes with a hash-glow, then settles into history */
+  setTimeout(function () {
+    var chip = document.createElement("div");
+    chip.className = "stamp-receipt";
+    chip.textContent = "🧾 #" + tinyHash(choice + ":" + S.replay.length + ":" + (S.replay.length ? S.replay[S.replay.length - 1].id : "genesis"));
+    chip.style.left = cx + "px"; chip.style.top = (cy - 8) + "px";
+    document.body.appendChild(chip);
+    requestAnimationFrame(function () {
+      chip.style.top = (r.top - 26) + "px";
+      chip.style.opacity = "0";
+      chip.style.transform = "translate(-50%,-50%) scale(0.7)";
+    });
+    setTimeout(function () { chip.remove(); }, 1300);
+  }, 300);
+
+  setTimeout(function () { seal.remove(); rip.remove(); }, 1200);
+}
+
 function rareReaction(id) {
   var g = S.goblins[id], el = goblinEls[id];
   if (id === "lulu") {
@@ -3244,9 +3312,9 @@ function wireInput() {
   }
   var zolClose = document.getElementById("zol-shop-close");
   if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
-  document.getElementById("btn-try").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("try"); });
-  document.getElementById("btn-hold").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("hold"); });
-  document.getElementById("btn-compost").addEventListener("click", function () { ensureAudio(); resumeAudio(); resolveProposal("compost"); });
+  document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
+  document.getElementById("btn-hold").addEventListener("click", function () { stampFX("hold"); resolveProposal("hold"); });
+  document.getElementById("btn-compost").addEventListener("click", function () { stampFX("compost"); resolveProposal("compost"); });
   document.getElementById("world").addEventListener("click", function (e) {
     if (e.target.id === "world") { ensureAudio(); resumeAudio(); }
   });
