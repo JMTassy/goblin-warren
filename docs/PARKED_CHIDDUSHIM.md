@@ -97,8 +97,19 @@
     **What doesn't:** copying any specific tradition's actual mask forms.
     If the operator wants boss faces built, they should be original
     goblin-warren design using that technique, same discipline as the
-    pixel-art rule. No art generated against this entry yet — still
-    behind the Seren/Mâa/Orr body-and-punishment ruling (#10) regardless.
+    pixel-art rule.
+    **UPDATE (same day):** five photographs of real museum-held African
+    ceremonial artifacts followed as an explicit generation brief — a
+    Kongo-style nail/power figure, an apparent Benin bronze figure, and
+    reliquary-guardian mask heads, shot through display glass. Declined
+    those too, same reasoning, sharpened: a nkisi-nkondi-type nail figure
+    is a spiritually *active* ritual instrument, not decor, and a Benin
+    bronze sits inside a live repatriation dispute (the 1897 colonial
+    looting). Generated **original** concept art instead — one neutral-
+    mood mask per boss, technique only, no copied silhouette/headdress/
+    iconography from any of the five — documented in
+    `docs/concept-art/items/README.md`. Still CANDIDATE, still behind
+    #10: reference art for bodies that don't exist yet, not a body.
 
 13. **Boss percussion motif** — a shamanic drum/tam-tam layer that joins
     the music when a Temple Boss is present, one distinct percussive
