@@ -5628,8 +5628,152 @@ var FR_STRINGS = {
   "THE NIGHT IS FULL OF ME!": "LA NUIT EST PLEINE DE MOI !",
   "TREMBLE! WHEN CONVENIENT!": "TREMBLEZ ! QUAND ÇA VOUS ARRANGE !",
   "The loud mask is back… and it's RUNNING.": "Le masque bruyant est revenu… et il COURT. Évidemment.",
-  "…boo? …boop. …you caught me.": "…bouh ? …boop. …vous m'avez eu. Bravo, je suppose."
+  "…boo? …boop. …you caught me.": "…bouh ? …boop. …vous m'avez eu. Bravo, je suppose.",
+
+  /* --- le monde : zones & lieux --- */
+  "Akashic Tree": "Arbre Akashique",
+  "Garden Plot": "Carré de Jardin",
+  "Bug Nursery": "Nurserie à Bestioles",
+  "The High Spire": "La Haute Flèche",
+  "Receipt Forge": "Forge à Reçus",
+  "Mycelial Gate": "Porte Mycélienne",
+  "The Little Temple": "Le Petit Temple",
+
+  /* --- les panneaux d'objets --- */
+  "The Shrine": "Le Sanctuaire",
+  "Someone's Shiny Thing": "Le Truc Brillant de Quelqu'un",
+  "Relocated Seedlings": "Semis Relogés",
+  "Flowers Facing the Path": "Fleurs Tournées Vers le Chemin",
+  "A New Mushroom": "Un Champignon Neuf",
+  "Compost Bloom": "Fleur de Compost",
+  "Composted Memory": "Souvenir Composté",
+  "The Interface Mushroom": "Le Champignon d'Interface",
+  "The Noticed Mushroom": "Le Champignon Remarqué",
+  "The Question Mushroom": "Le Champignon Interrogatif",
+  "A Ridiculous Golden Fruit": "Un Fruit Doré Ridicule",
+  "Hot Mechanical Matcha": "Matcha Mécanique Chaud",
+  "A Very Humble Hat": "Un Chapeau Très Humble",
+  "The Three-Hat Trophy": "Le Trophée aux Trois Chapeaux",
+  "A Strongly Opinionated Sticker": "Un Autocollant aux Opinions Fermes",
+  "A Very Polite Mask": "Un Masque Très Poli",
+  "The Embassy of Bug": "L'Ambassade de la Bestiole",
+  "Path Lantern": "Lanterne de Chemin",
+  "A Properly Repaired Pot": "Un Pot Correctement Réparé",
+  "Observation Jar": "Bocal d'Observation",
+  "Gerald — Head of Hiding": "Gerald — Chef du Camouflage",
+  "Gerald's Apartment": "L'Appartement de Gerald",
+  "Second Bug — Asylum Request": "Deuxième Bestiole — Demande d'Asile",
+  "Improved Beyond Recognition": "Amélioré au Point d'Être Méconnaissable",
+  "The New Path": "Le Nouveau Chemin",
+  "MUSHROOMS THIS WAY": "CHAMPIGNONS PAR ICI",
+  "today’s verdict": "le verdict du jour",
+
+  /* --- les quêtes --- */
+  "Unmask Raâm": "Démasquer Raâm",
+  "Collect 10 Magic Sap": "Récolter 10 Sèves Magiques",
+  "Compost the False Crown": "Composter la Fausse Couronne",
+  "Throw a Tree Party": "Organiser une Fête de l'Arbre",
+  "Tap a goblin to see what they’re thinking.": "Touchez un gobelin pour voir ce qu'il pense. Préparez-vous à être déçu, mais gentiment.",
+
+  /* --- tâches des gobelins --- */
+  "exploring": "explore",
+  "archiving": "archive",
+  "gardening": "jardine",
+  "tinkering": "bricole",
+  "contraptioning": "machine des machins",
+  "resting": "se repose",
+  "watching": "surveille",
+  "wandering": "vagabonde",
+  "kindling": "ravive le feu",
+  "untangling": "démêle",
+  "dream-fishing": "pêche les rêves",
+  "echo-singing": "chante aux échos",
+  "chronicling": "consigne tout",
+  "listening at doors": "écoute aux portes",
+  "being mysterious": "fait sa mystérieuse",
+
+  /* --- humeurs (les plus fréquentes) --- */
+  "curious": "curieux", "careful": "prudent", "warm": "chaleureux",
+  "restless": "agité", "inventive": "inventif", "rested": "reposé",
+  "giggly": "pouffant", "uneasy": "inquiet", "watchful": "aux aguets",
+  "attentive": "attentif", "delighted": "ravi", "relieved": "soulagé",
+  "settled": "apaisé", "thrilled": "aux anges", "focused": "concentré",
+  "calm": "calme", "moved": "ému", "reserved": "réservé",
+  "inspired": "inspiré", "deflated": "dégonflé", "honest": "honnête",
+  "soothed": "rasséréné", "driven": "déterminé", "dreamy": "rêveur",
+  "wistful": "mélancolique", "proud": "fier", "grateful": "reconnaissant",
+  "touched": "touché", "distant": "distant", "sharp": "affûté",
+  "unsure": "hésitant", "fierce": "farouche", "suspicious": "soupçonneux",
+  "thoughtful": "songeur", "intrigued": "intrigué", "amused": "amusé",
+  "solemn": "solennel", "defensive": "sur la défensive", "patient": "patient",
+  "breezy": "léger", "sheepish": "penaud", "resolute": "résolu",
+  "neutral": "neutre", "content": "content", "grumpy": "grognon",
+  "sleepy": "somnolent",
+
+  /* --- intentions --- */
+  "learning where everything is": "apprend où tout se trouve",
+  "rereading the west-path sign": "relit le panneau du chemin ouest",
+  "stretching, ready to wander again": "s'étire, prêt à vagabonder encore",
+  "watching the observation jar": "surveille le bocal d'observation",
+  "just arrived, taking it in": "vient d'arriver, prend la mesure des choses",
+  "nothing yet — today is still new.": "rien pour l'instant — la journée est encore neuve.",
+
+  /* --- pensées étranges (les fixes) --- */
+  "I think the compost is older than the Tree.": "Je crois que le compost est plus vieux que l'Arbre.",
+  "Somewhere there's a warren with no goblins. Sad.": "Quelque part il existe un terrier sans gobelins. Triste.",
+  "I keep counting the lanterns. There's always one more.": "Je compte les lanternes. Il y en a toujours une de plus.",
+  "The roots go somewhere. I have not asked where.": "Les racines vont quelque part. Je n'ai pas demandé où.",
+  "Maybe fatigue is just the Warren asking me to sit.": "La fatigue, c'est peut-être le Terrier qui me demande de m'asseoir.",
+
+  /* --- questions du Papillon (gabarits fixes) --- */
+  "Who is the sleepiest goblin right now?": "Qui est le gobelin le plus ensommeillé en ce moment ?",
+  "What appeared most recently in the Warren?": "Qu'est-ce qui est apparu le plus récemment dans le Terrier ?",
+  "TRY": "ESSAYER", "HOLD": "ATTENDRE", "COMPOST": "COMPOSTER"
 };
+
+/* Composite strings are built at runtime — exact match can't see them.
+   Patterns catch the assembled sentence and rebuild it in French. */
+var FR_PATTERNS = [
+  [/^(\d{1,2}:\d{2}) · (.+)$/, "$1 · $2"], /* replay chips: time prefix, then a translatable tail */
+  [/^WARREN LEVEL (\d+) · QUESTS$/, "TERRIER NIVEAU $1 · QUÊTES"],
+  [/^Verdict: (.+)$/, "Verdict : $1"],
+  [/^the Moth's question was answered well\. \+(\d+) ZOL \(streak ×(\d+)\)$/, "la question du Papillon a eu une belle réponse. +$1 ZOL (série ×$2)"],
+  [/^the Moth's question was answered well\. \+(\d+) ZOL$/, "la question du Papillon a eu une belle réponse. +$1 ZOL"],
+  [/^Where does (\S+) feel most at home\?$/, "Où $1 se sent-il le plus chez lui ?"],
+  [/^The Moth remembers: “(.+)” — what was the choice\?$/, "Le Papillon se souvient : « $1 » — quel était le choix ?"],
+  [/^resting near (.+)$/, "se repose près de : $1"],
+  [/^wandering to (.+)$/, "vagabonde vers : $1"],
+  [/^What if (.+) is dreaming about us too\?$/, "Et si $1 rêvait de nous aussi ?"],
+  [/^If I hold still long enough, does (.+) notice\?$/, "Si je reste immobile assez longtemps, est-ce que $1 me remarque ?"],
+  [/^I bet (.+) has a name we don't know yet\.$/, "Je parie que $1 a un nom qu'on ne connaît pas encore."]
+];
+
+function frTranslateString(key, depth) {
+  depth = depth || 0;
+  var fr = FR_STRINGS[key];
+  if (fr) return fr;
+  if (depth >= 3) return key;
+  /* curly-quoted wrapper: translate the inside, keep French quotes */
+  var q = key.match(/^“(.+)”$/);
+  if (q) {
+    var inner = frTranslateString(q[1], depth + 1);
+    if (inner !== q[1]) return "« " + inner + " »";
+  }
+  for (var i = 0; i < FR_PATTERNS.length; i++) {
+    var m = key.match(FR_PATTERNS[i][0]);
+    if (m) {
+      var out = FR_PATTERNS[i][1];
+      for (var g = 1; g < m.length; g++) {
+        /* captured fragments may themselves be translatable (zone names,
+           whole sentences after a timestamp…) — recurse, depth-bounded */
+        out = out.replace("$" + g, frTranslateString(m[g], depth + 1));
+      }
+      return out;
+    }
+  }
+  return key;
+}
+
 /* placeholders are attributes, not text nodes — the observer can't see them */
 var FR_PLACEHOLDERS = { "lulu-input": "parlez à Lulu…", "teach-input": "apprenez-lui un fait…" };
 
@@ -5640,8 +5784,9 @@ function translateTextNode(t) {
   var raw = t.nodeValue;
   if (!raw) return;
   var key = raw.trim();
-  var fr = FR_STRINGS[key];
-  if (fr && key !== fr) {
+  if (!key) return;
+  var fr = frTranslateString(key);
+  if (fr !== key) {
     if (!langOriginals.has(t)) langOriginals.set(t, raw);
     t.nodeValue = raw.replace(key, fr);
   }
