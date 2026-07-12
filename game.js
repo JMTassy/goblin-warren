@@ -418,6 +418,7 @@ function evaluateCarrier(goblinId, questData) {
 var MEMORY_SEED_QUEST = {
   id: "memory-seed",
   pillar: "toolConjuration",
+  pillarName: "Tool Conjuration",
   title: "The Memory Seed",
   triggerEvent: "third_proposal_resolved",
   choices: ["pip", "zaz", "lulu", "nib"],
@@ -454,7 +455,12 @@ var MEMORY_SEED_QUEST = {
       nextStep: null
     }
   },
-  lessonTemplate: "Pip understood the memory. Zaz understood the soil. The best agent was not one. It was the right sequence. +15 ZOL",
+  lessonTemplate: {
+    optimal_solo: "{{first}} was the perfect choice for this task. That is {{pillar}}—matching the right agent to the work.",
+    optimal_cascade: "{{first}} understood the seed. {{second}} understood the soil. That is {{pillar}}—knowing which agent fits which task.",
+    suboptimal_solo: "{{first}} tried their best. But {{best}} would have been stronger. That is {{pillar}}—knowing which agent fits which task.",
+    suboptimal_cascade: "{{first}} tried. {{second}} succeeded. But {{best}} might have been stronger still. That is {{pillar}}—recognizing which agent fits which sequence."
+  },
   zolReward: 15,
   completed: false
 };
@@ -552,22 +558,26 @@ function showMaestroLesson(firstCarrier, secondCarrier, isOptimal, bestId) {
   var firstGoblin = DEFS_BY_ID[firstCarrier];
   var secondGoblin = secondCarrier ? DEFS_BY_ID[secondCarrier] : null;
   var bestGoblin = DEFS_BY_ID[bestId];
+  var quest = MEMORY_SEED_QUEST;
 
-  var lesson = "";
+  /* Pick template based on optimality and cascade presence. */
+  var templateKey = "";
   if (isOptimal) {
-    /* Player chose the best agent. */
-    lesson = firstGoblin.name + " was the perfect choice for this task.<br/>" +
-             "That is Tool Conjuration—<br/>" +
-             "matching the right agent to the work.<br/><br/>+15 ✨";
+    templateKey = secondGoblin ? "optimal_cascade" : "optimal_solo";
   } else {
-    /* Player chose a suboptimal agent. */
-    lesson = firstGoblin.name + " tried their best.<br/>" +
-             "But " + bestGoblin.name + " would have been stronger.<br/>" +
-             "That is Tool Conjuration—<br/>" +
-             "knowing which agent fits which task.<br/><br/>+15 ✨";
+    templateKey = secondGoblin ? "suboptimal_cascade" : "suboptimal_solo";
   }
 
-  lessonText.innerHTML = lesson;
+  var template = quest.lessonTemplate[templateKey] || quest.lessonTemplate.optimal_solo;
+
+  /* Fill template placeholders. */
+  var lesson = template
+    .replace("{{first}}", firstGoblin.name)
+    .replace("{{second}}", secondGoblin ? secondGoblin.name : "")
+    .replace("{{best}}", bestGoblin.name)
+    .replace("{{pillar}}", quest.pillarName);
+
+  lessonText.innerHTML = lesson + "<br/><br/>+15 ✨";
   lessonOverlay.classList.remove("hidden");
 }
 
