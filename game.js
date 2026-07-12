@@ -4222,13 +4222,20 @@ function closeOracle() {
    very small and very polite. He threatens nothing real, ever.
 --------------------------------------------------------------------- */
 
-var raamEl = null, raamTimer = null, raamHP = 0;
+var raamEl = null, raamTimer = null, raamHP = 0, raamHopTimer = null;
 var RAAM_SCARES = [
   "RAAAM! FEAR THE MASK!",
   "EVERYTHING IS DOOMED! LOOSELY!",
   "I AM VERY SCARY! ASK ANYONE!",
   "THE NIGHT IS FULL OF ME!",
   "TREMBLE! WHEN CONVENIENT!"
+];
+var RAAM_TAUNTS = [
+  "CATCH ME IF YOU CAN!",
+  "ATTRAPE-MOI SI TU PEUX !",
+  "TOO SLOW! LIKE A POLITE SNAIL!",
+  "OVER HERE! NO— HERE!",
+  "YOU CANNOT BOOP THE WIND!"
 ];
 var RAAM_GIGGLES = [
   "Hee hee. Nice mask, Raâm.",
@@ -4245,6 +4252,20 @@ function scheduleRaam(delay) {
 
 function raamGlyphSize() { return 26 + raamHP * 5; }
 
+/* Raâm flees: a fresh hop every ≤2s, quicker as he shrinks. Catching him
+   is the game now — the dash is a 0.45s glide, so a determined finger wins. */
+function raamHopInterval() { return 700 + raamHP * 300; } /* HP4→1.9s … HP1→1s */
+
+function raamHop() {
+  if (!raamEl || raamHP <= 0) return;
+  raamEl.style.left = randi(14, 86) + "%";
+  raamEl.style.top = randi(28, 68) + "%";
+  var line = raamEl.querySelector(".raam-line");
+  if (line && Math.random() < 0.5) line.textContent = pick(RAAM_TAUNTS);
+  clearTimeout(raamHopTimer);
+  raamHopTimer = setTimeout(raamHop, raamHopInterval());
+}
+
 function spawnRaam() {
   if (raamEl) return;
   var world = document.getElementById("world");
@@ -4252,7 +4273,7 @@ function spawnRaam() {
   raamHP = 4;
   raamEl = document.createElement("div");
   raamEl.className = "raam";
-  raamEl.innerHTML = '<div class="raam-line">' + pick(RAAM_SCARES) + '</div>' +
+  raamEl.innerHTML = '<div class="raam-line">' + pick(RAAM_TAUNTS) + '</div>' +
     '<div class="raam-glyph" style="font-size:' + raamGlyphSize() + 'px">👹</div>' +
     '<div class="raam-base">🍄🍄</div>';
   raamEl.style.left = "86%";
@@ -4261,8 +4282,9 @@ function spawnRaam() {
   world.appendChild(raamEl);
   Sound.roar();
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "uneasy"; });
-  showBubble("zaz", "The loud mask is back…", 2600);
+  showBubble("zaz", "The loud mask is back… and it's RUNNING.", 2600);
   renderGoblins();
+  raamHopTimer = setTimeout(raamHop, raamHopInterval());
 }
 
 function tapRaam() {
@@ -4280,11 +4302,15 @@ function tapRaam() {
   var line = raamEl.querySelector(".raam-line");
   if (raamHP > 0) {
     if (line) line.textContent = pick(RAAM_SCARES);
+    /* caught! he staggers a beat, then bolts again — faster now */
+    clearTimeout(raamHopTimer);
+    raamHopTimer = setTimeout(raamHop, 900);
     saveState();
     return;
   }
-  // unmasked: fear composts into a friend
-  if (line) line.textContent = "…boo? …boop.";
+  // unmasked: fear composts into a friend — the chase is over
+  clearTimeout(raamHopTimer);
+  if (line) line.textContent = "…boo? …boop. …you caught me.";
   raamEl.classList.add("unmasked");
   S.progress.raamDefeats++;
   earn(3, 0);
