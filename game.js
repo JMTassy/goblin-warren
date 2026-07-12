@@ -498,15 +498,36 @@ function resolveMemorySeedQuest(carrierIds) {
   var scoreDelta = bestScore - playerScore;
   var isOptimal = firstId === bestId;
 
-  var g = S.goblins[firstId];
-  if (g) {
-    g.mood = outcome.mood;
-    g.memory = outcome.memory;
+  /* Cascade chain: build full sequence by following nextStep. */
+  var cascade = [firstId];
+  var nextId = outcome.nextStep;
+  while (nextId) {
+    cascade.push(nextId);
+    var nextOutcome = MEMORY_SEED_QUEST.outcomes[nextId];
+    nextId = nextOutcome ? nextOutcome.nextStep : null;
   }
 
-  S.world.treeHealth = Math.min(100, S.world.treeHealth + outcome.worldChange);
+  /* Apply each step in cascade to respective goblin. */
+  var totalWorldChange = 0;
+  cascade.forEach(function (cid, idx) {
+    var o = MEMORY_SEED_QUEST.outcomes[cid];
+    if (!o) return;
+
+    var g = S.goblins[cid];
+    if (g) {
+      g.mood = o.mood;
+      g.memory = o.memory;
+    }
+    totalWorldChange += o.worldChange;
+
+    /* Log each cascade step. */
+    pushReplay("maestro", "Cascade step " + (idx + 1), "cascade-step",
+      cid + " " + o.action + ". " + o.memory, o.memory);
+  });
+
+  S.world.treeHealth = Math.min(100, S.world.treeHealth + totalWorldChange);
   pushReplay("maestro", "Memory Seed planted", "quest-resolved",
-    "A seed found its carrier. Optimal: " + bestId + " (" + bestScore.toFixed(1) + "). Chosen: " + firstId + " (" + playerScore.toFixed(1) + ").",
+    "Cascade complete. Optimal: " + bestId + " (" + bestScore.toFixed(1) + "). Chosen: " + firstId + " (" + playerScore.toFixed(1) + "). Chain: " + cascade.join(" -> "),
     outcome.memory);
 
   /* Award ZOL after lesson moment. */
@@ -517,7 +538,7 @@ function resolveMemorySeedQuest(carrierIds) {
 
   var overlay = document.getElementById("maestro-quest");
   if (overlay) overlay.classList.add("hidden");
-  showMaestroLesson(firstId, carrierIds.length > 1 ? carrierIds[1] : null, isOptimal, bestId);
+  showMaestroLesson(firstId, cascade[1] || null, isOptimal, bestId);
   saveState();
 }
 
