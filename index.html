@@ -163,8 +163,17 @@
         <div id="proposal-mode">
           <span id="proposal-mode-icon"></span>
           <span id="proposal-mode-name"></span>
+          <button id="proposal-inspect-btn" aria-label="inspect this proposal">🔍</button>
         </div>
         <div id="proposal-text"></div>
+        <div id="proposal-inspector" class="hidden">
+          <div class="pi-chip"><span class="pi-label">SIGNAL</span><span class="pi-value" id="pi-signal"></span></div>
+          <div class="pi-chip"><span class="pi-label">ZONE</span><span class="pi-value" id="pi-zone"></span></div>
+          <div class="pi-chip"><span class="pi-label">INTENSITY</span><span class="pi-value" id="pi-intensity"></span></div>
+          <div class="pi-chip"><span class="pi-label">PROPOSER</span><span class="pi-value" id="pi-proposer"></span></div>
+          <div class="pi-chip pi-wide"><span class="pi-label">AUTHORITY</span><span class="pi-value pi-false">false — the Warren proposes, you decide</span></div>
+          <div class="pi-chip pi-wide"><span class="pi-label">REPLAY</span><span class="pi-value pi-true">your tap below is the only admission; it writes to the replay strip</span></div>
+        </div>
         <div class="proposal-buttons">
           <button class="pbtn" id="btn-try">TRY IT</button>
           <button class="pbtn" id="btn-hold">HOLD IT</button>

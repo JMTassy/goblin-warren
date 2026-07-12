@@ -976,6 +976,48 @@ html, body {
   color: var(--accent);
   margin-bottom: 3px;
 }
+#proposal-inspect-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  color: var(--ink-dim);
+  font-size: 12px;
+  min-width: 30px;
+  min-height: 26px;
+  line-height: 1;
+}
+#proposal-inspect-btn:active { transform: scale(0.94); }
+#proposal-inspect-btn.on { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- Proposal Inspector — status chips over real proposal data,
+   inspired by the "Proposal Inspector" claim-typed panel (operator
+   reference). No new state: reads S.activeProposal/currentSignal only. ---------- */
+#proposal-inspector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 2px 0 10px 0;
+  animation: pi-in 220ms ease-out;
+}
+@keyframes pi-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.pi-chip {
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.03);
+}
+.pi-chip.pi-wide { grid-column: 1 / -1; }
+.pi-label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  margin-bottom: 2px;
+}
+.pi-value { display: block; font-size: 11px; color: var(--ink); line-height: 1.35; }
+.pi-value.pi-false { color: var(--danger); }
+.pi-value.pi-true { color: var(--moss); }
 #proposal-text {
   font-size: 13.5px;
   line-height: 1.4;

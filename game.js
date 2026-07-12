@@ -4449,6 +4449,39 @@ function renderSheetProposal() {
   document.getElementById("proposal-mode-icon").textContent = mode.icon;
   document.getElementById("proposal-mode-name").textContent = mode.name;
   document.getElementById("proposal-text").textContent = mode.voice + " " + S.activeProposal.text;
+  renderProposalInspector();
+}
+
+/* the Proposal Inspector — status chips over data the proposal already
+   carries (S.activeProposal / S.world.currentSignal). Read-only: opening
+   or closing it moves no governed truth, same law as the Organ and the
+   mood layer. Reference: the operator-shared "Proposal Inspector" panel;
+   AUTHORITY/REPLAY wording adapted to this game's real mechanic — here
+   the player's TRY/HOLD/COMPOST tap *is* the one admission act (matches
+   CLAUDE.md's "only player admission mutates the world" invariant), so
+   the panel says exactly that rather than borrowing a different game's
+   "mark ≠ admission" claim, which would misdescribe this codebase. */
+var SIGNAL_ICON = { bug: "🐛", fatigue: "😴", mystery: "✨", intrusion: "🌫️", novelty: "🧭", wonder: "🌳" };
+function renderProposalInspector() {
+  var panel = document.getElementById("proposal-inspector");
+  if (!panel) return;
+  var signal = S.world.currentSignal;
+  var p = S.activeProposal;
+  if (!signal || !p) { panel.classList.add("hidden"); return; }
+  document.getElementById("pi-signal").textContent =
+    (SIGNAL_ICON[signal.type] || "❔") + " " + signal.title;
+  document.getElementById("pi-zone").textContent = zoneName(signal.zone);
+  document.getElementById("pi-intensity").textContent = "●".repeat(signal.intensity || 1) + "○".repeat(3 - (signal.intensity || 1));
+  var proposer = S.goblins[p.proposerId];
+  document.getElementById("pi-proposer").textContent = (proposer ? proposer.name : p.proposerId) + " · " + modeById(p.luluMode).name;
+}
+function toggleProposalInspector() {
+  var panel = document.getElementById("proposal-inspector");
+  var btn = document.getElementById("proposal-inspect-btn");
+  if (!panel || !btn) return;
+  var opening = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !opening);
+  btn.classList.toggle("on", opening);
 }
 
 function renderCouncil() {
@@ -6172,6 +6205,10 @@ function wireInput() {
   document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
   document.getElementById("btn-hold").addEventListener("click", function () { stampFX("hold"); resolveProposal("hold"); });
   document.getElementById("btn-compost").addEventListener("click", function () { stampFX("compost"); resolveProposal("compost"); });
+  document.getElementById("proposal-inspect-btn").addEventListener("click", function (e) {
+    e.stopPropagation();
+    toggleProposalInspector();
+  });
   document.getElementById("world").addEventListener("click", function (e) {
     if (e.target.id === "world") { ensureAudio(); resumeAudio(); }
   });
@@ -6268,6 +6305,7 @@ function wireInput() {
 
 window.WARREN_DEBUG = {
   getState: function () { return S; },
+  toggleProposalInspector: function () { toggleProposalInspector(); },
   getObjects: function () { return S.objects; },
   forceSignal: function (type) { var s = createSignal(type || pickSignalType()); createProposalFromSignal(s); },
   forceArcBugEscape: function () { ambientBugEscape(); },
