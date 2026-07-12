@@ -664,20 +664,90 @@ function assignBuilders(goblinIds) {
       g.task = "building " + territory.name;
       g.memory = "We are building " + territory.name + ".";
       totalHealth += (g.preference === territory.zone ? 3 : 1);
+      /* Animate goblin toward zone center. */
+      animateGoblinToZone(gid, territory.zone, 1500);
     }
   });
 
   S.world.treeHealth = Math.min(100, S.world.treeHealth + totalHealth);
-  pushReplay("territory", "Territory built", "territory-built",
-    goblinIds.join(", ") + " built " + territory.name + ". Tree health +"+totalHealth, territory.id);
 
-  S.territories.owned.push({ id: territory.id, builders: goblinIds, completedAt: Date.now() });
-  S.territories.building = null;
-  saveState();
+  /* Add visible object to world representing the new territory. */
+  addObject(territory.icon, territory.name, territory.zone);
+
+  /* Trigger completion callback after animation. */
+  setTimeout(function () {
+    pushReplay("territory", "Territory built", "territory-built",
+      goblinIds.join(", ") + " built " + territory.name + ". Tree health +"+totalHealth, territory.id);
+
+    S.territories.owned.push({ id: territory.id, builders: goblinIds, completedAt: Date.now() });
+    S.territories.building = null;
+    saveState();
+    renderAll();
+    playBuildCompleteSound();
+  }, 1600);
 
   var overlay = document.getElementById("territory-build");
   if (overlay) overlay.classList.add("hidden");
   return true;
+}
+
+function animateGoblinToZone(goblinId, zoneId, duration) {
+  var g = S.goblins[goblinId];
+  if (!g) return;
+
+  var zoneCenter = getZoneCenterCoord(zoneId);
+  if (!zoneCenter) return;
+
+  var startX = g.x;
+  var startY = g.y;
+  var startTime = Date.now();
+
+  var animFrame = setInterval(function () {
+    var elapsed = Date.now() - startTime;
+    var progress = Math.min(1, elapsed / duration);
+
+    g.x = startX + (zoneCenter.x - startX) * progress;
+    g.y = startY + (zoneCenter.y - startY) * progress;
+
+    if (progress >= 1) {
+      clearInterval(animFrame);
+      g.x = zoneCenter.x;
+      g.y = zoneCenter.y;
+    }
+  }, 16); /* ~60fps */
+}
+
+function getZoneCenterCoord(zoneId) {
+  /* Return approximate center coordinate for each zone. */
+  var centers = {
+    "garden": { x: 50, y: 50 },
+    "forge": { x: 80, y: 50 },
+    "library": { x: 20, y: 50 },
+    "grove": { x: 50, y: 80 },
+    "mycelium": { x: 70, y: 80 },
+    "nursery": { x: 30, y: 30 }
+  };
+  return centers[zoneId] || { x: 50, y: 50 };
+}
+
+function playBuildCompleteSound() {
+  /* Play a brief "success bloom" sound using Web Audio. */
+  try {
+    if (!audioContext) return;
+    var now = audioContext.currentTime;
+    var osc = audioContext.createOscillator();
+    var gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.frequency.setValueAtTime(523.25, now);          /* C5 */
+    osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.4); /* Up octave */
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    osc.start(now);
+    osc.stop(now + 0.4);
+  } catch (e) {}
 }
 
 function getAvailableTerritories() {
