@@ -317,6 +317,14 @@ html, body {
   padding: 0 4px;
 }
 
+/* World signs (Signpost Grove) — readable, wrappable, transform-aware */
+.wobject.worldsign { transform: translate(0, -100%); }
+.wobject.worldsign .wobj-sign {
+  white-space: normal;
+  max-width: 92px;
+  line-height: 1.35;
+}
+
 .bug-critter {
   position: absolute;
   font-size: 16px;

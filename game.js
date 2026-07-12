@@ -176,8 +176,9 @@ function makeGoblin(def) {
 
 var TERRITORY_DEFS = [
   { id: "signpost-grove", name: "Signpost Grove", zone: "gate", cost: 30, icon: "🧭", preferredRole: "Archivist",
-    pillar: "promptEngineering", pillarName: "Prompt Engineering", goblinAction: "clarifySignsAction",
-    actionDescription: "Pip clarifies vague signs and confusing messages into precise ones." },
+    pillar: "promptEngineering", pillarName: "Prompt Engineering",
+    grantsAbility: { goblin: "pip", ability: "clarifySign", label: "CLARIFY_SIGN" },
+    actionDescription: "Pip learns to clarify vague signs — and decides on her own when to fix one." },
   { id: "garden-north", name: "Northern Garden", zone: "garden", cost: 30, icon: "🌿", preferredRole: "Gardener" },
   { id: "forge-east", name: "Eastern Forge", zone: "forge", cost: 40, icon: "⚒️", preferredRole: "Archivist" },
   { id: "library-west", name: "Western Library", zone: "library", cost: 35, icon: "📚", preferredRole: "Chronicler" },
@@ -205,14 +206,18 @@ function makeState() {
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
                 pillarProgress: { promptAlchemy: 0, toolConjuration: 0, intelligenceDesign: 0, codeSpellicraft: 0 },
                 zolBalance: 0, geraldQuest: { version: 1, stage: "LOCKED", t5aChoice: null, t5bChoice: null, t5cCorrect: false, rewardClaimed: false },
-                firstInteractionAt: null }
+                firstInteractionAt: null, lastQuizTopic: null, lastQuizLesson: null },
+    npcAbilities: { pip: { clarifySign: false } },
+    worldSigns: { westPath: { text: "MUSHROOMS THIS WAY", clarity: 0.25, clarified: false } },
+    memories: []
   };
 }
 
 function validAndComplete(s) {
   return s && s.version === STATE_VERSION && s.world && s.goblins &&
     s.goblins.lulu && s.goblins.pip && s.goblins.zaz && s.goblins.nib &&
-    Array.isArray(s.replay) && s.flags && s.progress && s.settings && s.learning;
+    Array.isArray(s.replay) && s.flags && s.progress && s.settings && s.learning &&
+    s.npcAbilities && s.worldSigns && Array.isArray(s.memories);
 }
 
 function mergeDefaults(loaded) {
@@ -240,6 +245,9 @@ function mergeDefaults(loaded) {
     out.settings = Object.assign({}, d.settings, loaded.settings || {});
     out.learning = Object.assign({}, d.learning, loaded.learning || {});
     out.territories = Object.assign({}, d.territories, loaded.territories || {});
+    out.npcAbilities = { pip: Object.assign({}, d.npcAbilities.pip, (loaded.npcAbilities && loaded.npcAbilities.pip) || {}) };
+    out.worldSigns = { westPath: Object.assign({}, d.worldSigns.westPath, (loaded.worldSigns && loaded.worldSigns.westPath) || {}) };
+    out.memories = Array.isArray(loaded.memories) ? loaded.memories : [];
   } catch (e) { return d; }
   return out;
 }
@@ -637,53 +645,85 @@ function closeMaestroLesson() {
   if (lessonOverlay) lessonOverlay.classList.add("hidden");
 }
 
-/* Territory Actions — Goblins take autonomous actions based on owned territories. */
+/* Territory Actions — territories unlock ABILITIES, not scripted events.
+   The goblin decides on its own tick when to use one, from world state.
+   unlock ability ≠ press ability button. */
 
-function triggerGoblinAction(actionName) {
-  /* Dispatcher for goblin territory actions. */
-  switch (actionName) {
-    case "clarifySignsAction":
-      return clarifySignsAction();
-    default:
-      return false;
-  }
+var SIGN_SPOT = { x: 10, y: 58 };
+var pipClarifyBusy = false;
+
+function pipCanClarify() {
+  var g = S.goblins.pip;
+  var sign = S.worldSigns && S.worldSigns.westPath;
+  return !!(g && sign && !sign.clarified && sign.clarity < 0.5 &&
+    S.npcAbilities && S.npcAbilities.pip && S.npcAbilities.pip.clarifySign &&
+    !g.resting && g.fatigue < 72 && !S.activeProposal && !quizOpen && !pipClarifyBusy);
 }
 
-function clarifySignsAction() {
-  /* Pip autonomously clarifies vague signs in the world. */
-  var g = S.goblins.pip;
-  if (!g) return;
+function pipClarifySign() {
+  if (!pipCanClarify()) return false;
+  var g = S.goblins.pip, sign = S.worldSigns.westPath;
+  pipClarifyBusy = true;
 
-  /* Find all objects and make their signs more descriptive. */
-  var clarificationMap = {
-    "Gerald's Apartment": "Gerald's Apartment (warm straw bed, tiny door)",
-    "Observation Jar": "Observation Jar (sealed, labelled, carefully watched)",
-    "A New Mushroom": "A New Mushroom (spotted, smells of earth)",
-    "The Shrine": "The Shrine (built from broken sign, still standing)",
-    "Someone's Shiny Thing": "Someone's Shiny Thing (holds light, holds memory)",
-    "The New Path": "The New Path (safe, cleared, marked with stones)"
-  };
-
-  var clarified = 0;
-  S.objects.forEach(function (obj) {
-    if (clarificationMap[obj.sign]) {
-      obj.sign = clarificationMap[obj.sign];
-      clarified++;
-    }
-  });
-
-  /* Update Pip's state. */
-  g.task = "clarifying";
-  g.intention = "making things clearer so no one gets lost";
+  /* Pip notices the vague sign, walks over, grimaces, rereads it. */
+  g.facing = "left";
+  g.targetX = SIGN_SPOT.x + 5; g.targetY = SIGN_SPOT.y + 3;
+  g.x = SIGN_SPOT.x + 5; g.y = SIGN_SPOT.y + 3;
+  g.zone = "gate";
+  g.task = "squinting at a sign";
+  g.intention = "rereading the west-path sign";
   g.mood = "focused";
-  var memoryLine = "Better prompts make clearer results. I clarified " + clarified + " signs so the Warren reads true.";
-  g.memory = memoryLine;
+  showBubble("pip", "“" + sign.text + "”? Which mushrooms? Which way?", 3200);
+  renderGoblins();
 
-  /* Log the action. */
-  pushReplay("pip", "Territory Action: Clarified Signs", "goblin-action",
-    "Pip clarified " + clarified + " signs in the Warren. " + memoryLine, memoryLine);
+  setTimeout(function () {
+    showBubble("pip", "Paint. Hammer. Context.", 2200);
+  }, 1800);
 
-  return clarified > 0;
+  setTimeout(function () {
+    /* The rewrite: objective + place + constraint. */
+    sign.text = "GLOWCAP GARDEN · LEFT PATH · SAFE BEFORE SUNSET";
+    sign.clarity = 1;
+    sign.clarified = true;
+
+    /* Garden consequences: lanterns light the path, flowers turn toward it. */
+    addObject("🏮", "Path Lantern", "gate");
+    addObject("🌼", "Flowers Facing the Path", "gate");
+    S.world.warmth = clamp(S.world.warmth + 2, 0, 100);
+
+    /* Bounded local memory, linked back to what the player learned. */
+    var lesson = S.learning.lastQuizLesson || "clear instructions include a goal, a place, and a limit";
+    S.memories.push({
+      actor: "pip", type: "world_action", sourceTopic: "prompt_engineering",
+      action: "clarify_sign", objectId: "westPath",
+      summary: "You learned that " + lesson + ". Pip rewrote the west-path sign before Nib walked into the pond again.",
+      createdAt: Date.now()
+    });
+    g.task = "archiving";
+    g.mood = "quietly proud";
+    g.memory = "I fixed the west sign. Place, direction, time limit. Nib has only fallen in the pond twice since.";
+
+    /* One logical replay entry for the whole action. */
+    pushReplay("pip", "Signpost Grove", "clarify-sign",
+      "You unlocked Signpost Grove. Pip learned CLARIFY_SIGN. Pip rewrote the western sign. The garden became easier to navigate.",
+      g.memory);
+
+    showBubble("pip", "There. Now it says where, which way, and when.", 3600);
+    Sound.bloom();
+    pipClarifyBusy = false;
+    saveState();
+    renderAll();
+  }, 3600);
+  return true;
+}
+
+function pipRecallLine() {
+  var m = null;
+  for (var i = S.memories.length - 1; i >= 0; i--) {
+    if (S.memories[i].action === "clarify_sign") { m = S.memories[i]; break; }
+  }
+  if (!m) return "The signs around here used to be terrible.";
+  return "Remember the prompt question? I added the place, the direction, and the time limit. Nib has only fallen in the pond twice since.";
 }
 
 /* Territory system: Buy and build. */
@@ -771,13 +811,16 @@ function assignBuilders(goblinIds) {
     S.territories.owned.push({ id: territory.id, builders: goblinIds, completedAt: Date.now() });
     S.territories.building = null;
 
-    /* Trigger goblin action if this territory defines one. */
-    if (territory.goblinAction) {
-      setTimeout(function () {
-        triggerGoblinAction(territory.goblinAction);
-        saveState();
-        renderAll();
-      }, 500);
+    /* Unlock the ability this territory grants — the goblin decides
+       on its own tick when to actually use it. */
+    if (territory.grantsAbility) {
+      var ga = territory.grantsAbility;
+      S.npcAbilities[ga.goblin] = S.npcAbilities[ga.goblin] || {};
+      S.npcAbilities[ga.goblin][ga.ability] = true;
+      var learner = DEFS_BY_ID[ga.goblin];
+      pushReplay(ga.goblin, territory.name, "ability-learned",
+        "You unlocked " + territory.name + ". " + learner.name + " learned " + ga.label + ".", "");
+      showBubble(ga.goblin, "A sign-fixing kit! I have opinions about signs.", 3600);
     }
 
     saveState();
@@ -929,6 +972,14 @@ function tickGoblin(id) {
   var g = S.goblins[id];
   if (!g) return;
 
+  /* Territory abilities: Pip chooses to clarify the vague sign herself
+     when the world state calls for it — no player click involved. */
+  if (id === "pip" && pipCanClarify()) {
+    pipClarifySign();
+    scheduleGoblinTick(id, randi(9000, 14000));
+    return;
+  }
+
   if (g.resting) {
     g.fatigue = clamp(g.fatigue - 10, 0, 100);
     g.task = "resting";
@@ -949,7 +1000,11 @@ function tickGoblin(id) {
     }
   }
 
-  if (Math.random() < 0.32) showBubble(id, fillTemplate(pick(DIALOGUE_TEMPLATES)));
+  if (id === "pip" && S.worldSigns.westPath.clarified && Math.random() < 0.1) {
+    showBubble(id, pipRecallLine(), 4200);
+  } else if (Math.random() < 0.32) {
+    showBubble(id, fillTemplate(pick(DIALOGUE_TEMPLATES)));
+  }
 
   saveState();
   renderGoblins();
@@ -1493,6 +1548,27 @@ function renderObjects() {
     el.style.top = o.y + "%";
   });
   Object.keys(objectEls).forEach(function (id) { if (!seen[id]) { objectEls[id].remove(); delete objectEls[id]; } });
+  renderWorldSigns(layer);
+}
+
+var worldSignEls = {};
+function renderWorldSigns(layer) {
+  if (!layer || !S.worldSigns) return;
+  Object.keys(S.worldSigns).forEach(function (key) {
+    var ws = S.worldSigns[key];
+    var el = worldSignEls[key];
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "wobject worldsign";
+      layer.appendChild(el);
+      worldSignEls[key] = el;
+    }
+    el.innerHTML = '<div class="wobj-emoji">🪧</div><div class="wobj-sign">' + ws.text + '</div>';
+    el.style.left = SIGN_SPOT.x + "%";
+    el.style.top = SIGN_SPOT.y + "%";
+    el.style.opacity = ws.clarified ? "1" : "0.8";
+    el.style.filter = ws.clarified ? "drop-shadow(0 0 8px rgba(155,227,109,.5))" : "";
+  });
 }
 
 function showBubble(goblinId, text, duration) {
@@ -2209,6 +2285,18 @@ function shuffleOptions(pool, correct) {
   return opts;
 }
 
+function promptEngineeringQuiz() {
+  return {
+    q: "Pip wants to rewrite a vague sign. What makes an instruction clear?",
+    options: shuffleOptions(
+      ["A goal, a place, and a limit", "Bigger letters", "More exclamation marks", "Saying it twice"],
+      "A goal, a place, and a limit"),
+    correct: "A goal, a place, and a limit",
+    topic: "prompt_engineering",
+    lesson: "clear instructions include a goal, a place, and a limit"
+  };
+}
+
 function buildQuiz() {
   var candidates = [];
   var tired = mostTiredGoblin();
@@ -2217,6 +2305,7 @@ function buildQuiz() {
     options: shuffleOptions(GOBLIN_DEFS.map(function (d) { return d.name; }), tired.name),
     correct: tired.name
   });
+  candidates.push(promptEngineeringQuiz());
   if (S.replay.length) {
     var r = S.replay[S.replay.length - 1];
     if (r.choice === "try" || r.choice === "hold" || r.choice === "compost") {
@@ -2264,14 +2353,19 @@ function answerQuiz(option) {
     S.world.warmth = clamp(S.world.warmth + 2, 0, 100);
     S.world.soil = clamp(S.world.soil + 1, 0, 100);
     earn(0, 2);
+    S.learning.zolBalance += 10;
+    if (currentQuiz.topic) {
+      S.learning.lastQuizTopic = currentQuiz.topic;
+      S.learning.lastQuizLesson = currentQuiz.lesson || null;
+    }
     Sound.riddleCorrect(); setTimeout(Sound.bloom, 300);
     if (mothG) { dropParticle(mothG, "✨", true); dropParticle(mothG, "✨"); }
     if (result) result.textContent = pick([
       "The Moth nods. It already knew.",
       "Golden dust falls. The Garden feels warmer.",
       "The Moth loops the loop!"
-    ]);
-    pushReplay("The Moth", "Memory Moth", "quiz", "the Moth's question was answered well.", "");
+    ]) + " +10 ZOL";
+    pushReplay("The Moth", "Memory Moth", "quiz", "the Moth's question was answered well. +10 ZOL", "");
   } else {
     S.flags.quizWrong = (S.flags.quizWrong || 0) + 1;
     Sound.riddleWrong();
@@ -2456,8 +2550,15 @@ window.WARREN_DEBUG = {
   unlockGeraldQuest: function () { S.learning.geraldQuest.stage = "AVAILABLE"; saveState(); return S.learning.geraldQuest; },
   triggerGeraldProposal: function () { var s = createSignal("bug"); createGeraldQuestProposal(s); return true; },
   resolveGeraldChoice: function (choice) { return resolveProposal(choice); },
-  clarifySignsAction: function () { var result = clarifySignsAction(); saveState(); renderAll(); return result; },
   getSignpostGrove: function () { return TERRITORY_DEFS.find(function (t) { return t.id === "signpost-grove"; }); },
+  getWorldSigns: function () { return S.worldSigns; },
+  getAbilities: function () { return S.npcAbilities; },
+  getMemories: function () { return S.memories; },
+  pipRecall: function () { return pipRecallLine(); },
+  pipCanClarify: function () { return pipCanClarify(); },
+  tickPip: function () { tickGoblin("pip"); },
+  forcePromptQuiz: function () { quizOpen = true; currentQuiz = promptEngineeringQuiz(); renderSheetQuiz(); return currentQuiz; },
+  purchaseTerritoryRaw: function (id) { return purchaseTerritory(id); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
