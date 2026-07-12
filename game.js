@@ -2361,16 +2361,75 @@ function shuffleOptions(pool, correct) {
   return opts;
 }
 
-function promptEngineeringQuiz() {
-  return {
-    q: "Pip wants to rewrite a vague sign. What makes an instruction clear?",
-    options: shuffleOptions(
-      ["A goal, a place, and a limit", "Bigger letters", "More exclamation marks", "Saying it twice"],
-      "A goal, a place, and a limit"),
+/* Learn AI, earn ZOL — the Moth's education pool. Each entry teaches one
+   idea, pays 10 ZOL, and leaves a one-line lesson the goblins can reuse. */
+var AI_QCM = [
+  { q: "Pip wants to rewrite a vague sign. What makes an instruction clear?",
+    pool: ["A goal, a place, and a limit", "Bigger letters", "More exclamation marks", "Saying it twice"],
     correct: "A goal, a place, and a limit",
-    topic: "prompt_engineering",
-    lesson: "clear instructions include a goal, a place, and a limit"
+    topic: "prompt_engineering", lesson: "clear instructions include a goal, a place, and a limit",
+    explain: "Better prompt = objective + context + constraints." },
+  { q: "What is a large language model?",
+    pool: ["An AI trained on lots of text to understand and generate language", "A robot that learns to walk", "A database of images", "A programming language"],
+    correct: "An AI trained on lots of text to understand and generate language",
+    topic: "ai_basics", lesson: "a language model learns patterns from text",
+    explain: "It learns patterns from huge amounts of text to predict language." },
+  { q: "Lulu forgot yesterday. What would give an AI helper a memory?",
+    pool: ["Writing events down and rereading them", "Shouting louder", "A bigger hat", "Guessing"],
+    correct: "Writing events down and rereading them",
+    topic: "memory", lesson: "memory is a log you reread, not magic",
+    explain: "AI memory is stored notes reread later — like the Warren's replay." },
+  { q: "Zaz says moon cabbage makes goblins 400% smarter. What first?",
+    pool: ["Test it", "Believe it — she sparkles", "Eat it all", "Argue loudly"],
+    correct: "Test it",
+    topic: "evidence", lesson: "confidence is not correctness — test claims",
+    explain: "Confidence ≠ correctness. Run a small test before believing." },
+  { q: "Which goblin should carry a seed to the Garden?",
+    pool: ["The one who loves gardens", "The loudest one", "Whoever is closest", "All of them at once"],
+    correct: "The one who loves gardens",
+    topic: "tools_models", lesson: "match the agent to the task",
+    explain: "Tool Conjuration: pick the right agent for the work." },
+  { q: "Nib built a sunset-colored fridge instead of a bridge. Why?",
+    pool: ["The instruction mutated as it was passed along", "Nib is silly", "Fridges are better", "The sunset asked"],
+    correct: "The instruction mutated as it was passed along",
+    topic: "prompt_engineering", lesson: "instructions drift as they pass between agents",
+    explain: "Goblin Telephone: every handoff can distort a prompt." },
+  { q: "The Warren replays its history after reload. Why does that matter?",
+    pool: ["You can check how every change happened", "It looks pretty", "It saves battery", "It scares bugs"],
+    correct: "You can check how every change happened",
+    topic: "ai_basics", lesson: "a replayable log makes behavior inspectable",
+    explain: "Logs make an agent's actions auditable — nothing hides." },
+  { q: "An AI helper keeps getting a task wrong. Best next step?",
+    pool: ["Give feedback and let it try again", "Never use it again", "Ask it angrily", "Hide the task"],
+    correct: "Give feedback and let it try again",
+    topic: "feedback", lesson: "feedback loops improve behavior over tries",
+    explain: "Iteration beats blame: adjust, retry, compare." },
+  { q: "Four goblins disagree about a plan. Who decides in the Warren?",
+    pool: ["You do — goblins propose, you choose", "The loudest goblin", "A coin flip", "Nobody"],
+    correct: "You do — goblins propose, you choose",
+    topic: "multi_agent", lesson: "agents propose; a person decides",
+    explain: "Multi-agent systems still need one accountable decider." },
+  { q: "What does composting a bad idea do here?",
+    pool: ["Turns it into soil for better ideas", "Deletes it forever", "Punishes the goblin", "Nothing"],
+    correct: "Turns it into soil for better ideas",
+    topic: "feedback", lesson: "rejected ideas become raw material",
+    explain: "In the Warren, rejected ideas feed the next experiments." }
+];
+
+function aiQuizCandidate() {
+  var def = pick(AI_QCM);
+  return {
+    q: def.q,
+    options: shuffleOptions(def.pool, def.correct),
+    correct: def.correct,
+    topic: def.topic, lesson: def.lesson, explain: def.explain
   };
+}
+
+function promptEngineeringQuiz() {
+  var def = AI_QCM[0];
+  return { q: def.q, options: shuffleOptions(def.pool, def.correct), correct: def.correct,
+           topic: def.topic, lesson: def.lesson, explain: def.explain };
 }
 
 function buildQuiz() {
@@ -2381,7 +2440,8 @@ function buildQuiz() {
     options: shuffleOptions(GOBLIN_DEFS.map(function (d) { return d.name; }), tired.name),
     correct: tired.name
   });
-  candidates.push(promptEngineeringQuiz());
+  candidates.push(aiQuizCandidate());
+  candidates.push(aiQuizCandidate());
   if (S.replay.length) {
     var r = S.replay[S.replay.length - 1];
     if (r.choice === "try" || r.choice === "hold" || r.choice === "compost") {
@@ -2436,16 +2496,17 @@ function answerQuiz(option) {
     }
     Sound.riddleCorrect(); setTimeout(Sound.bloom, 300);
     if (mothG) { dropParticle(mothG, "✨", true); dropParticle(mothG, "✨"); }
-    if (result) result.textContent = pick([
-      "The Moth nods. It already knew.",
-      "Golden dust falls. The Garden feels warmer.",
-      "The Moth loops the loop!"
-    ]) + " +10 ZOL";
+    if (result) result.textContent = (currentQuiz.explain ? currentQuiz.explain + " " : pick([
+      "The Moth nods. It already knew. ",
+      "Golden dust falls. The Garden feels warmer. ",
+      "The Moth loops the loop! "
+    ])) + "+10 ZOL";
     pushReplay("The Moth", "Memory Moth", "quiz", "the Moth's question was answered well. +10 ZOL", "");
   } else {
     S.flags.quizWrong = (S.flags.quizWrong || 0) + 1;
     Sound.riddleWrong();
-    if (result) result.textContent = "Achoo! Even the Moth forgets. It was: " + currentQuiz.correct;
+    if (result) result.textContent = "Achoo! It was: " + currentQuiz.correct +
+      (currentQuiz.explain ? " — " + currentQuiz.explain : "");
   }
   var btns = document.querySelectorAll("#quiz-buttons .qbtn");
   for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
