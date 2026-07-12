@@ -6175,15 +6175,37 @@ function wireInput() {
   var zolClose = document.getElementById("zol-shop-close");
   if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
 
-  /* Splash invites a tap — honor it (dismiss early) */
+  /* Splash invites a tap — honor it (dismiss early). A teaser video may play
+     underneath; it is always skippable, and if it never loads the splash still
+     dismisses on a safety timer, so the player is never trapped. */
   var splash = document.getElementById("splash");
   if (splash) {
-    splash.addEventListener("pointerdown", function () {
+    var splashGone = false;
+    var dismissSplash = function () {
+      if (splashGone) return;
+      splashGone = true;
       ensureAudio(); resumeAudio();
-      splash.style.transition = "opacity 0.35s ease";
+      splash.style.transition = "opacity 0.5s ease";
       splash.style.opacity = "0";
       splash.style.pointerEvents = "none";
-    });
+      setTimeout(function () { splash.style.display = "none"; }, 520);
+    };
+    splash.addEventListener("pointerdown", dismissSplash);
+
+    var teaser = document.getElementById("splash-video");
+    if (teaser) {
+      teaser.addEventListener("canplay", function () {
+        teaser.classList.add("ready");
+        splash.classList.add("has-video");
+      });
+      teaser.addEventListener("ended", dismissSplash);
+      teaser.addEventListener("error", function () { setTimeout(dismissSplash, 2600); });
+      var played = teaser.play && teaser.play();
+      if (played && played.catch) played.catch(function () { /* autoplay blocked — tap or timer will dismiss */ });
+    }
+    /* Safety net: give the ~5s teaser room to breathe, but never trap the
+       player. If no teaser is present/playable, fall back to the old ~3s. */
+    setTimeout(function () { dismissSplash(); }, teaser ? 9000 : 3000);
   }
 
   /* Riddle chip — always-available quiz for ZOL (the Moth, on demand) */
