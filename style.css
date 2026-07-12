@@ -1395,3 +1395,96 @@ html, body {
   0%, 100% { filter: drop-shadow(0 0 12px rgba(150, 200, 80, 0.4)) brightness(1); }
   50% { filter: drop-shadow(0 0 20px rgba(150, 200, 80, 0.8)) brightness(1.1); }
 }
+
+/* ZOL Shop */
+#sheet-zol-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+.zol-shop-head {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--glow-cream);
+  text-align: center;
+  padding: 0 16px;
+}
+
+#zol-shop-balance {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+  padding: 0 16px;
+}
+
+#zol-territories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.zol-territory-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(150, 200, 80, 0.08);
+  border: 1px solid rgba(150, 200, 80, 0.3);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.zol-territory-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.zol-territory-icon {
+  font-size: 16px;
+}
+
+.zol-territory-cost {
+  color: var(--glow-cream);
+  font-weight: bold;
+}
+
+.zol-buy-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(150, 200, 80, 0.2), rgba(120, 170, 60, 0.2));
+  border: 1px solid var(--glow-lime);
+  border-radius: 6px;
+  color: var(--glow-lime);
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.zol-buy-btn:active:not(:disabled) {
+  background: linear-gradient(135deg, rgba(150, 200, 80, 0.4), rgba(120, 170, 60, 0.4));
+  box-shadow: 0 0 16px rgba(150, 200, 80, 0.5);
+  transform: scale(0.95);
+}
+
+.zol-buy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  border-color: var(--ink-dim);
+}
+
+.zol-territory-owned {
+  color: var(--glow-lime);
+  font-size: 10px;
+  font-style: italic;
+  text-align: right;
+}

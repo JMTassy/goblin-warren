@@ -1362,6 +1362,7 @@ function renderSheetIdle() {
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  document.getElementById("sheet-zol-shop").classList.add("hidden");
 }
 
 function renderSheetGoblin(id) {
@@ -1370,6 +1371,7 @@ function renderSheetGoblin(id) {
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  document.getElementById("sheet-zol-shop").classList.add("hidden");
   var sheet = document.getElementById("sheet-goblin");
   sheet.classList.remove("hidden");
   document.getElementById("card-avatar").style.background = g.color;
@@ -1390,12 +1392,88 @@ function renderSheetProposal() {
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
   document.getElementById("sheet-oracle").classList.add("hidden");
+  document.getElementById("sheet-zol-shop").classList.add("hidden");
   var sheet = document.getElementById("sheet-proposal");
   sheet.classList.remove("hidden");
   var mode = modeById(S.activeProposal.luluMode);
   document.getElementById("proposal-mode-icon").textContent = mode.icon;
   document.getElementById("proposal-mode-name").textContent = mode.name;
   document.getElementById("proposal-text").textContent = mode.voice + " " + S.activeProposal.text;
+}
+
+function renderTerritoryShop() {
+  document.getElementById("sheet-idle").classList.add("hidden");
+  document.getElementById("sheet-goblin").classList.add("hidden");
+  document.getElementById("sheet-proposal").classList.add("hidden");
+  document.getElementById("sheet-quiz").classList.add("hidden");
+  document.getElementById("sheet-oracle").classList.add("hidden");
+  var shop = document.getElementById("sheet-zol-shop");
+  shop.classList.remove("hidden");
+
+  /* Update ZOL balance display */
+  document.getElementById("zol-balance-amount").textContent = String(S.learning.zolBalance);
+
+  /* Render territory list */
+  var territoriesContainer = document.getElementById("zol-territories");
+  territoriesContainer.innerHTML = "";
+
+  TERRITORY_DEFS.forEach(function (territory) {
+    var isOwned = S.territories.owned.some(function (t) { return t.id === territory.id; });
+    var isAffordable = S.learning.zolBalance >= territory.cost && !isOwned && !S.territories.building;
+
+    var item = document.createElement("div");
+    item.className = "zol-territory-item";
+
+    var nameDiv = document.createElement("div");
+    nameDiv.className = "zol-territory-name";
+
+    var icon = document.createElement("span");
+    icon.className = "zol-territory-icon";
+    icon.textContent = territory.icon;
+    nameDiv.appendChild(icon);
+
+    var nameSpan = document.createElement("span");
+    nameSpan.textContent = territory.name;
+    nameDiv.appendChild(nameSpan);
+
+    var costDiv = document.createElement("div");
+    costDiv.className = "zol-territory-cost";
+    costDiv.textContent = territory.cost + " ✨";
+
+    if (isOwned) {
+      var ownedBadge = document.createElement("div");
+      ownedBadge.className = "zol-territory-owned";
+      ownedBadge.textContent = "Owned";
+      item.appendChild(nameDiv);
+      item.appendChild(ownedBadge);
+    } else {
+      var btn = document.createElement("button");
+      btn.className = "zol-buy-btn";
+      btn.textContent = "BUY";
+      btn.disabled = !isAffordable;
+      btn.setAttribute("data-territory", territory.id);
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (purchaseTerritory(territory.id)) {
+          renderTerritoryShop();
+        }
+      });
+
+      var costAndBtn = document.createElement("div");
+      costAndBtn.style.display = "flex";
+      costAndBtn.style.flexDirection = "column";
+      costAndBtn.style.gap = "8px";
+      costAndBtn.style.alignItems = "flex-end";
+      costAndBtn.appendChild(costDiv);
+      costAndBtn.appendChild(btn);
+
+      item.appendChild(nameDiv);
+      item.appendChild(costAndBtn);
+    }
+
+    territoriesContainer.appendChild(item);
+  });
 }
 
 function renderAll() {
@@ -2128,6 +2206,19 @@ function wireInput() {
     }
     if (helpOverlay && !helpOverlay.classList.contains("hidden")) {
       return; /* Ignore game keys when help is open */
+    }
+    if (key === "b") {
+      e.preventDefault();
+      renderTerritoryShop();
+      return;
+    }
+    if (key === "escape") {
+      e.preventDefault();
+      var shop = document.getElementById("sheet-zol-shop");
+      if (shop && !shop.classList.contains("hidden")) {
+        renderSheetIdle();
+      }
+      return;
     }
   });
 }
