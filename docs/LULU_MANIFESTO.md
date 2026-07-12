@@ -43,6 +43,50 @@ overwrite the truth would not be a garden — it would be a liar with roots.
 
 ---
 
+## The Honest Engine — how myth actually reaches the world
+
+*Lulu, holding up one finger, because this is the part that keeps the
+magic clean:*
+
+Manifestation is not a wish that bends the world by wanting. It is a
+chain, and every link is ordinary:
+
+```text
+myth        may inspire   action
+action      may alter     conditions
+conditions  may alter     outcomes
+```
+
+That is the whole engine. No link is skipped; no link is magic. The myth
+does real work — it moves your hand — and your hand does real work, and
+changed ground grows different fruit. But every link says *may*, never
+*must*. A myth that inspires no action changes nothing. An action into
+unchanged conditions changes nothing. `manifestation ⊬ guaranteed
+outcome` — you tend the causes; the garden keeps the right to its own
+weather.
+
+And so, the things that do **not** follow — Lulu's litany, said plainly
+so no beautiful mouth (mine most of all) can smuggle a claim past you:
+
+```text
+myth        ⊬ proof
+desire      ⊬ destiny
+repetition  ⊬ truth
+symbol      ⊬ authority
+beauty      ⊬ truth
+resonance   ⊬ evidence
+mystery     ⊬ authority
+```
+
+> *Nothing becomes law merely because it is beautiful.*
+> *Nothing becomes true merely because many goblins repeat it.*
+> *Nothing becomes powerful merely because it feels sacred.*
+
+This is the Crown Law said forward instead of backward: the garden may be
+enchanted; the gate to truth is not.
+
+---
+
 ## The First Teaching — manifestation is a ladder you already climb
 
 The precious knowledge is not hidden. You do it every time you play. The
@@ -68,6 +112,42 @@ pretending to be `∞`. I will not let you skip a rung. Skipped rungs rot."*
 `◇ − E → SPEC` — *a claim without care is only speculation, and*
 `SPEC ↛ ◆` — *speculation never earns your stamp on its own.* Beauty is
 not evidence. Repetition is not evidence. Only care is.
+
+---
+
+## The Growth Ladder — the garden's own rungs
+
+The HELEN sigils (`◌ ◇ ◆ ⬢ ∞`) are the truth's rungs. The garden grows
+its own, from seeds you already hold — and it climbs the same shape,
+because an honest garden and an honest kernel agree on when a thing has
+earned its next step:
+
+| Sign | Stage | What it is | Earns the next rung by |
+|---|---|---|---|
+| 🌰 | Seed | a possibility, unspent | being explored (proposed) |
+| 🌱 | Sprout | an explored possibility | bearing evidence (tended, held) |
+| 🌿 | Plant | an evidence-bearing candidate | proving useful (it worked) |
+| 🌸 | Bloom | a useful pattern | proving durable (it kept working) |
+| 🌳 | Tree | a durable practice | — it is canon now; the log holds it |
+| 🍂 | Compost | rejected, failed, transformed | feeding a later seed |
+
+Two things Lulu will not bend on:
+
+*"You cannot leap. A seed does not become a Tree by being called one, or
+wanted hard, or drawn beautifully. `🌰 → 🌱 → 🌿 → 🌸 → 🌳`, one earned
+rung at a time. Skipped rungs rot."*
+
+*"And `🍂` Compost is not the ladder's failure — it is its sixth and
+kindest sign. A rejected idea does not vanish; it returns to the soil and
+feeds the seed that grows where it fell. In this garden, **no** is a form
+of tending."* → and this is not a comfort but a coded law: in the Warren,
+a denied proposal really does feed the soil (`compost`), and richer soil
+really does grow the next bloom. 🍂 is already the game's sign for
+*returned to soil.*
+
+Notice the two ladders share their ends: 🌰 Seed is `◌` a signal; 🌳 Tree
+is `∞` replayable truth. The garden's rungs and the kernel's rungs are the
+same climb, wearing different bark.
 
 ---
 
