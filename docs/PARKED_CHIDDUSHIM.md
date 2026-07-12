@@ -80,6 +80,39 @@
     trigger re-contextualization, verdict "charge" windows) — the
     INSTRUMENT is built (organ-gates 5/5); the EFFECTS await E.
 
+12. **Temple Boss mask design pass** — reference images sent for the four
+    bosses, plus a research summary on ancient African ceremonial mask
+    traditions (Dan, Yoruba, Dogon, Fang, Punu, Baule — spirit embodiment,
+    transformation, ritual power) as inspiration for boss visual language.
+    ⚠️ SOURCING NOTE (not a membrane flag, a content-origin one): the
+    IP-safe rule already in `CLAUDE.md` — "all sprites... are original;
+    do not introduce third-party game content" — is written against
+    fictional IP, but the same principle covers this case: these are
+    *living* peoples' sacred ritual objects, not folklore in the public
+    domain. Reproducing specific named traditions' mask forms onto
+    "boss" enemies the player unmasks/defeats reads as extraction, not
+    homage. **What carries over cleanly:** the *design technique* —
+    exaggerated symbolic features, large eyes, transformation-through-
+    wearing as a game mechanic idea, "mask as portal for a larger force."
+    **What doesn't:** copying any specific tradition's actual mask forms.
+    If the operator wants boss faces built, they should be original
+    goblin-warren design using that technique, same discipline as the
+    pixel-art rule. No art generated against this entry yet — still
+    behind the Seren/Mâa/Orr body-and-punishment ruling (#10) regardless.
+
+13. **Boss percussion motif** — a shamanic drum/tam-tam layer that joins
+    the music when a Temple Boss is present, one distinct percussive
+    frequency per boss drawn from the existing sacred solfeggio set (so
+    it's the same 7-tone vocabulary the Serpent and Organ already use, not
+    a new sound system). CANDIDATE mapping only, nothing built: Rââm
+    (unmasking, root/fire) → 396/528 · Seren (silence, stillness) → 852 ·
+    Mâa (bone, grounding) → 417 · Orr (witness, crown) → 963. Blocked by
+    the same thing #10 is blocked by — there is no boss-presence game
+    state to hang "boss is here" off of yet (only Raâm exists in-game).
+    When bosses get bodies, this is a cheap add: reuse `Sound.bijaTone`
+    plumbing from the Organ, gate it on `S.boss.active`, test it moves no
+    governed truth (pure audio, same law as the Organ).
+
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
   operator re-orders; membrane-gates.js stands as their adversary).
@@ -87,5 +120,7 @@
   (the kid test).
 - 5 → Evolution Journal narrator (post-order bead).
 - 6 → art direction for STEP 4 (the Aquarium).
+- 12+13 → boss visual + audio design, both gated behind #10's punishment
+  ruling (no bodies to paint or drum for yet).
 
 *The scroll waits. It never nags.* 📜
