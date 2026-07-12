@@ -17,3 +17,5 @@ node_modules/
 .env
 .env.local
 verify-results.json
+__pycache__/
+*.pyc
