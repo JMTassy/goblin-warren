@@ -145,6 +145,33 @@
     a real bounded slice if the operator wants to jump the BUILD_ORDER
     queue for it.
 
+15. **Goblin mood visual system** — a 10-mood table (Curious, Focused,
+    Happy, Calm, Thoughtful, Lonely, Proud, Suspicious, Tired, Dramatic,
+    Resting) each with a facial-expression + posture + particle/glow +
+    color-accent spec, archetype-flavored variants (e.g. "a Proud
+    Nurturer looks warm; a Proud Trickster looks mischievous"), a
+    "shadow mood" desaturated state for neglect, and a build-order
+    starting with Curious/Happy/Resting/Lonely/Focused/Dramatic.
+    **AUDIT (WITNESSED, this repo):** the *state* this wants to visualize
+    already exists and is richer than the proposal — `game.js` tracks
+    per-goblin `mood` as free-form strings (curious, wistful, giggly,
+    dreamy, proud, calm, moved, deflated, grateful, quietly proud, and
+    more; see `luluMood()` L1222, `applyLuluMood()` L1234, the Daily
+    Verdict mood shifts L2059-2076). What doesn't exist is any *render*
+    of it: `buildGoblinEl()` (L3670) draws every goblin as the same
+    `.g-body` + two ear divs, no expression, no posture, no
+    mood-keyed particle layer at all. So this is CANDIDATE art direction
+    for a real (and empty) rendering gap, not a duplicate ask.
+    No membrane conflict in the core table — pure UI/CSS layer over
+    existing state, same shape as the completed Phase 1 asset-polish
+    work. The **archetype-flavored variants** sub-piece still needs the
+    Constellation engine (#9, NEEDS_ME); **boss mood visuals** (the
+    third option offered) is blocked by #10, same as #12/#13.
+    Nearest-term buildable slice if the operator wants it: the 6
+    priority moods, base version only (no archetype flavor, no shadow
+    state) — CSS + a small mood→class map, no reducer touch, own
+    selftest gate.
+
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
   operator re-orders; membrane-gates.js stands as their adversary).
@@ -157,5 +184,8 @@
 - 14 → a new resource-economy bead, post-order; the minigame slice could
   jump the queue standalone if the operator calls for it; the full
   global-reserve/distribution/boss-tribute shape waits for #9 and #10.
+- 15 → art direction for goblin rendering, post-order; the 6-mood base
+  slice could jump the queue standalone (pure UI, no reducer risk);
+  archetype flavor waits for #9, boss moods wait for #10.
 
 *The scroll waits. It never nags.* 📜
