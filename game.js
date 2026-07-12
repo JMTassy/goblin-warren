@@ -302,12 +302,12 @@ function resumeAudio() { if (actx && actx.state === "suspended") actx.resume(); 
    or decode error mutes that layer silently — the Warren plays on.
 --------------------------------------------------------------------- */
 
-var MUSIC_TRACKS = [    /* generated for this game; quiet, wordless, looped */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013718_97969d0f-a54a-413e-af37-6229492dde2e.m4a",
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013720_e5d6eb53-0b55-4d7d-a186-055f886faade.m4a"
+var MUSIC_TRACKS = [    /* tanpura drones — no piano, no melody; hypnotic, looped */
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022435_e466659d-ce50-4820-b9f3-230f7582f3ec.m4a",
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022438_d067c7e4-5277-4396-b24f-b25164438354.m4a"
 ];
-var NATURE_LOOP =        /* continuous crickets / owl / leaves */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013723_b852b6f0-649a-4a99-a31b-5711180b419a.mp3";
+var NATURE_LOOP =        /* grillons + flowing water over stones */
+  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022440_a5f91bfe-3b7d-4c05-86ac-f35ce866ecb1.mp3";
 var BIRD_CLIP =          /* occasional soft birds one-shot */
   "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013728_6740726c-9d11-4809-8b8d-03a210140515.mp3";
 
@@ -435,6 +435,16 @@ var Sound = {
     [SCALE_DO_RE_MI[2], SCALE_DO_RE_MI[1], SCALE_DO_RE_MI[0]].forEach(function (f, i) {
       tone(f, i * 0.10, 0.15, "sine", 0.08);
     });
+  },
+  solfeggioTouch: function () {
+    /* The Warren is an instrument. Every touch rings one sacred frequency
+       (174–852 Hz) with a soft octave shimmer; long low-gain envelopes let
+       random taps overlap into a hypnotic tuning rather than noise. */
+    var keys = Object.keys(SOLFEGGIO);
+    var f = SOLFEGGIO[keys[Math.floor(Math.random() * keys.length)]];
+    tone(f, 0, 1.8, "sine", 0.06);
+    tone(f * 2, 0.06, 1.3, "sine", 0.025);
+    if (Math.random() < 0.3) tone(f * 1.5, 0.12, 1.5, "sine", 0.02); /* occasional fifth */
   },
   glingGling: function (coins) {
     /* Casino coin cascade: bright staggered dings with a rising sparkle tail. */
@@ -2643,6 +2653,14 @@ function wireInput() {
   });
   document.getElementById("card-close").addEventListener("click", function () { renderSheetIdle(); });
   document.getElementById("oracle-close").addEventListener("click", closeOracle);
+
+  /* The Warren as instrument: any touch, anywhere, rings a Solfeggio tone.
+     Random tapping tunes itself — every frequency belongs to the same
+     sacred set, so exploration sounds like slow hypnotic music. */
+  document.addEventListener("pointerdown", function () {
+    ensureAudio(); resumeAudio();
+    Sound.solfeggioTouch();
+  }, { passive: true });
 
   /* ZOL wallet — tappable shop access (mobile-first; 'B' remains the shortcut) */
   var zolWallet = document.getElementById("zol-wallet");
