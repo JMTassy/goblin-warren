@@ -66,6 +66,16 @@ Choir is the one organ most likely to be misread as a decision-maker
 because it carries affect/mood signals — it is display metadata only.
 No priority, authority, or truth value may be derived from it.
 
+**Alternate visual language (CANDIDATE, unreconciled):** a district-campus
+metaphor — specialties as physical places around a hub, rather than
+cathedral organs — was proposed as inspiration (a shared reference image;
+an original Warren-styled rendering exists at
+`docs/concept-art/items/README.md` § "The seven-lane campus"). It maps
+loosely onto both this organ list and `/warren`'s locked goblin lanes but
+matches neither exactly — see that doc's reconciliation table. Not
+adopted here; recorded so the idea isn't lost, not so it's assumed
+settled.
+
 ## 4. Skill taxonomy
 
 Ten categories, each with a type signature. One primary category per

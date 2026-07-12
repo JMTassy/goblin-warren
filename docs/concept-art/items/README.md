@@ -86,3 +86,46 @@ animation, manifestation effect, per-mood variants). More importantly:
 Seren, Mâa, and Orr still don't have game bodies, and the punishment-law
 conflict in their specs (#10) is unruled. This art doesn't unblock that —
 it's ready *for when* the ruling lands, same as everything else at #10.
+
+## The seven-lane campus (goblin sub-agent taxonomy, original)
+
+<!-- Generated 2026-07-12. The operator shared a macOS lock-screen wallpaper
+     as inspiration: an isometric pixel-art AI-research campus with labeled
+     districts (Exploration/Modeling/Orchestration/Search/Recommendation/
+     Interface/QA) — a sub-agent capability map expressed as a place. That
+     specific wallpaper file wasn't reachable from this session (shared
+     inline, no @-path), so nothing was copied from it; what's generated
+     here is an original composition using the same *idea* (specialties as
+     districts around a hub) rendered in the Warren's own palette and
+     goblin-fantasy vocabulary instead of sci-fi towers. -->
+
+**Reconciliation note, read before using this anywhere:** this is a
+*third* taxonomy for "what kind of goblin/agent does X," and it needs
+reconciling with the two that already exist rather than silently winning:
+
+| This campus | `/warren`'s locked lanes | Orchestration packet's skill types |
+|---|---|---|
+| Workshop | Builder | Executor / Synthesizer |
+| Chaos garden | Jester | — |
+| Archive tower | Archivist | Recorder / Researcher |
+| Watchtower | Warden | Critic |
+| Painted grove | Artist | — |
+| Market well | Economist | — |
+| Proving ground | Tester | Evaluator |
+
+The mapping is close but not 1:1 (Jester and Artist have no clean
+orchestration-packet counterpart; Classifier/Planner/Sensor/Optimizer
+have no clean campus counterpart) — a real reconciliation, not a
+rename, would be needed before this becomes canon anywhere.
+
+| Scene | Hosted URL |
+|---|---|
+| Seven-district campus (unlabeled — district identity is in the architecture, not baked-in text) | https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_214416_affc3c87-8fce-437c-9286-81b235e43ceb.png |
+
+**Cost:** 1.25 credits (recraft_v4_1, 2k).
+
+**Status: CANDIDATE art, unlabeled on purpose** (baked-in AI-generated
+text is unreliable; the existing zone system already renders labels as
+real HTML — see `.zone-label`, `game.js` `buildStaticWorld`). Not wired
+into the game. If this ever becomes an actual map, it needs the
+reconciliation above settled first, plus its own `/warren` slice.
