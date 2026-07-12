@@ -834,7 +834,8 @@ function showTerritoryBuildUI(territoryId) {
         var btn = document.createElement("button");
         btn.className = "territory-builder-btn";
         btn.setAttribute("data-goblin", def.id);
-        btn.textContent = def.name + " " + def.emoji;
+        var starred = def.role === territory.preferredRole ? " ★" : "";
+        btn.innerHTML = "<b>" + def.name + starred + "</b><small>" + def.role + "</small>";
         btn.addEventListener("click", function (e) {
           btn.classList.toggle("selected");
           var selected = choicesContainer.querySelectorAll(".selected").length;
@@ -1760,7 +1761,8 @@ function renderTerritoryShop() {
   var shop = document.getElementById("sheet-zol-shop");
   shop.classList.remove("hidden");
 
-  /* Update ZOL balance display */
+  /* Update ZOL balance display (wallet button included) */
+  renderTopbar();
   document.getElementById("zol-balance-amount").textContent = String(S.learning.zolBalance);
 
   /* Render territory list */
@@ -1788,7 +1790,7 @@ function renderTerritoryShop() {
 
     var costDiv = document.createElement("div");
     costDiv.className = "zol-territory-cost";
-    costDiv.textContent = territory.cost + " ✨";
+    costDiv.textContent = territory.cost + " 🪙";
 
     if (isOwned) {
       var ownedBadge = document.createElement("div");
