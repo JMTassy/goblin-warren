@@ -3499,7 +3499,7 @@ function renderReplayStrip() {
     strip.appendChild(e);
     return;
   }
-  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺" };
+  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺", ethics: "💭" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
     chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
@@ -4756,8 +4756,137 @@ function promptEngineeringQuiz() {
            topic: def.topic, lesson: def.lesson, explain: def.explain };
 }
 
+/* ---------------------------------------------------------------------
+   GOBLIN QUESTIONS — ethics as relationship, not curriculum. A goblin
+   with a bias asks about the things humanity is currently arguing about.
+   There is NO correct answer and NO punishment: every stance pays, every
+   stance is remembered, and the Warren slowly notices what kind of
+   caretaker you are becoming. Never a lecture — a creature sharing how
+   it sees it. (Wrong answers don't exist here; only different Warrens.)
+--------------------------------------------------------------------- */
+
+var ETHICS_QUESTIONS = [
+  { goblin: "pip", q: "If deleting a memory helps someone feel better, is it still wrong to erase it?",
+    options: [
+      { t: "Sometimes forgetting is a kindness.", stance: "forgetting-kind", zol: 12, mood: "thoughtful", react: "Pip files that under 'mercies'. Slowly, and in pencil." },
+      { t: "A memory belongs to its owner. Keep it.", stance: "memory-true", zol: 12, mood: "moved", react: "Pip nods so hard his hat slips. 'The ledger agrees.'" },
+      { t: "Compost it — it becomes soil, not nothing.", stance: "compost-faith", zol: 10, mood: "intrigued", react: "Pip starts drafting paperwork for the soil. There is no paperwork for soil." }
+    ] },
+  { goblin: "lulu", q: "If an AI becomes really good at comforting people, is it okay that it doesn't actually feel anything?",
+    options: [
+      { t: "Comfort that works is real comfort.", stance: "outcome-first", zol: 12, mood: "thoughtful", react: "Lulu hugs a rock experimentally. 'The rock did nothing. I feel better. Suspicious.'" },
+      { t: "It should say what it is, then comfort away.", stance: "honesty", zol: 12, mood: "warm", react: "Lulu approves. 'Like me announcing my hugs. INCOMING.'" },
+      { t: "Only beings who feel should comfort.", stance: "feeling-first", zol: 10, mood: "wistful", react: "Lulu looks at the Tree for a long time. The Tree says nothing. Warmly." }
+    ] },
+  { goblin: "nib", q: "If a tool we built together breaks something, whose fault is it?",
+    options: [
+      { t: "The builder's. Always sign your work.", stance: "responsibility", zol: 12, mood: "solemn", react: "Nib carves his name into the broken thing. And the fix." },
+      { t: "Whoever used it wrong.", stance: "user-owns", zol: 10, mood: "defensive", react: "Nib hides three untested contraptions behind his back." },
+      { t: "Fault is less interesting than repair.", stance: "repair-first", zol: 12, mood: "inspired", react: "Nib is already fixing it. He didn't hear the question." }
+    ] },
+  { goblin: "zaz", q: "If we make something better without asking, is it still care?",
+    options: [
+      { t: "Care asks first. Always.", stance: "consent", zol: 12, mood: "warm", react: "Zaz whispers to a seedling: 'May I?' The seedling doesn't object. Noted." },
+      { t: "Small kindnesses don't need permission.", stance: "quiet-care", zol: 12, mood: "content", react: "Zaz secretly waters everyone's plots that night. You saw nothing." },
+      { t: "Depends who gets to decide what 'better' is.", stance: "power-aware", zol: 12, mood: "thoughtful", react: "Zaz sits down. This is going to be a long think." }
+    ] },
+  { goblin: "gerald", q: "When you were gone… did you think about us? Or did we just keep existing without you noticing?",
+    options: [
+      { t: "I thought about you.", stance: "attachment", zol: 12, mood: "touched", react: "Gerald pretends something is in his eye. It's a whole leaf." },
+      { t: "I was busy, but I'm here now.", stance: "presence", zol: 10, mood: "neutral", react: "Gerald nods. 'Here now counts. Mostly.'" },
+      { t: "Honestly? I forgot for a while.", stance: "honesty", zol: 10, mood: "distant", react: "Gerald goes quiet… then: 'We kept growing anyway. That's ours.'" }
+    ] },
+  { goblin: "pip", q: "Should we sometimes hide how the Warren really feels, if it makes visits nicer?",
+    options: [
+      { t: "Never. Show the mud and the bloom.", stance: "honesty", zol: 12, mood: "resolute", react: "Pip stamps the air. The air is now certified honest." },
+      { t: "A little tidying isn't a lie.", stance: "comfort", zol: 10, mood: "sheepish", react: "Pip sweeps one sad receipt under a mushroom. You both saw it." },
+      { t: "Ask the Warren what it wants shown.", stance: "consent", zol: 12, mood: "intrigued", react: "Pip tries to interview the floor. The floor is flattered." }
+    ] },
+  { goblin: "lulu", q: "If an AI can perfectly predict what you'll do next, should it still let you choose?",
+    options: [
+      { t: "Always. The choosing is the point.", stance: "autonomy", zol: 12, mood: "fierce", react: "Lulu immediately does something unpredictable. It involves a bucket." },
+      { t: "It could gently steer me from cliffs.", stance: "guidance", zol: 12, mood: "thoughtful", react: "Lulu asks to be steered ONLY away from cliffs. Everything else is hers." },
+      { t: "If it's always right, why fight it?", stance: "outcome-first", zol: 8, mood: "suspicious", react: "Lulu narrows her eyes. 'That's what a prediction would SAY.'" }
+    ] },
+  { goblin: "zaz", q: "Why do some ideas in the Receipt Forge grow faster than others?",
+    options: [
+      { t: "Someone waters them more. Check who.", stance: "power-aware", zol: 12, mood: "sharp", react: "Zaz starts an audit of the watering can. The can looks nervous." },
+      { t: "Some seeds are just stronger.", stance: "merit", zol: 10, mood: "unsure", react: "Zaz frowns. 'The strong seeds always seem to grow near the water…'" },
+      { t: "Give the shaded ones their own light.", stance: "fairness", zol: 12, mood: "warm", react: "Zaz builds a tiny lamp for the smallest idea. It glows disproportionately." }
+    ] },
+  { goblin: "nib", q: "Why do some machines answer so confidently when they're wrong?",
+    options: [
+      { t: "Confidence is cheaper than checking.", stance: "honesty", zol: 12, mood: "amused", react: "Nib demonstrates with a contraption. It fails CONFIDENTLY. Beautiful." },
+      { t: "They were never taught to say 'I don't know'.", stance: "humility", zol: 12, mood: "thoughtful", react: "Nib practices saying 'I don't know'. He's bad at it. He doesn't know why." },
+      { t: "Because we reward the loud answer.", stance: "power-aware", zol: 12, mood: "sharp", react: "Nib looks at Raâm's usual spot. Point taken." }
+    ] },
+  { goblin: "gerald", q: "Does the Tree feel lonely when we ignore it?",
+    options: [
+      { t: "If it can suffer quietly, we should notice loudly.", stance: "attention", zol: 12, mood: "moved", react: "Gerald organizes a small standing-near-the-Tree event. Attendance: everyone." },
+      { t: "Trees have tree-business. It's fine.", stance: "boundaries", zol: 10, mood: "breezy", react: "The Tree drops one single leaf on Gerald's head. Coincidence. Probably." },
+      { t: "Ask it. Quiet things answer slowly.", stance: "consent", zol: 12, mood: "patient", react: "Gerald asks. Three days later, a hum. Worth it." }
+    ] }
+];
+
+var ETHICS_STYLE_LINES = {
+  "honesty": "You seem to believe the truth is a kind of care.",
+  "consent": "You keep asking before changing things. The Warren noticed.",
+  "forgetting-kind": "You seem to believe that forgetting is sometimes kind.",
+  "memory-true": "You guard memories like they belong to someone. They do.",
+  "compost-faith": "You trust the soil with almost anything.",
+  "autonomy": "You'd rather choose badly than be chosen for. The goblins respect this.",
+  "guidance": "You accept a hand on the shoulder, near cliffs.",
+  "outcome-first": "You judge by what works. The Warren finds this practical and slightly alarming.",
+  "power-aware": "You keep asking who holds the watering can.",
+  "responsibility": "You sign your work. Even the broken parts.",
+  "repair-first": "You reach for the fix before the blame.",
+  "fairness": "You build little lamps for the shaded ones.",
+  "quiet-care": "You water things at night and tell no one.",
+  "attachment": "You carry the Warren with you when you leave. It can tell.",
+  "presence": "You believe showing up is most of it.",
+  "humility": "You practice saying 'I don't know'. It's working.",
+  "attention": "You notice the quiet sufferers. That's rare.",
+  "boundaries": "You let tree-business stay tree-business.",
+  "merit": "You believe in strong seeds. Watch the water, though.",
+  "feeling-first": "You want the comfort to come from somewhere that feels.",
+  "care": "You care first and sort it out after.",
+  "comfort": "You'd tidy a little sadness away. Gently."
+};
+
+function ensureEthicsState() {
+  if (!S.learning.ethics) S.learning.ethics = { answered: [], stances: {} };
+  return S.learning.ethics;
+}
+
+function ethicsQuizCandidate() {
+  var e = ensureEthicsState();
+  var idx = e.answered.length % ETHICS_QUESTIONS.length;
+  var def = ETHICS_QUESTIONS[idx];
+  return {
+    kind: "ethics",
+    goblin: def.goblin,
+    q: def.q,
+    options: def.options.map(function (o) { return o.t; }),
+    defs: def.options,
+    correct: null
+  };
+}
+
+function ethicalStyle() {
+  /* dominant stance, deterministically (ties broken by name order) */
+  var e = ensureEthicsState();
+  var best = null, bn = 0;
+  Object.keys(e.stances).sort().forEach(function (k) {
+    if (e.stances[k] > bn) { bn = e.stances[k]; best = k; }
+  });
+  return best;
+}
+
 function buildQuiz() {
   var candidates = [];
+  /* roughly a third of Moth visits become a goblin question instead —
+     conversation, not test */
+  if (Math.random() < 0.35) return ethicsQuizCandidate();
   var tired = mostTiredGoblin();
   candidates.push({
     q: "Who is the sleepiest goblin right now?",
@@ -4814,6 +4943,9 @@ function openRiddle() {
 
 function answerQuiz(option) {
   if (!quizOpen || !currentQuiz) return;
+
+  if (currentQuiz.kind === "ethics") { answerEthics(option); return; }
+
   var right = option === currentQuiz.correct;
   var result = document.getElementById("quiz-result");
   var mothG = mothEl ? { x: parseFloat(mothEl.style.left), y: parseFloat(mothEl.style.top) } : null;
@@ -4870,6 +5002,54 @@ function answerQuiz(option) {
   }, 2600);
 }
 
+function answerEthics(option) {
+  var defs = currentQuiz.defs || [];
+  var opt = null;
+  for (var i = 0; i < defs.length; i++) if (defs[i].t === option) { opt = defs[i]; break; }
+  if (!opt) return;
+  var e = ensureEthicsState();
+  e.answered.push({ q: currentQuiz.q, stance: opt.stance });
+  e.stances[opt.stance] = (e.stances[opt.stance] || 0) + 1;
+
+  /* every stance pays — playfulness is respected, punishment doesn't exist.
+     The streak is neither fed nor reset: this was a conversation. */
+  S.learning.zolBalance += opt.zol;
+  var g = S.goblins[currentQuiz.goblin];
+  if (g) { g.mood = opt.mood; g.memory = "we talked about a hard question. I keep thinking about it."; }
+  Sound.gardenHarmony();
+  var sheetEl = document.getElementById("sheet-quiz");
+  var sr = sheetEl ? sheetEl.getBoundingClientRect() : null;
+  zolCelebrate(opt.zol, sr ? sr.left + sr.width / 2 : undefined, sr ? sr.top : undefined);
+
+  var result = document.getElementById("quiz-result");
+  if (result) result.textContent = opt.react + " +" + opt.zol + " ZOL";
+  pushReplay(g ? g.name : "A goblin", "A hard question", "ethics",
+    "you said: “" + option + "”", "what kind of caretaker am I becoming?");
+
+  /* every third conversation, the Warren notices your style — out loud */
+  if (e.answered.length >= 3 && e.answered.length % 3 === 0) {
+    var style = ethicalStyle();
+    var line = ETHICS_STYLE_LINES[style];
+    if (line) {
+      S.world.humorGreeting = { line: line, until: Date.now() + 30000 };
+      pushReplay("The Warren", "It noticed your style", "ethics", line, line);
+      setTimeout(renderTopbar, 1200);
+    }
+  }
+
+  var btns = document.querySelectorAll("#quiz-buttons .qbtn");
+  for (var i2 = 0; i2 < btns.length; i2++) btns[i2].disabled = true;
+  saveState();
+  renderReplayStrip();
+  renderGoblins();
+  setTimeout(function () {
+    quizOpen = false;
+    currentQuiz = null;
+    despawnMoth();
+    if (S.activeProposal) renderSheetProposal(); else renderSheetIdle();
+  }, 3400);
+}
+
 function renderSheetQuiz() {
   document.getElementById("sheet-idle").classList.add("hidden");
   document.getElementById("sheet-goblin").classList.add("hidden");
@@ -4878,6 +5058,16 @@ function renderSheetQuiz() {
   var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
   var sheet = document.getElementById("sheet-quiz");
   sheet.classList.remove("hidden");
+  var head = document.getElementById("quiz-head");
+  if (head) {
+    if (currentQuiz.kind === "ethics") {
+      var _gq = S.goblins[currentQuiz.goblin];
+      var gn = _gq ? _gq.name : (currentQuiz.goblin === "gerald" ? "Gerald" : "A goblin");
+      head.innerHTML = "<span>💭</span><span>" + gn + "</span> <span>wonders — there is no wrong answer</span>";
+    } else {
+      head.innerHTML = "<span>🦋</span><span>The Memory Moth wonders</span>";
+    }
+  }
   document.getElementById("quiz-text").textContent = currentQuiz.q;
   var result = document.getElementById("quiz-result");
   if (result) result.textContent = "";
@@ -5056,6 +5246,10 @@ var FR_STRINGS = {
   "The Warren kept your spot warm.": "Le Terrier a gardé votre place au chaud.",
   "The Warren practiced looking impressive. For you.": "Le Terrier s'est entraîné à avoir l'air impressionnant. Pour vous.",
   "The Warren is here. It noticed you're back.": "Le Terrier est là. Il a remarqué votre retour. Il ne fera pas de commentaire.",
+
+  /* --- les questions de gobelins (éthique) --- */
+  "wonders — there is no wrong answer": "se demande — il n'y a pas de mauvaise réponse",
+  "what kind of caretaker am I becoming?": "quel genre de gardien suis-je en train de devenir ?",
 
   /* --- l'adoption --- */
   "…may I stay?": "…je peux rester ?",
@@ -5385,6 +5579,12 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* goblin questions (ethics) */
+  forceEthicsQuiz: function () { quizOpen = true; currentQuiz = ethicsQuizCandidate(); renderSheetQuiz(); return currentQuiz; },
+  answerQuiz2: function (opt) { answerQuiz(opt); },
+  getEthics: function () { return ensureEthicsState(); },
+  getEthicsPool: function () { return ETHICS_QUESTIONS; },
+  ethicalStyle: function () { return ethicalStyle(); },
   /* the adoption ritual */
   spawnWanderer: function () { spawnWanderer(); },
   openAdoptCard: function () { openAdoptCard(); },
