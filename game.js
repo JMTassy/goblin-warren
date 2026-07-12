@@ -193,7 +193,7 @@ function makeState() {
     version: STATE_VERSION,
     startedAt: Date.now(),
     lastSavedAt: Date.now(),
-    world: { treeHealth: 70, gardenToxicity: 20, bugPressure: 15, soil: 0, warmth: 50, currentSignal: null },
+    world: { treeHealth: 70, gardenToxicity: 20, bugPressure: 15, soil: 0, warmth: 50, currentSignal: null, warrenTicks: 0 },
     goblins: goblins,
     lulu: { mode: "bouffon-tendre", previousMode: null,
             needs: { energy: 70, curiosity: 70, connection: 55 },
@@ -296,12 +296,93 @@ function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still playable this session */ }
 }
 
+/* ---------------------------------------------------------------------
+   THE WARREN AS A COMPOSTING REPLAY ORGANISM
+   A memory field stays true only through re-engagement. Un-replayed
+   memories don't silently drop — past a freshness threshold they COMPOST
+   into soil (visible transformation, not deletion). Replaying a memory
+   (touchMemory) refreshes it; neglect lets absence compost it.
+
+   DETERMINISM LAW: time never decays memory directly. The passage of
+   absence is folded into an integer counter (S.world.warrenTicks) from
+   elapsed-time-as-DATA at return — the clock is read ONCE, in the boot
+   zone, never here. Freshness is a pure function of integer ticks, so the
+   same (actions + absence) always yields the same compost state; replay
+   stays byte-identical. No hidden per-memory timestamp drives decay.
+--------------------------------------------------------------------- */
+var COMPOST_BUCKET_MS = 1800000;   // 30-min absence buckets (schema-consistent)
+var COMPOST_MAX_BUCKETS = 336;     // cap folded absence at 7 days (kernel law)
+var COMPOST_THRESHOLD_TICKS = 48;  // ~24h of cumulative absence untouched → soil
+var REPLAY_SOFT_CAP = 120;         // only SETTLED soil may fall off the end
+
 function pushReplay(actor, eventTitle, choice, visibleChange, memoryLine) {
   S.replay.push({
     id: uid("r"), timestamp: Date.now(), actor: actor,
-    event: eventTitle, choice: choice, visibleChange: visibleChange, memoryLine: memoryLine || ""
+    event: eventTitle, choice: choice, visibleChange: visibleChange, memoryLine: memoryLine || "",
+    freshTick: (S.world.warrenTicks || 0), composted: false
   });
-  if (S.replay.length > 40) S.replay.shift();
+  /* A fresh memory NEVER silently drops. Only already-composted soil is
+     allowed to settle off the end once the field grows large. */
+  if (S.replay.length > REPLAY_SOFT_CAP) {
+    var i = -1;
+    for (var k = 0; k < S.replay.length; k++) { if (S.replay[k].composted) { i = k; break; } }
+    if (i >= 0) S.replay.splice(i, 1);
+    /* if nothing has composted yet, the field is all-fresh — keep it all. */
+  }
+}
+
+/* Fold N absence buckets into the tick counter, then compost the stale.
+   Called from the boot/return zone with elapsed-time-as-data; the reducer
+   itself never reads the clock. Returns buckets folded. */
+function warrenAbsenceTicks(elapsedMs) {
+  var buckets = Math.floor((elapsedMs || 0) / COMPOST_BUCKET_MS);
+  if (buckets < 0) buckets = 0;
+  if (buckets > COMPOST_MAX_BUCKETS) buckets = COMPOST_MAX_BUCKETS;
+  if (buckets === 0) return 0;
+  S.world.warrenTicks = (S.world.warrenTicks || 0) + buckets;
+  compostStaleMemories();
+  return buckets;
+}
+
+/* Pure fold: any un-touched, un-composted memory older than the threshold
+   (in ticks) transforms into soil. Idempotent — running it again with no
+   new ticks composts nothing new. */
+function compostStaleMemories() {
+  var t = (S.world.warrenTicks || 0);
+  var composted = 0;
+  for (var i = 0; i < S.replay.length; i++) {
+    var r = S.replay[i];
+    if (r.composted) continue;
+    if (r.choice === "compost") continue; // already chosen soil — leave the receipt
+    var fresh = (typeof r.freshTick === "number") ? r.freshTick : 0;
+    if (t - fresh >= COMPOST_THRESHOLD_TICKS) {
+      r.composted = true;
+      r.compostedAtTick = t;
+      composted++;
+    }
+  }
+  if (composted > 0) {
+    S.world.soil = clamp(S.world.soil + composted * 3, 0, 100);
+    addObject("🍄", "Composted Memory", "forge");
+    /* the Warren notices its own forgetting — a receipt, not a silent drop */
+    pushReplay("Warren", composted + (composted === 1 ? " memory" : " memories") + " composted while you were away",
+      "compost", "un-tended memories turned to soil.", "what I did not replay became soil.");
+  }
+  return composted;
+}
+
+/* Replay = re-remembering. Opening a memory refreshes it (resets its age to
+   now), which is what keeps it true. A composted memory cannot be
+   un-composted here — only a new event can grow something from that soil. */
+function touchMemory(id) {
+  for (var i = 0; i < S.replay.length; i++) {
+    if (S.replay[i].id === id) {
+      if (S.replay[i].composted) return false;
+      S.replay[i].freshTick = (S.world.warrenTicks || 0);
+      return true;
+    }
+  }
+  return false;
 }
 
 /* ---------------------------------------------------------------------
@@ -3107,10 +3188,28 @@ function renderReplayStrip() {
   var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
-    chip.className = "replay-chip " + r.choice;
+    chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
     var d = new Date(r.timestamp);
     var hh = ("0" + d.getHours()).slice(-2), mm = ("0" + d.getMinutes()).slice(-2);
-    chip.innerHTML = (CHIP_ICONS[r.choice] || "•") + " <b>" + r.choice.toUpperCase() + "</b> " + hh + ":" + mm + " · " + r.visibleChange;
+    if (r.composted) {
+      chip.innerHTML = "🍄 <b>SOIL</b> · " + r.visibleChange;
+      chip.title = "this memory composted while un-replayed — soil now";
+    } else {
+      chip.innerHTML = (CHIP_ICONS[r.choice] || "•") + " <b>" + r.choice.toUpperCase() + "</b> " + hh + ":" + mm + " · " + r.visibleChange;
+      chip.title = "tap to re-remember — replaying keeps a memory true";
+      /* replay = re-remembering: tapping refreshes the memory's freshness */
+      (function (id) {
+        chip.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (touchMemory(id)) {
+            chip.classList.add("rememb");
+            setTimeout(function () { chip.classList.remove("rememb"); }, 650);
+            ensureAudio(); resumeAudio(); if (window.Sound && Sound.bloom) Sound.bloom();
+            saveState();
+          }
+        });
+      })(r.id);
+    }
     strip.appendChild(chip);
   });
   strip.scrollLeft = strip.scrollWidth;
@@ -4686,6 +4785,13 @@ window.WARREN_DEBUG = {
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
+  /* composting replay organism */
+  getReplay: function () { return S.replay; },
+  getWarrenTicks: function () { return S.world.warrenTicks || 0; },
+  pushMemory: function (line) { pushReplay("test", line || "a memory", "try", line || "a thing happened", line || ""); return S.replay[S.replay.length - 1]; },
+  warrenAbsence: function (elapsedMs) { return warrenAbsenceTicks(elapsedMs); },
+  compostStale: function () { return compostStaleMemories(); },
+  touchMemory: function (id) { return touchMemory(id); },
   openRiddle: function () { openRiddle(); },
   luluSay: function (m) { luluSay(m); },
   luluOfflineReply: function (m) { return luluOfflineReply(m); },
@@ -4750,6 +4856,12 @@ function boot() {
   /* Lulu lived while you were away: reunion ritual for returning players */
   var away = S.lulu.lastVisitAt ? (Date.now() - S.lulu.lastVisitAt) : 0;
   S.lulu.lastVisitAt = Date.now();
+  if (!isFreshBoot && away > 0) {
+    /* the whole Warren aged, not only Lulu: fold absence-as-data into ticks
+       (clock read here, in the boot zone — never inside the compost fold),
+       then un-tended memories compost into soil. */
+    warrenAbsenceTicks(away);
+  }
   if (!isFreshBoot && away > 120000) {
     setTimeout(function () { luluReunion(away); }, 1200);
   }

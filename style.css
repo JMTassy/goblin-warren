@@ -456,6 +456,26 @@ html, body {
 .replay-chip.try { border-color: rgba(110,231,160,0.5); }
 .replay-chip.hold { border-color: rgba(255,177,92,0.5); }
 .replay-chip.compost { border-color: rgba(217,165,255,0.5); }
+.replay-chip:not(.composted) { cursor: pointer; }
+/* a memory that composted while un-replayed — turned to soil, not deleted */
+.replay-chip.composted {
+  color: var(--ink-dim);
+  opacity: 0.6;
+  border-color: rgba(120,90,60,0.5);
+  background: rgba(90,70,45,0.14);
+  font-style: italic;
+}
+.replay-chip.composted b { color: #c9a06a; }
+/* re-remembering pulse — replay keeps a memory true */
+.replay-chip.rememb {
+  animation: rememb 0.65s ease-out;
+  border-color: rgba(155,227,109,0.85);
+}
+@keyframes rememb {
+  0% { box-shadow: 0 0 0 0 rgba(155,227,109,0.55); transform: scale(1); }
+  40% { box-shadow: 0 0 10px 3px rgba(155,227,109,0.5); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(155,227,109,0); transform: scale(1); }
+}
 
 #sheet {
   background: var(--panel);
