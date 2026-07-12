@@ -325,6 +325,45 @@ html, body {
 .sw-head { font-size: 11px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .sw-effect { font-size: 10.5px; color: var(--ink-dim); line-height: 1.45; }
 .sw-journal { font-size: 11px; color: var(--glow-lime, #9be36d); font-style: italic; margin-top: 6px; }
+
+/* ---------- goblin-style result motion (Daily Verdict stamp moment,
+   PARKED_CHIDDUSHIM.md #17) — bouncy overshoot, not corporate ease;
+   the chosen world hops loudest. Fires once, on the live stamp only. ---------- */
+.split-world.gob-enter { animation: gobhop 620ms cubic-bezier(.34, 1.9, .4, 1) both; }
+.split-world.chosen.gob-enter { animation: gobhopbig 760ms cubic-bezier(.3, 2.2, .35, 1) both; }
+@keyframes gobhop {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.85) rotate(-2deg); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.03) rotate(1deg); }
+  100% { opacity: 0.62; transform: translateY(0) scale(1) rotate(0deg); }
+}
+@keyframes gobhopbig {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.7) rotate(-4deg); }
+  50%  { opacity: 1; transform: translateY(-7px) scale(1.09) rotate(2deg); }
+  78%  { transform: translateY(2px) scale(0.98) rotate(-1deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+.gob-char { opacity: 0; display: inline-block; animation: gobchar 70ms ease-out forwards; }
+@keyframes gobchar { to { opacity: 1; } }
+
+.verdict-fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+.verdict-frag {
+  position: absolute;
+  font-size: 13px;
+  opacity: 0;
+  animation: fragfloat 1.6s ease-out forwards;
+}
+@keyframes fragfloat {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.55) rotate(0deg); }
+  14%  { opacity: 0.95; }
+  100% { opacity: 0; transform: translate(var(--fx, 0px), -64px) scale(1.15) rotate(var(--fr, 20deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .split-world.gob-enter { animation: none; opacity: 0.62; }
+  .split-world.chosen.gob-enter { animation: none; opacity: 1; }
+  .gob-char { animation: none !important; opacity: 1 !important; }
+  .verdict-frag { display: none; }
+}
 .verdict-row {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin-top: 14px;

@@ -2096,8 +2096,77 @@ function applyVerdictStamp(stamp) {
       buildVerdictSplitHTML(d, stamp) + buildVerdictRowHTML();
     inner.querySelector("#verdict-close").addEventListener("click", function () { card.remove(); });
     wireVerdictCopy(card);
+    playVerdictResultMotion(inner, stamp);
   }
   return true;
+}
+
+/* the goblin-style result moment — fires once, on the live stamp only
+   (reopening an already-stamped verdict shows the split statically, no
+   replay). Pure motion over data buildVerdictSplitHTML already rendered
+   correctly; if this never runs (JS error, reduced motion), the card is
+   already fully readable. PARKED_CHIDDUSHIM.md #17. */
+function playVerdictResultMotion(inner, chosenStamp) {
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var worlds = [].slice.call(inner.querySelectorAll(".split-world"));
+  if (!worlds.length) return;
+  if (reduce) return; /* base HTML already correct and static */
+
+  /* the chosen world hops in last and loudest — hierarchy through motion */
+  var ordered = worlds.slice().sort(function (a, b) {
+    return (a.classList.contains("chosen") ? 1 : 0) - (b.classList.contains("chosen") ? 1 : 0);
+  });
+  ordered.forEach(function (w, i) {
+    w.style.animationDelay = (i * 140) + "ms";
+    w.classList.add("gob-enter");
+    w.addEventListener("animationend", function () { w.classList.remove("gob-enter"); }, { once: true });
+  });
+
+  var chosenWorld = inner.querySelector(".split-world.chosen");
+  var journal = chosenWorld && chosenWorld.querySelector(".sw-journal");
+  var chosenDelay = (ordered.length - 1) * 140 + 400;
+
+  if (journal) {
+    var text = journal.textContent;
+    journal.textContent = "";
+    var chars = text.split("").map(function (ch, i) {
+      var span = document.createElement("span");
+      span.className = "gob-char";
+      span.style.animationDelay = (chosenDelay + i * 16) + "ms";
+      span.textContent = ch;
+      return span;
+    });
+    chars.forEach(function (span) { journal.appendChild(span); });
+  }
+
+  /* small memory fragments float up from the chosen world — "one shared
+     memory is created" made visible, not just stated */
+  setTimeout(function () {
+    if (!chosenWorld) return;
+    var rect = chosenWorld.getBoundingClientRect();
+    var layer = document.createElement("div");
+    layer.className = "verdict-fx-layer";
+    document.body.appendChild(layer);
+    var glyphs = ["🍃", "✨", "🍄", "✨"];
+    glyphs.forEach(function (g, i) {
+      var frag = document.createElement("div");
+      frag.className = "verdict-frag";
+      frag.textContent = g;
+      frag.style.left = (rect.left + rect.width * (0.2 + i * 0.2)) + "px";
+      frag.style.top = (rect.top + rect.height * 0.5) + "px";
+      frag.style.setProperty("--fx", (randi(-14, 14)) + "px");
+      frag.style.setProperty("--fr", (randi(-24, 24)) + "deg");
+      frag.style.animationDelay = (i * 110) + "ms";
+      layer.appendChild(frag);
+    });
+    setTimeout(function () { layer.remove(); }, 2200);
+  }, chosenDelay);
+
+  /* end with a subtle pulse on the Akashic Tree */
+  setTimeout(function () {
+    var treeGlyph = document.querySelector("#zone-tree .zone-glyph");
+    if (treeGlyph) flashClass(treeGlyph, "beat", 600);
+  }, chosenDelay + 500);
 }
 
 /* ---------------------------------------------------------------------
