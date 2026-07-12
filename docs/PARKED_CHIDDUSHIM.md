@@ -252,6 +252,13 @@
     Net: 2 of 5 are real slices waiting on a "go"; 3 of 5 are motion
     proposals for numbers that don't exist yet, same shape as #14 and
     #15's archetype/boss sub-pieces.
+    **BUILT (same day, "go in a very goblin style"):** the Daily Verdict
+    result-card motion shipped — bouncy overshoot entrance (chosen world
+    hops loudest/last), a typewritten journal line, floating memory
+    fragments, one Tree-glyph pulse; fires once on the live stamp only,
+    respects reduced motion. `verdict-motion-gates.js` 6/6. Serpent
+    station-unlock motion remains parked (needs the threshold-crossing
+    hook first).
 
 18. **Kinetic typography technique catalog** — six general techniques
     (emotional pacing/rhythm, hierarchy through motion, spatial
@@ -285,10 +292,9 @@
 - 16 → needs an operator call reconciling it against #10 before either
   gets built further; the minigame-design principles are usable
   independent of that call, whenever a minigame slice is built.
-- 17 → Daily Verdict result-card motion is ready to jump the queue
-  standalone on a "go" (pure UI polish, existing real data); Serpent
-  station-unlock needs a small new detection hook first; the other
-  three wait on #1/#2, #9, and Egregore Coherence respectively.
+- 17 → Daily Verdict result-card motion: BUILT (`verdict-motion-gates.js`
+  6/6). Serpent station-unlock needs a small new detection hook first;
+  the other three wait on #1/#2, #9, and Egregore Coherence respectively.
 - 18 → technique reference, applies wherever #17's slices (or later
   motion work) land; no build of its own.
 
