@@ -467,7 +467,9 @@ var MEMORY_SEED_QUEST = {
 
 function triggerMemorySeedQuest() {
   if (S.learning.activeQuest || S.learning.completedQuests.indexOf("memory-seed") !== -1) return;
-  if (S.replay.length < 3) return;
+  /* Quest triggers only on third proposal resolved, not first. */
+  var proposalsResolved = S.replay.filter(function (r) { return r.kind === "proposal-resolved" || r.kind === "quest-resolved"; }).length;
+  if (proposalsResolved < 3) return;
 
   S.learning.activeQuest = MEMORY_SEED_QUEST.id;
   S.learning.maestroUnlocked = true;
