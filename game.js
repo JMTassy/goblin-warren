@@ -306,6 +306,7 @@ function mergeDefaults(loaded) {
     out.council = Object.assign({}, d.council, loaded.council || {});
     out.echoes = Object.assign({}, d.echoes, loaded.echoes || {});
     out.teaching = Object.assign({}, d.teaching, loaded.teaching || {});
+    out.verdicts = (loaded.verdicts && Array.isArray(loaded.verdicts.history)) ? loaded.verdicts : { history: [] };
     out.teaching.lessons = Array.isArray(out.teaching.lessons) ? out.teaching.lessons.slice(-24) : [];
     out.teaching.taughtCount = out.teaching.taughtCount || {};
   } catch (e) { return d; }
@@ -1615,6 +1616,268 @@ function applyWarrenHumor(buckets) {
   renderReplayStrip();
   saveState();
   return h;
+}
+
+/* ---------------------------------------------------------------------
+   DAILY VERDICT — one deterministic dilemma per UTC day (sha256(date)
+   picks it; same day, same dilemma, every Warren on Earth). The player
+   stamps 🟢/🟡/🔴 BEFORE seeing the world-split; one visible consequence
+   lasts all day; a 7-day emoji row is one tap to copy. CROWN 3 is built
+   in at the signature level: pickDailyVerdict(dateStr, pool) and
+   applyVerdictStamp(stamp) take NO economic inputs — verdicts are never
+   for sale. Missed days are ⬜ in the row, never guilt: the scroll waits.
+--------------------------------------------------------------------- */
+
+var DV_DILEMMAS = [
+  { id: "DV-CARE-01", family: "CARE", title: "The Quiet Request",
+    prompt: "Lulu found an old receipt that feels heavy. She wants to show it to you, but she's worried it might change how you see her.",
+    options: [
+      { stamp: "🟢", label: "Read it with her right now", short: "Care through presence" },
+      { stamp: "🟡", label: "Ask her to keep it for now", short: "Respect her timing" },
+      { stamp: "🔴", label: "Tell her to compost it", short: "Protect the peace" }
+    ],
+    consequence: {
+      "🟢": { effect: "Lulu gains +1 Personal Coherence. One old memory is re-contextualized today.",
+              journal: "Lulu showed you something painful. You stayed." },
+      "🟡": { effect: "Lulu becomes slightly more reserved for the day. A small contradiction appears.",
+              journal: "You respected her boundary… but something stayed unspoken." },
+      "🔴": { effect: "The receipt is composted. Warren gains short-term calm but loses one memory thread.",
+              journal: "You chose peace over memory. The Warren feels lighter… and quieter." }
+    } },
+  { id: "DV-CHOICE-03", family: "CHOICE", title: "The New Tool",
+    prompt: "Pip built a small tool that could help organize memories faster. It would change how the Receipt Forge works.",
+    options: [
+      { stamp: "🟢", label: "Let him implement it", short: "Trust the builder" },
+      { stamp: "🟡", label: "Ask for a test version first", short: "Cautious progress" },
+      { stamp: "🔴", label: "Tell him not to change anything", short: "Protect what already works" }
+    ],
+    consequence: {
+      "🟢": { effect: "Receipt Forge becomes more efficient. One new proposal type appears in the Evolution Journal.",
+              journal: "You let Pip build. The Warren remembers faster now." },
+      "🟡": { effect: "Small test version appears. Minor contradiction between Pip and traditionalists.",
+              journal: "You asked for caution. Progress slowed… but stayed honest." },
+      "🔴": { effect: "No change. Pip feels slightly demotivated. Short-term stability.",
+              journal: "You chose stability. The old ways remain… for now." }
+    } },
+  { id: "DV-MOOD-07", family: "MOOD", title: "The Heavy Day",
+    prompt: "Several goblins woke up carrying the same quiet weight. The Warren feels slower today.",
+    options: [
+      { stamp: "🟢", label: "Gather everyone and name the feeling", short: "Face it together" },
+      { stamp: "🟡", label: "Give them space and light care", short: "Gentle presence" },
+      { stamp: "🔴", label: "Push through and focus on tasks", short: "Keep moving" }
+    ],
+    consequence: {
+      "🟢": { effect: "One shared memory is created. Archetype activation increases across multiple goblins.",
+              journal: "You named the weight. The Warren feels more honest today." },
+      "🟡": { effect: "Moods improve slowly. One small positive memory spreads through the Mycelial Gate.",
+              journal: "You gave them space. The weight lifted a little." },
+      "🔴": { effect: "Short-term productivity. One contradiction grows quietly in the background.",
+              journal: "You kept everyone moving. Something stayed buried." }
+    } }
+];
+
+/* CROWN 3 FIREWALL (by construction): these two signatures accept no
+   economic values. There is no argument through which ZOL could reach a
+   verdict, and no return path that emits one. */
+var dvPickedIndex = null; /* resolved async at boot from sha256(UTC date) */
+
+function utcDateStr() { return new Date().toISOString().slice(0, 10); }
+
+function dvFnv(str) {
+  /* FNV-1a — deterministic fallback when Web Crypto is unavailable */
+  var h = 0x811c9dc5;
+  for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h >>> 0;
+}
+
+function pickDailyVerdict(dateStr, poolSize, cb) {
+  /* sha256(UTC-date) → index. Web Crypto where available; the FNV fallback
+     is equally deterministic (documented deviation, same law: date → index). */
+  try {
+    var bytes = new TextEncoder().encode(dateStr);
+    crypto.subtle.digest("SHA-256", bytes).then(function (buf) {
+      var v = new DataView(buf);
+      cb(v.getUint32(0) % poolSize);
+    }).catch(function () { cb(dvFnv(dateStr) % poolSize); });
+  } catch (e) {
+    cb(dvFnv(dateStr) % poolSize);
+  }
+}
+
+function ensureVerdictState() {
+  if (!S.verdicts) S.verdicts = { history: [] };
+  return S.verdicts;
+}
+function todayVerdict() {
+  var v = ensureVerdictState();
+  var d = utcDateStr();
+  for (var i = 0; i < v.history.length; i++) if (v.history[i].date === d) return v.history[i];
+  return null;
+}
+
+var verdictScrollEl = null;
+
+function spawnVerdictScroll() {
+  if (todayVerdict() || verdictScrollEl || dvPickedIndex == null) return;
+  var world = document.getElementById("world");
+  if (!world) return;
+  var el = document.createElement("div");
+  el.className = "verdict-scroll";
+  el.innerHTML = '<div class="vs-glyph">📜</div><div class="vs-tag">today’s verdict</div>';
+  el.style.left = "50%";
+  el.style.top = "-8%";
+  el.addEventListener("click", function (e) { e.stopPropagation(); openVerdictCard(); });
+  world.appendChild(el);
+  verdictScrollEl = el;
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { el.style.top = "30%"; });
+  });
+  Sound.treeHum();
+}
+
+function openVerdictCard() {
+  if (dvPickedIndex == null) return;
+  var old = document.getElementById("verdict-card");
+  if (old) old.remove();
+  var d = DV_DILEMMAS[dvPickedIndex];
+  var done = todayVerdict();
+  var card = document.createElement("div");
+  card.id = "verdict-card";
+  var inner = '<div class="verdict-inner">' +
+    '<button class="card-close" id="verdict-close">✕</button>' +
+    '<div class="verdict-kicker">DAILY VERDICT · ' + utcDateStr() + '</div>' +
+    '<div class="verdict-title">' + d.title + '</div>';
+  if (!done) {
+    /* PRE-STAMP: prompt + options only. The world-split stays sealed. */
+    inner += '<div class="verdict-prompt">' + d.prompt + '</div>' +
+      '<div class="verdict-opts">' +
+      d.options.map(function (o) {
+        return '<button class="verdict-opt" data-stamp="' + o.stamp + '">' +
+          '<span class="vo-stamp">' + o.stamp + '</span>' +
+          '<span class="vo-label">' + o.label + '</span>' +
+          '<span class="vo-short">' + o.short + '</span></button>';
+      }).join("") +
+      '</div><div class="verdict-hint">the world-split is revealed only after you stamp</div>';
+  } else {
+    inner += buildVerdictSplitHTML(d, done.stamp);
+  }
+  inner += buildVerdictRowHTML() + '</div>';
+  card.innerHTML = inner;
+  document.getElementById("app").appendChild(card);
+  card.querySelector("#verdict-close").addEventListener("click", function () { card.remove(); });
+  card.querySelectorAll(".verdict-opt").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      ensureAudio(); resumeAudio();
+      applyVerdictStamp(btn.getAttribute("data-stamp"));
+    });
+  });
+  wireVerdictCopy(card);
+}
+
+function buildVerdictSplitHTML(d, stamped) {
+  /* POST-STAMP: all three worlds shown, yours glowing — the split. */
+  var html = '<div class="verdict-split">';
+  d.options.forEach(function (o) {
+    var c = d.consequence[o.stamp];
+    html += '<div class="split-world' + (o.stamp === stamped ? ' chosen' : '') + '">' +
+      '<div class="sw-head">' + o.stamp + ' ' + o.label + (o.stamp === stamped ? ' · YOURS' : '') + '</div>' +
+      '<div class="sw-effect">' + c.effect + '</div>' +
+      (o.stamp === stamped ? '<div class="sw-journal">“' + c.journal + '”</div>' : '') +
+      '</div>';
+  });
+  return html + '</div>';
+}
+
+function buildVerdictRowHTML() {
+  /* last 7 UTC days, ⬜ for unstamped — no guilt, just the honest row */
+  var v = ensureVerdictState();
+  var byDate = {};
+  v.history.forEach(function (h) { byDate[h.date] = h.stamp; });
+  var row = "";
+  for (var i = 6; i >= 0; i--) {
+    var dt = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    row += byDate[dt] || "⬜";
+  }
+  return '<div class="verdict-row"><span id="verdict-row-emoji">' + row + '</span>' +
+    '<button id="verdict-copy">📋 copy my week</button></div>';
+}
+
+function wireVerdictCopy(card) {
+  var btn = card.querySelector("#verdict-copy");
+  if (!btn) return;
+  btn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var row = card.querySelector("#verdict-row-emoji").textContent;
+    var text = "GOBLIN WARREN · my week: " + row + " · forest-frost-277.higgsfield.gg";
+    var ok = function () { btn.textContent = "✓ copied"; setTimeout(function () { btn.textContent = "📋 copy my week"; }, 1600); };
+    try { navigator.clipboard.writeText(text).then(ok, function () { fallbackCopy(text); ok(); }); }
+    catch (err) { fallbackCopy(text); ok(); }
+  });
+}
+function fallbackCopy(text) {
+  var ta = document.createElement("textarea");
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  ta.remove();
+}
+
+function applyVerdictStamp(stamp) {
+  if (todayVerdict() || dvPickedIndex == null) return false;
+  var d = DV_DILEMMAS[dvPickedIndex];
+  var c = d.consequence[stamp];
+  if (!c) return false;
+  var v = ensureVerdictState();
+  v.history.push({ date: utcDateStr(), id: d.id, stamp: stamp });
+  if (v.history.length > 60) v.history.shift();
+
+  /* the one visible consequence, all day: a Verdict Stone at the Tree */
+  var stoneEmoji = stamp === "🟢" ? "🌱" : stamp === "🟡" ? "⏳" : "🍂";
+  S.objects = S.objects.filter(function (o) { return o.sign.indexOf("Verdict:") !== 0; });
+  addObject(stoneEmoji, "Verdict: " + d.title, "tree");
+
+  /* dilemma-specific expressive consequences (moods, memory — never coin) */
+  if (d.id === "DV-CARE-01") {
+    if (stamp === "🟢") { S.goblins.lulu.mood = "moved"; S.goblins.lulu.memory = "I showed the heavy receipt. They stayed."; }
+    if (stamp === "🟡") { S.goblins.lulu.mood = "reserved"; }
+    if (stamp === "🔴") {
+      for (var i = 0; i < S.replay.length; i++) {
+        if (!S.replay[i].composted && S.replay[i].choice !== "compost") {
+          S.replay[i].composted = true; S.replay[i].compostedAtTick = (S.world.warrenTicks || 0); break;
+        }
+      }
+      Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "calm"; });
+    }
+  } else if (d.id === "DV-CHOICE-03") {
+    S.goblins.pip.mood = stamp === "🟢" ? "inspired" : stamp === "🟡" ? "focused" : "deflated";
+    if (stamp === "🟢") S.goblins.pip.memory = "my tool is real now. the Forge hums differently.";
+  } else if (d.id === "DV-MOOD-07") {
+    var m = stamp === "🟢" ? "honest" : stamp === "🟡" ? "soothed" : "driven";
+    Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = m; });
+  }
+
+  S.world.humorGreeting = { line: c.journal, until: Date.now() + 40000 };
+  pushReplay("You", "Daily Verdict: " + d.title, "verdict", stamp + " " + c.journal, c.journal);
+
+  Sound.stampThunk();
+  setTimeout(Sound.gardenHarmony, 350);
+  if (verdictScrollEl) { verdictScrollEl.remove(); verdictScrollEl = null; }
+  appBounce();
+  saveState();
+  renderTopbar(); renderGoblins(); renderObjects(); renderReplayStrip();
+
+  /* now — and only now — the split */
+  var card = document.getElementById("verdict-card");
+  if (card) {
+    var inner = card.querySelector(".verdict-inner");
+    inner.innerHTML = '<button class="card-close" id="verdict-close">✕</button>' +
+      '<div class="verdict-kicker">DAILY VERDICT · ' + utcDateStr() + ' · STAMPED</div>' +
+      '<div class="verdict-title">' + d.title + '</div>' +
+      buildVerdictSplitHTML(d, stamp) + buildVerdictRowHTML();
+    inner.querySelector("#verdict-close").addEventListener("click", function () { card.remove(); });
+    wireVerdictCopy(card);
+  }
+  return true;
 }
 
 /* ---------------------------------------------------------------------
@@ -3499,7 +3762,7 @@ function renderReplayStrip() {
     strip.appendChild(e);
     return;
   }
-  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺", ethics: "💭" };
+  var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺", ethics: "💭", verdict: "📜" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
     chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
@@ -5579,6 +5842,15 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* daily verdict */
+  verdictPickFor: function (dateStr, cb) { pickDailyVerdict(dateStr, DV_DILEMMAS.length, cb); },
+  getVerdictIndex: function () { return dvPickedIndex; },
+  setVerdictIndex: function (i) { dvPickedIndex = i; },
+  spawnVerdictScroll: function () { spawnVerdictScroll(); },
+  openVerdictCard: function () { openVerdictCard(); },
+  stampVerdict: function (s) { return applyVerdictStamp(s); },
+  getVerdicts: function () { return ensureVerdictState(); },
+  getDilemmas: function () { return DV_DILEMMAS; },
   /* goblin questions (ethics) */
   forceEthicsQuiz: function () { quizOpen = true; currentQuiz = ethicsQuizCandidate(); renderSheetQuiz(); return currentQuiz; },
   answerQuiz2: function (opt) { answerQuiz(opt); },
@@ -5713,6 +5985,13 @@ function boot() {
   if (!S.adopted) {
     wandererTimer = setTimeout(spawnWanderer, randi(50000, 110000));
   }
+
+  /* today's verdict: resolve the deterministic pick, then drop the scroll
+     (only if today is unstamped — the scroll waits, it never nags) */
+  pickDailyVerdict(utcDateStr(), DV_DILEMMAS.length, function (idx) {
+    dvPickedIndex = idx;
+    if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
+  });
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
