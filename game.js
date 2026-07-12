@@ -217,7 +217,8 @@ function makeState() {
     memories: [],
     council: { done: false, stage: "IDLE", card: null },
     /* echoes: consequences one mini-game leaves for another system to find */
-    echoes: { nibHyper: false, memoryFact: null, mushroomNoticed: false }
+    echoes: { nibHyper: false, memoryFact: null, mushroomNoticed: false,
+              geraldHead: false, luluHat: false }
   };
 }
 
@@ -1151,10 +1152,12 @@ function checkLuluAccessories() {
 }
 
 function luluAccessoryEmojis() {
-  return S.lulu.accessories.map(function (id) {
+  var em = S.lulu.accessories.map(function (id) {
     var a = LULU_ACCESSORIES.find(function (x) { return x.id === id; });
     return a ? a.emoji : "";
   }).join("");
+  if (S.echoes && S.echoes.luluHat) em += "🎩";  // won at Stack the Hats
+  return em;
 }
 
 /* ---------------------------------------------------------------------
@@ -1335,7 +1338,7 @@ function mgGeraldPick(i) {
     if (d.round >= 3) {
       var f = d.found || 0;
       if (f >= 3) endMinigame(true, "Gerald found three times. He is now Head of Hiding.", 15,
-        function () { addObject("🐛", "Gerald — Head of Hiding", "nursery"); });
+        function () { addObject("🐛", "Gerald — Head of Hiding", "nursery"); S.echoes.geraldHead = true; });
       else if (f >= 2) endMinigame(true, "Gerald found. He respects your technique.", 10, null);
       else endMinigame(false, "Gerald remains hidden. He sends his regards.", 0, null);
     } else mgGeraldRound();
@@ -1406,7 +1409,7 @@ function mgStackDrop() {
     d.done = true;
     setTimeout(function () {
       endMinigame(true, "Three hats. Perfectly balanced. A trophy.", 12,
-        function () { addObject("🎩", "The Three-Hat Trophy", "garden"); });
+        function () { addObject("🎩", "The Three-Hat Trophy", "garden"); S.echoes.luluHat = true; });
     }, 700);
   }
 }
@@ -3133,6 +3136,10 @@ function renderCouncil() {
   if (!card && ech.mushroomNoticed) {
     lines = lines.concat([{ speaker: "zaz", act: "OBJECT", targetProposal: "move",
       reason: "watched", text: "Also — a mushroom is watching us. It has noticed things. Just so we know." }]);
+  }
+  if (!card && ech.geraldHead) {
+    lines = lines.concat([{ speaker: "lulu", act: "JOKE", targetProposal: "house",
+      reason: "promotion", text: "Point of order: Gerald is Head of Hiding now. He cannot attend. He is hiding." }]);
   }
   var linesEl = document.getElementById("council-lines");
   linesEl.innerHTML = "";
