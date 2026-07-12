@@ -86,6 +86,14 @@ html, body {
   #signal-text { display: none; }
   #tree-status { flex: 0 1 auto; }
 }
+/* very narrow (≤360px): shed the decorative signal pill entirely and
+   tighten spacing so the row never overflows the viewport */
+@media (max-width: 360px) {
+  #topbar { gap: 4px; padding: 8px 5px; }
+  #signal-indicator { display: none; }
+  #currency { font-size: 9.5px; padding: 4px 5px; }
+  #zol-wallet { padding: 0 6px; }
+}
 
 #tree-glyph {
   font-size: 20px;
@@ -303,14 +311,39 @@ html, body {
   font-size: 8px;
   color: var(--ink);
   text-shadow: 0 1px 2px #000;
-  margin-top: 1px;
+  margin: 1px auto 0;
   white-space: nowrap;
+  /* a compact backing pill so neighbouring goblins' labels never smear
+     into one another when the map gets crowded */
+  display: inline-block;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 66px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: rgba(12, 10, 23, 0.55);
+  pointer-events: none;
 }
 .g-task {
   font-size: 7px;
   color: var(--ink-dim);
   font-style: italic;
-  margin-top: 0;
+  margin: 1px auto 0;
+  display: inline-block;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: rgba(12, 10, 23, 0.45);
+  pointer-events: none;
 }
 .goblin.resting .g-body { opacity: 0.72; }
 .goblin.resting::after {
@@ -583,7 +616,8 @@ html, body {
   position: absolute;
   inset: 0;
   z-index: 60;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1358,10 +1358,10 @@ function startMinigame(id) {
   var ov = mgOverlay();
   ov.innerHTML = '<div id="mg-card"><div id="mg-title">' + def.title + '</div>' +
     '<div id="mg-problem">' + def.problem + '</div>' +
-    '<div id="mg-arena"></div><div id="mg-result" class="hidden"></div></div>';
+    '<div id="mg-arena"><div class="mg-ready">ready…</div></div><div id="mg-result" class="hidden"></div></div>';
   ov.classList.remove("hidden");
   Sound.chirp();
-  setTimeout(function () { if (mg.active === id) def.play(); }, 900);
+  setTimeout(function () { if (mg.active === id) def.play(); }, 350);
   return true;
 }
 
@@ -1369,6 +1369,8 @@ function endMinigame(success, line, reward, consequence) {
   if (!mg.active) return;
   var id = mg.active;
   clearTimeout(mg.timer);
+  if (mg.data && mg.data.bellTimeout) clearTimeout(mg.data.bellTimeout);
+  if (mg.data && mg.data.hopTimer) clearTimeout(mg.data.hopTimer);
   var res = document.getElementById("mg-result");
   if (res) {
     res.classList.remove("hidden");
@@ -1826,7 +1828,7 @@ function mgBellPlay() {
     e.stopPropagation(); mgBellTap();
   });
   mg.data.bellTimeout = setTimeout(function () {
-    if (!mg.data.done && mg.data.taps.length < 3) { mg.data.done = true; endMinigame(false, "The goblins slept through it. Try the rhythm.", 0, null); }
+    if (mg.active === "bell" && mg.data && !mg.data.done && (mg.data.taps || []).length < 3) { mg.data.done = true; endMinigame(false, "The goblins slept through it. Try the rhythm.", 0, null); }
   }, 8000);
 }
 function mgBellTap() {
@@ -1899,12 +1901,12 @@ var LEVELS = [
   { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
     bg: "bg/level2-glade.jpeg",
     tint: "saturate(1.05)" },
-  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"],
-    bg: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
-    tint: "saturate(1.05)" },
-  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"],
-    bg: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
-    tint: "saturate(1.05)" }
+  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
+    scene: "linear-gradient(180deg, #0a0a1e 0%, #16112a 45%, #241a2e 100%)",
+    tint: "hue-rotate(-14deg) brightness(0.9) saturate(1.15)" },
+  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
+    scene: "linear-gradient(180deg, #1a1140 0%, #2c2154 55%, #3a2a63 100%)",
+    tint: "hue-rotate(20deg) brightness(1.06) saturate(1.1)" }
 ];
 
 function currentLevel() {
@@ -1917,9 +1919,14 @@ function applyLevelBackdrop() {
   var world = document.getElementById("world");
   if (!world) return;
   if (lv.bg) {
-    /* readability scrim over the level art (image sits under the goblins) */
+    /* readability scrim over bundled level art (image sits under the goblins) */
     world.style.backgroundImage =
       "linear-gradient(rgba(10,7,20,0.32), rgba(10,7,20,0.42) 62%, rgba(8,5,16,0.6)), url('" + lv.bg + "')";
+    world.style.backgroundSize = "cover";
+    world.style.backgroundPosition = "center";
+  } else if (lv.scene) {
+    /* offline-safe painted gradient scene — no network, no console errors */
+    world.style.backgroundImage = lv.scene;
     world.style.backgroundSize = "cover";
     world.style.backgroundPosition = "center";
   } else {
@@ -3276,7 +3283,15 @@ function renderSheetGoblin(id) {
   var cb = goblinCallback(id);
   if (cb) document.getElementById("card-memory").textContent = cb;
 
-  renderTeachPanel(id);
+  /* one input per card: Lulu is the one you *talk* to (live chat);
+     every other goblin is the one you *teach* (literal-interpret → stamp).
+     Never stack a teach box and a chat box on the same card. */
+  if (id === "lulu") {
+    var _t = document.getElementById("card-teach");
+    if (_t) { _t.classList.add("hidden"); _t.innerHTML = ""; }
+  } else {
+    renderTeachPanel(id);
+  }
   renderLuluCare(id);
 }
 
@@ -4262,27 +4277,32 @@ var AI_QCM = [
   { q: "Two chemicals feed and kill each other on a grid. What can grow from pure noise?",
     pool: ["Stable patterns — spots, worms, spirals, mazes", "Nothing, noise stays noise", "One big gray blob"],
     correct: "Stable patterns — spots, worms, spirals, mazes",
-    topic: "emergence", lesson: "simple rules + feedback = patterns from randomness",
+    topic: "emergence", lesson: "simple rules + feedback = patterns from randomness", hard: true,
     explain: "Gray-Scott: two knobs (feed, kill) make six pattern worlds. 1200 real simulations. Your Warren's weather uses their map." },
   { q: "Where was every atom of real gold actually made?",
     pool: ["Inside volcanoes", "In colliding neutron stars", "By very patient goblins"],
     correct: "In colliding neutron stars",
-    topic: "ai_basics", lesson: "gold is forged in neutron star mergers",
+    topic: "ai_basics", lesson: "gold is forged in neutron star mergers", hard: true,
     explain: "The r-process in neutron-star mergers mints gold. Every ZOL remembers the kilonova. (Simulated in The Well.)" },
   { q: "Hot gas slides over cold gas and they mix. What happens to the lukewarm layer?",
     pool: ["It stays comfy forever", "It cools fast and the cold side gains mass", "It becomes a cloud goblin"],
     correct: "It cools fast and the cold side gains mass",
-    topic: "evidence", lesson: "mixed states are unstable; they fall to one side",
+    topic: "evidence", lesson: "mixed states are unstable; they fall to one side", hard: true,
     explain: "Turbulent radiative layers: mixing reaches temperatures where cooling wins. Witnessed across 90 real simulations." },
   { q: "A physics field changes violently every timestep. Which AI learns it better?",
     pool: ["A local one that looks at neighborhoods", "A global one that sees whole waves", "Neither — give up"],
     correct: "A local one that looks at neighborhoods",
-    topic: "tools_models", lesson: "match the model's eyes to the data's speed",
+    topic: "tools_models", lesson: "match the model's eyes to the data's speed", hard: true,
     explain: "The Volatility Compass: fast-changing fields favor local nets (up to 33×); slow smooth ones favor spectral. ρ=0.74." }
 ];
 
 function aiQuizCandidate() {
-  var def = pick(AI_QCM);
+  // Kid-first: age-appropriate riddles dominate; the grad-level physics
+  // questions (tagged hard) surface only ~15% of the time as a rare treat.
+  var easy = AI_QCM.filter(function (d) { return !d.hard; });
+  var hard = AI_QCM.filter(function (d) { return d.hard; });
+  var pool = (Math.random() < 0.15 && hard.length) ? hard : (easy.length ? easy : AI_QCM);
+  var def = pick(pool);
   return {
     q: def.q,
     options: shuffleOptions(def.pool, def.correct),
@@ -4475,6 +4495,17 @@ function wireInput() {
   var zolClose = document.getElementById("zol-shop-close");
   if (zolClose) zolClose.addEventListener("click", function () { renderSheetIdle(); });
 
+  /* Splash invites a tap — honor it (dismiss early) */
+  var splash = document.getElementById("splash");
+  if (splash) {
+    splash.addEventListener("pointerdown", function () {
+      ensureAudio(); resumeAudio();
+      splash.style.transition = "opacity 0.35s ease";
+      splash.style.opacity = "0";
+      splash.style.pointerEvents = "none";
+    });
+  }
+
   /* Riddle chip — always-available quiz for ZOL (the Moth, on demand) */
   var riddleChip = document.getElementById("riddle-chip");
   if (riddleChip) riddleChip.addEventListener("click", function () { openRiddle(); });
@@ -4565,6 +4596,9 @@ function wireInput() {
 
   /* Keyboard controls: Q=riddle, B=buy, P=propose, A/D/H=choices, ?=help */
   document.addEventListener("keydown", function (e) {
+    /* never hijack typing: if a text field is focused, keys are just text */
+    var ae = document.activeElement;
+    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
     var key = e.key.toLowerCase();
     if (key === "?") {
       e.preventDefault();
