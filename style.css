@@ -173,6 +173,31 @@ html, body {
 }
 #zol-wallet:active { transform: scale(0.94); }
 
+/* THE SERPENT IN THE TREE — the sap-serpent rests at its earned station */
+.serpent {
+  position: absolute;
+  z-index: 8;
+  font-size: 15px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: top 1.6s ease-in-out;
+  filter: drop-shadow(0 0 8px var(--serpent-glow, #e05a4e));
+  animation: serpentcoil 4.5s ease-in-out infinite;
+  padding: 6px;
+}
+@keyframes serpentcoil {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-6deg); }
+  50% { transform: translate(-50%, -50%) rotate(6deg) translateY(-2px); }
+}
+.serpent.singing {
+  animation: serpentsing 3s ease-out;
+}
+@keyframes serpentsing {
+  0% { filter: drop-shadow(0 0 8px var(--serpent-glow)); }
+  15% { filter: drop-shadow(0 0 22px var(--serpent-glow)) brightness(1.3); }
+  100% { filter: drop-shadow(0 0 8px var(--serpent-glow)); }
+}
+
 /* DAILY VERDICT — the scroll drops, the stamp seals, the split reveals */
 .verdict-scroll {
   position: absolute;

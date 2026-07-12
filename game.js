@@ -560,7 +560,8 @@ var SOLFEGGIO = {
   love: 528,          /* transformation and miracles (Love frequency) */
   connection: 639,    /* connecting, relationships, harmony */
   intuition: 741,     /* awakening intuition, expression, throat */
-  order: 852          /* returning to spiritual order, spiritual perspective */
+  order: 852,         /* returning to spiritual order, spiritual perspective */
+  crown: 963          /* the crown — completes the seven-rung ladder */
 };
 
 var Sound = {
@@ -718,6 +719,16 @@ var Sound = {
       tone(f * h, 0.3 + i * 0.5, 0.9, "sine", 0.022);
     }
     noiseBurst(0, 4.0, 0.012, 900);                  /* breath texture */
+  },
+
+  bijaTone: function (freq) {
+    /* one station of the ladder: a long seed-syllable drone — fundamental,
+       sub-octave warmth, a slow fifth blooming late. Meditative, not a chime. */
+    var f = freq || SOLFEGGIO.liberation;
+    tone(f, 0, 3.2, "sine", 0.07);
+    tone(f / 2, 0.05, 3.2, "sine", 0.045);
+    tone(f * 1.5, 1.1, 2.0, "sine", 0.022);
+    tone(f * 2, 0.15, 1.4, "sine", 0.018);
   },
 
   tibetanBowl: function (freq) {
@@ -1616,6 +1627,74 @@ function applyWarrenHumor(buckets) {
   renderReplayStrip();
   saveState();
   return h;
+}
+
+/* ---------------------------------------------------------------------
+   THE SERPENT IN THE TREE — the kundalini layer, goblin-read.
+   Seven stations climb the Akashic Tree, one per sacred frequency
+   (396→963: the game's solfeggio set was already six-sevenths of the
+   classical chakra ladder; this completes it). A small sap-serpent
+   rests at the height the Warren has EARNED — a pure fold of care,
+   soil, warmth and knowledge. Expressive forever, evidence never:
+   the serpent renders and sings; it admits nothing (membrane law).
+   Corpus: classical kundalini tradition (REPORTED — see
+   docs/CHIDDUSH_KUNDALINI_TANTRA.md). All names original, IP-safe.
+--------------------------------------------------------------------- */
+
+var SERPENT_STATIONS = [
+  { name: "Root Cellar",  freq: 396, color: "#e05a4e", line: "Sit like a rock. The rock is winning." },
+  { name: "Sap Well",     freq: 417, color: "#ff9a3c", line: "Everything flows. Especially the things you'd rather kept still." },
+  { name: "Ember Belly",  freq: 528, color: "#ffd23c", line: "The fire in the belly is just soup, being brave." },
+  { name: "Heart Hollow", freq: 639, color: "#5ad07a", line: "The heart is a room. Leave the door unlatched." },
+  { name: "Whisper Knot", freq: 741, color: "#4aa8e0", line: "Say the true thing. Quietly counts." },
+  { name: "Moon Eye",     freq: 852, color: "#7a6ae0", line: "Close both eyes. Now look. There." },
+  { name: "Crown Bloom",  freq: 963, color: "#d9c8ff", line: "The top of the Tree is not a place. It noticed you anyway." }
+];
+
+function serpentHeight() {
+  /* pure fold of state → station 0..6. More care, more knowledge, more
+     tended ground = higher sap. Deterministic; no clock, no dice. */
+  var c = S.lulu.counts;
+  var care = (c.talk + c.rest + c.explore + c.give) * 2;
+  var knowing = (S.flags.quizRight || 0) * 2;
+  var ground = Math.round((S.world.soil + S.world.warmth) / 10);
+  var kept = S.territories.owned.length * 6 + (S.progress.raamDefeats + S.progress.crownDefeats) * 4;
+  var score = care + knowing + ground + kept;
+  /* thresholds: 0,12,26,44,66,92,122 — the ladder narrows as it climbs */
+  var steps = [0, 12, 26, 44, 66, 92, 122];
+  var h = 0;
+  for (var i = 0; i < steps.length; i++) if (score >= steps[i]) h = i;
+  return h;
+}
+
+var serpentEl = null;
+
+function renderSerpent() {
+  var world = document.getElementById("world");
+  if (!world) return;
+  var h = serpentHeight();
+  var st = SERPENT_STATIONS[h];
+  if (!serpentEl) {
+    serpentEl = document.createElement("div");
+    serpentEl.className = "serpent";
+    serpentEl.textContent = "🐍";
+    serpentEl.addEventListener("click", function (e) {
+      e.stopPropagation();
+      ensureAudio(); resumeAudio();
+      var cur = SERPENT_STATIONS[serpentHeight()];
+      Sound.bijaTone(cur.freq);
+      showBubbleFree(cur.name + " — “" + cur.line + "”", 56, Math.max(6, 20 - serpentHeight() * 2));
+      serpentEl.classList.remove("singing"); void serpentEl.offsetWidth;
+      serpentEl.classList.add("singing");
+    });
+    world.appendChild(serpentEl);
+  }
+  /* the serpent coils at the Tree (50,16 zone anchor) and climbs with the
+     station: base of the trunk at ~24%, crown at ~8% */
+  serpentEl.style.left = "54%";
+  serpentEl.style.top = (24 - h * 2.4) + "%";
+  serpentEl.style.setProperty("--serpent-glow", st.color);
+  serpentEl.title = st.name;
 }
 
 /* ---------------------------------------------------------------------
@@ -4305,6 +4384,7 @@ function renderAll() {
   renderReplayStrip();
   renderWeather();
   renderBreath();
+  renderSerpent();
   if (S.activeProposal) renderSheetProposal();
 }
 
@@ -5510,6 +5590,15 @@ var FR_STRINGS = {
   "The Warren practiced looking impressive. For you.": "Le Terrier s'est entraîné à avoir l'air impressionnant. Pour vous.",
   "The Warren is here. It noticed you're back.": "Le Terrier est là. Il a remarqué votre retour. Il ne fera pas de commentaire.",
 
+  /* --- le serpent dans l'Arbre --- */
+  "Sit like a rock. The rock is winning.": "Asseyez-vous comme une pierre. La pierre est en train de gagner.",
+  "Everything flows. Especially the things you'd rather kept still.": "Tout coule. Surtout ce que vous auriez préféré immobile.",
+  "The fire in the belly is just soup, being brave.": "Le feu dans le ventre, c'est de la soupe qui prend son courage.",
+  "The heart is a room. Leave the door unlatched.": "Le cœur est une pièce. Laissez la porte entrouverte.",
+  "Say the true thing. Quietly counts.": "Dites la chose vraie. À voix basse, ça compte aussi.",
+  "Close both eyes. Now look. There.": "Fermez les deux yeux. Maintenant regardez. Là.",
+  "The top of the Tree is not a place. It noticed you anyway.": "Le sommet de l'Arbre n'est pas un endroit. Il vous a remarqué quand même.",
+
   /* --- les questions de gobelins (éthique) --- */
   "wonders — there is no wrong answer": "se demande — il n'y a pas de mauvaise réponse",
   "what kind of caretaker am I becoming?": "quel genre de gardien suis-je en train de devenir ?",
@@ -5842,6 +5931,11 @@ window.WARREN_DEBUG = {
   /* the return constellation */
   warrenHumor: function (b) { return warrenHumor(b || 0); },
   applyWarrenHumor: function (b) { return applyWarrenHumor(b || 0); },
+  /* the serpent in the tree */
+  serpentHeight: function () { return serpentHeight(); },
+  getStations: function () { return SERPENT_STATIONS; },
+  renderSerpent: function () { renderSerpent(); },
+  bijaTone: function (f) { Sound.bijaTone(f); },
   /* daily verdict */
   verdictPickFor: function (dateStr, cb) { pickDailyVerdict(dateStr, DV_DILEMMAS.length, cb); },
   getVerdictIndex: function () { return dvPickedIndex; },
