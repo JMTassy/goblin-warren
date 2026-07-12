@@ -113,6 +113,38 @@
     plumbing from the Organ, gate it on `S.boss.active`, test it moves no
     governed truth (pure audio, same law as the Organ).
 
+14. **Matcha as a resource economy** — a second currency alongside ZOL:
+    a global reserve (bar/cap/decay/generation), per-goblin/zone
+    distribution, five spend actions (give to goblin, brew, sustain
+    Serpent harmony, offer to a boss, speed Daily Verdict cooldown), plus
+    a full 3-phase minigame ("Matcha Brew": Heating → Whisking →
+    Infusion, rhythm-timed to the target station's solfeggio tone,
+    archetype-modified, 1–5★ output with escalating bonus effects up to
+    "powerful harmonic effect on the Tree + possible new Evolution
+    Journal proposal").
+    **AUDIT (WITNESSED, this repo):** Matcha does not exist as a system.
+    The only hit in `game.js` is a one-off joke object from Nib's
+    minigame ("Hot Mechanical Matcha" — flavor text, not a resource).
+    Everything above is CANDIDATE.
+    ⚠️ MEMBRANE FLAG, needs correction before build: "Sustain Serpent
+    Harmony: 3–8 Matcha/min" and "higher stations consume Matcha to
+    maintain their drone" is spend-to-sustain — a Matcha shortfall could
+    degrade the ascent. That collides with `serpentHeight()`'s locked
+    law: pure, monotonic, unpurchasable, ZOL-absent by construction,
+    "more care never lowers the serpent." Same shape of conflict as
+    Mâa's punitive clause (#10) — the *idea* survives, the *mechanism*
+    doesn't: any Matcha↔Serpent link must be boost-only (same pattern as
+    the Daily Verdict feeding the climb), never a decay/spend risk on
+    height or Organ access.
+    Also depends on unbuilt/blocked systems as written: archetype-synergy
+    bonuses need the Archetype Constellation engine (NEEDS_ME, #9); boss
+    tribute needs the #10 ruling. **What's actually free-standing:** a
+    stripped Matcha Brew minigame — rhythm-timed to an existing solfeggio
+    tone, existing goblins, existing mood-boost hooks (`careLulu` etc.),
+    dropping the archetype-synergy and boss-tribute layers — is close to
+    a real bounded slice if the operator wants to jump the BUILD_ORDER
+    queue for it.
+
 ## Where they'll land (when the order reaches them)
 - 1+2+7 → the coherence/re-contextualization organ (post-STEP-7, or as
   operator re-orders; membrane-gates.js stands as their adversary).
@@ -122,5 +154,8 @@
 - 6 → art direction for STEP 4 (the Aquarium).
 - 12+13 → boss visual + audio design, both gated behind #10's punishment
   ruling (no bodies to paint or drum for yet).
+- 14 → a new resource-economy bead, post-order; the minigame slice could
+  jump the queue standalone if the operator calls for it; the full
+  global-reserve/distribution/boss-tribute shape waits for #9 and #10.
 
 *The scroll waits. It never nags.* 📜
