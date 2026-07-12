@@ -1254,6 +1254,120 @@ html, body {
   box-shadow: 0 0 12px rgba(80, 208, 255, 0.4);
 }
 
+/* Territory build overlay */
+#territory-build {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 10, 23, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  backdrop-filter: blur(3px);
+  animation: maestroFadeIn 0.3s ease;
+}
+
+#territory-build.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+#territory-build-modal {
+  position: relative;
+  width: 85vw;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(60, 80, 40, 0.95), rgba(40, 60, 25, 0.95));
+  border: 2px solid var(--glow-lime);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 30px rgba(150, 200, 80, 0.4), inset 0 0 20px rgba(150, 200, 80, 0.1);
+  text-align: center;
+}
+
+#territory-build-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--glow-lime);
+}
+
+#territory-build-description {
+  margin: 0 0 16px 0;
+  font-size: 12px;
+  color: var(--ink-faded);
+}
+
+#territory-builder-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.territory-builder-btn {
+  padding: 12px;
+  background: rgba(150, 200, 80, 0.1);
+  border: 1.5px solid var(--glow-lime);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.territory-builder-btn.selected {
+  background: rgba(150, 200, 80, 0.3);
+  box-shadow: 0 0 16px rgba(150, 200, 80, 0.5);
+  transform: scale(1.05);
+}
+
+.territory-builder-btn:active {
+  transform: scale(0.95);
+}
+
+#territory-build-confirm {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(150, 200, 80, 0.2), rgba(120, 170, 60, 0.2));
+  border: 1.5px solid var(--glow-lime);
+  border-radius: 8px;
+  color: var(--glow-lime);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#territory-build-confirm:active {
+  background: linear-gradient(135deg, rgba(150, 200, 80, 0.4), rgba(120, 170, 60, 0.4));
+  box-shadow: 0 0 20px rgba(150, 200, 80, 0.5);
+}
+
+#territory-build-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--glow-lime);
+  background: rgba(150, 200, 80, 0.1);
+  color: var(--glow-lime);
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+#territory-build-close:active {
+  transform: scale(0.9);
+  background: rgba(150, 200, 80, 0.3);
+  box-shadow: 0 0 12px rgba(150, 200, 80, 0.4);
+}
+
 @media (prefers-color-scheme: light) {
   /* This world stays night-garden regardless of OS theme — it is a place, not a UI. */
 }

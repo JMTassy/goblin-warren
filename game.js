@@ -174,6 +174,13 @@ function makeGoblin(def) {
   };
 }
 
+var TERRITORY_DEFS = [
+  { id: "garden-north", name: "Northern Garden", zone: "garden", cost: 30, icon: "🌿", preferredRole: "Gardener" },
+  { id: "forge-east", name: "Eastern Forge", zone: "forge", cost: 40, icon: "⚒️", preferredRole: "Archivist" },
+  { id: "library-west", name: "Western Library", zone: "library", cost: 35, icon: "📚", preferredRole: "Chronicler" },
+  { id: "grove-south", name: "Southern Grove", zone: "grove", cost: 25, icon: "🌳", preferredRole: "Scout" }
+];
+
 function makeState() {
   var goblins = {};
   GOBLIN_DEFS.forEach(function (d) { goblins[d.id] = makeGoblin(d); });
@@ -191,6 +198,7 @@ function makeState() {
              boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0 },
     progress: { level: 1, glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0 },
     settings: { muted: false },
+    territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
                 pillarProgress: { promptAlchemy: 0, toolConjuration: 0, intelligenceDesign: 0, codeSpellicraft: 0 },
                 zolBalance: 0 }
@@ -227,6 +235,7 @@ function mergeDefaults(loaded) {
     out.flags = Object.assign({}, d.flags, loaded.flags || {});
     out.settings = Object.assign({}, d.settings, loaded.settings || {});
     out.learning = Object.assign({}, d.learning, loaded.learning || {});
+    out.territories = Object.assign({}, d.territories, loaded.territories || {});
   } catch (e) { return d; }
   return out;
 }
@@ -586,6 +595,93 @@ function showMaestroLesson(firstCarrier, secondCarrier, isOptimal, bestId) {
 function closeMaestroLesson() {
   var lessonOverlay = document.getElementById("maestro-lesson");
   if (lessonOverlay) lessonOverlay.classList.add("hidden");
+}
+
+/* Territory system: Buy and build. */
+function purchaseTerritory(territoryId) {
+  var territory = TERRITORY_DEFS.find(function (t) { return t.id === territoryId; });
+  if (!territory) return false;
+
+  if (S.learning.zolBalance < territory.cost) return false; /* Insufficient ZOL */
+  if (S.territories.building) return false; /* Already building a territory */
+
+  S.learning.zolBalance -= territory.cost;
+  S.territories.building = { id: territoryId, territory: territory, builders: [], startedAt: Date.now() };
+  pushReplay("territory", "Territory purchased", "purchase", "Spent " + territory.cost + " ZOL on " + territory.name, territoryId);
+  saveState();
+  showTerritoryBuildUI(territoryId);
+  return true;
+}
+
+function showTerritoryBuildUI(territoryId) {
+  var territory = TERRITORY_DEFS.find(function (t) { return t.id === territoryId; });
+  if (!territory) return;
+
+  var overlay = document.getElementById("territory-build");
+  if (overlay) {
+    document.getElementById("territory-build-title").textContent = territory.name + " " + territory.icon;
+    document.getElementById("territory-build-description").textContent =
+      "Assign 1-3 goblins to build. " + territory.preferredRole + " preferred.";
+
+    /* Render goblin choices */
+    var choicesContainer = document.getElementById("territory-builder-choices");
+    if (choicesContainer) {
+      choicesContainer.innerHTML = "";
+      GOBLIN_DEFS.forEach(function (def) {
+        var g = S.goblins[def.id];
+        var btn = document.createElement("button");
+        btn.className = "territory-builder-btn";
+        btn.setAttribute("data-goblin", def.id);
+        btn.textContent = def.name + " " + def.emoji;
+        btn.addEventListener("click", function (e) {
+          btn.classList.toggle("selected");
+          var selected = choicesContainer.querySelectorAll(".selected").length;
+          if (selected > 3) {
+            btn.classList.remove("selected");
+          }
+        });
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    overlay.classList.remove("hidden");
+  }
+}
+
+function assignBuilders(goblinIds) {
+  if (!S.territories.building || !Array.isArray(goblinIds) || goblinIds.length === 0 || goblinIds.length > 3) {
+    return false;
+  }
+
+  var territory = S.territories.building.territory;
+  S.territories.building.builders = goblinIds;
+
+  /* Apply building sequence. */
+  var totalHealth = 0;
+  goblinIds.forEach(function (gid) {
+    var g = S.goblins[gid];
+    if (g) {
+      g.task = "building " + territory.name;
+      g.memory = "We are building " + territory.name + ".";
+      totalHealth += (g.preference === territory.zone ? 3 : 1);
+    }
+  });
+
+  S.world.treeHealth = Math.min(100, S.world.treeHealth + totalHealth);
+  pushReplay("territory", "Territory built", "territory-built",
+    goblinIds.join(", ") + " built " + territory.name + ". Tree health +"+totalHealth, territory.id);
+
+  S.territories.owned.push({ id: territory.id, builders: goblinIds, completedAt: Date.now() });
+  S.territories.building = null;
+  saveState();
+
+  var overlay = document.getElementById("territory-build");
+  if (overlay) overlay.classList.add("hidden");
+  return true;
+}
+
+function getAvailableTerritories() {
+  return TERRITORY_DEFS.filter(function (t) { return !S.territories.owned.some(function (o) { return o.id === t.id; }); });
 }
 
 /* ---------------------------------------------------------------------
@@ -1928,6 +2024,30 @@ function wireInput() {
     maestroLessonClose.addEventListener("click", function () { closeMaestroLesson(); });
   }
 
+  /* Territory build UI wiring */
+  var territoryBuildClose = document.getElementById("territory-build-close");
+  if (territoryBuildClose) {
+    territoryBuildClose.addEventListener("click", function () {
+      var overlay = document.getElementById("territory-build");
+      if (overlay) overlay.classList.add("hidden");
+      S.territories.building = null; /* Cancel the build */
+    });
+  }
+
+  var territoryBuildConfirm = document.getElementById("territory-build-confirm");
+  if (territoryBuildConfirm) {
+    territoryBuildConfirm.addEventListener("click", function () {
+      var selected = document.querySelectorAll(".territory-builder-btn.selected");
+      if (selected.length > 0) {
+        var builderIds = Array.from(selected).map(function (btn) { return btn.getAttribute("data-goblin"); });
+        if (assignBuilders(builderIds)) {
+          ensureAudio();
+          resumeAudio();
+        }
+      }
+    });
+  }
+
   /* Keyboard controls: Q=riddle, B=buy, P=propose, A/D/H=choices, ?=help */
   document.addEventListener("keydown", function (e) {
     var key = e.key.toLowerCase();
@@ -1970,6 +2090,9 @@ window.WARREN_DEBUG = {
   getQuiz: function () { return currentQuiz; },
   answerQuiz: function (opt) { answerQuiz(opt); },
   getQuestDef: function (questId) { return questId ? window[questId + "_QUEST"] : MEMORY_SEED_QUEST; },
+  purchaseTerritory: function (id) { S.learning.zolBalance += 100; return purchaseTerritory(id); },
+  assignBuilders: function (ids) { return assignBuilders(ids); },
+  getTerritories: function () { return { defs: TERRITORY_DEFS, owned: S.territories.owned, building: S.territories.building }; },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
