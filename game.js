@@ -1154,6 +1154,229 @@ function luluAccessoryEmojis() {
   }).join("");
 }
 
+/* ---------------------------------------------------------------------
+   SIDE QUESTS — WarioWare law: one rule + one thumb + 5-15s + one funny
+   consequence. Opt-in via the 🎪 sparkle (attention is sacred — never
+   forced). Success pays ZOL with the gold rush; failure is funny and
+   costs nothing. Every round leaves one persistent trace.
+--------------------------------------------------------------------- */
+
+var mg = { active: null, ui: {}, timer: null, data: {} };
+
+function mgOverlay() { return document.getElementById("minigame"); }
+
+function startMinigame(id) {
+  if (mg.active) return false;
+  var def = MINIGAMES[id];
+  if (!def) return false;
+  mg.active = id; mg.data = {};
+  var ov = mgOverlay();
+  ov.innerHTML = '<div id="mg-card"><div id="mg-title">' + def.title + '</div>' +
+    '<div id="mg-problem">' + def.problem + '</div>' +
+    '<div id="mg-arena"></div><div id="mg-result" class="hidden"></div></div>';
+  ov.classList.remove("hidden");
+  Sound.chirp();
+  setTimeout(function () { if (mg.active === id) def.play(); }, 900);
+  return true;
+}
+
+function endMinigame(success, line, reward, consequence) {
+  if (!mg.active) return;
+  var id = mg.active;
+  clearTimeout(mg.timer);
+  var res = document.getElementById("mg-result");
+  if (res) {
+    res.classList.remove("hidden");
+    res.innerHTML = (success ? "✨ " : "💫 ") + line +
+      (success && reward ? "<br/><b>+" + reward + " 🪙</b>" : "");
+  }
+  var arena = document.getElementById("mg-arena");
+  if (arena) arena.style.pointerEvents = "none";
+  if (success && reward) {
+    S.learning.zolBalance += reward;
+    Sound.glingGling(4);
+    zolCelebrate(reward);
+  } else {
+    Sound.bloom();  /* failure is funny, never punished */
+  }
+  pushReplay("sidequest", MINIGAMES[id].title, "minigame-" + id, line, line);
+  if (consequence) consequence();
+  saveState();
+  renderAll();
+  setTimeout(function () {
+    mg.active = null;
+    mgOverlay().classList.add("hidden");
+    mgOverlay().innerHTML = "";
+  }, 2300);
+}
+
+/* --- 1. THE MASK 👹 — rapid tap; it shrinks, fades, changes face --- */
+function mgMaskTap() {
+  var d = mg.data;
+  d.hits = (d.hits || 0) + 1;
+  Sound.squeak("nib");
+  if (d.el) {
+    d.el.textContent = ["👹", "😠", "🙄"][Math.min(2, d.hits - 1)];
+    d.el.style.transform = "translate(-50%,-50%) scale(" + (1 - d.hits * 0.22) + ")";
+    d.el.style.opacity = String(1 - d.hits * 0.25);
+  }
+  if (d.hits >= 3) {
+    endMinigame(true, "The mask has been reduced to a strongly opinionated sticker.", 10,
+      function () { addObject("🎭", "A Strongly Opinionated Sticker", "gate"); });
+  }
+}
+
+function mgMaskHop() {
+  var d = mg.data, arena = document.getElementById("mg-arena");
+  if (!arena || !mg.active) return;
+  if (!d.el) {
+    d.el = document.createElement("div");
+    d.el.className = "mg-mask";
+    d.el.textContent = "👹";
+    d.el.addEventListener("pointerdown", function (e) { e.stopPropagation(); mgMaskTap(); });
+    arena.appendChild(d.el);
+  }
+  d.el.style.left = (12 + Math.random() * 76) + "%";
+  d.el.style.top = (14 + Math.random() * 70) + "%";
+  d.hopTimer = setTimeout(mgMaskHop, 1400 - (d.hits || 0) * 200);
+}
+
+/* --- 6. FIND GERALD 🐛 — he peeks, things shuffle, you remember --- */
+var GERALD_SPOTS = [["🍄", "mushroom"], ["🫙", "ZOL jar"], ["📓", "Pip's notebook"], ["🎩", "Lulu's hat"], ["🚪", "embassy door"]];
+
+function mgGeraldRound() {
+  var d = mg.data, arena = document.getElementById("mg-arena");
+  if (!arena || !mg.active) return;
+  d.round = (d.round || 0) + 1;
+  d.hiding = Math.floor(Math.random() * GERALD_SPOTS.length);
+  arena.innerHTML = '<div class="mg-note">round ' + d.round + '/3 — watch where he goes…</div>' +
+    '<div class="mg-row">' + GERALD_SPOTS.map(function (s, i) {
+      return '<button class="mg-spot" data-i="' + i + '">' + s[0] +
+        (i === d.hiding ? '<span class="mg-peek">🐛</span>' : '') + '</button>';
+    }).join("") + '</div>';
+  /* Gerald peeks briefly, then hides; then the row is tappable */
+  var peekMs = Math.max(350, 900 - d.round * 200);
+  setTimeout(function () {
+    var pk = arena.querySelector(".mg-peek");
+    if (pk) pk.remove();
+    arena.querySelectorAll(".mg-spot").forEach(function (b) {
+      b.addEventListener("pointerdown", function (e) {
+        e.stopPropagation();
+        mgGeraldPick(parseInt(b.getAttribute("data-i"), 10));
+      });
+    });
+  }, peekMs);
+}
+
+function mgGeraldPick(i) {
+  var d = mg.data;
+  if (d.picked) return;
+  d.picked = true;
+  if (i === d.hiding) { d.found = (d.found || 0) + 1; Sound.sparkle(); }
+  else Sound.compostPlop();
+  var note = document.querySelector(".mg-note");
+  if (note) note.textContent = i === d.hiding ? "🐛 found him!" :
+    "That was not Gerald. That was a very private " + GERALD_SPOTS[i][1] + ".";
+  setTimeout(function () {
+    d.picked = false;
+    if (d.round >= 3) {
+      var f = d.found || 0;
+      if (f >= 3) endMinigame(true, "Gerald found three times. He is now Head of Hiding.", 15,
+        function () { addObject("🐛", "Gerald — Head of Hiding", "nursery"); });
+      else if (f >= 2) endMinigame(true, "Gerald found. He respects your technique.", 10, null);
+      else endMinigame(false, "Gerald remains hidden. He sends his regards.", 0, null);
+    } else mgGeraldRound();
+  }, 1100);
+}
+
+/* --- 10. OVER-REPAIR ALERT 🔧 — hold, watch the meter, release in time --- */
+function mgRepairStart() {
+  var d = mg.data;
+  d.holding = true; d.pct = d.pct || 0;
+  (function fill() {
+    if (!d.holding || !mg.active) return;
+    d.pct = Math.min(110, d.pct + 1.6);
+    var bar = document.getElementById("mg-meter-fill");
+    if (bar) {
+      bar.style.width = Math.min(100, d.pct) + "%";
+      bar.style.background = d.pct < 55 ? "#8b7cff" : (d.pct <= 85 ? "#9be36d" : "#ff8a8a");
+    }
+    if (d.pct >= 110) { d.holding = false; mgRepairRelease(); return; }
+    requestAnimationFrame(fill);
+  })();
+}
+
+function mgRepairRelease() {
+  var d = mg.data;
+  if (d.done || !mg.active) return;
+  d.done = true; d.holding = false;
+  var p = d.pct || 0;
+  if (p < 55) endMinigame(false, "Still broken. It appreciated the attention though.", 0, null);
+  else if (p <= 85) endMinigame(true, "Functional. Nib is quietly impressed.", 10,
+    function () { addObject("🏺", "A Properly Repaired Pot", "forge"); });
+  else endMinigame(false, "Nib improved it beyond recognition. It may be a telescope now.", 0,
+    function () { addObject("🔭", "Improved Beyond Recognition", "forge"); });
+}
+
+var MINIGAMES = {
+  mask: {
+    title: "THE MASK 👹", problem: "Tap it three times before it gets comfortable.",
+    play: function () {
+      mgMaskHop();
+      mg.timer = setTimeout(function () {
+        clearTimeout(mg.data.hopTimer);
+        endMinigame(false, "The mask left. It said nothing. Loudly.", 0, null);
+      }, 12000);
+    }
+  },
+  gerald: {
+    title: "FIND GERALD 🐛", problem: "He peeks once. Things move. Remember.",
+    play: function () { mgGeraldRound(); }
+  },
+  repair: {
+    title: "OVER-REPAIR ALERT 🔧", problem: "Hold to repair. Release in the green. Do NOT let Nib finish.",
+    play: function () {
+      var arena = document.getElementById("mg-arena");
+      arena.innerHTML = '<div class="mg-pot">🏺</div>' +
+        '<div id="mg-meter"><div id="mg-meter-fill"></div></div>' +
+        '<button id="mg-hold">HOLD TO REPAIR</button>';
+      var btn = document.getElementById("mg-hold");
+      btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); mgRepairStart(); });
+      btn.addEventListener("pointerup", function (e) { e.stopPropagation(); mgRepairRelease(); });
+      btn.addEventListener("pointerleave", function () { if (mg.data.holding) mgRepairRelease(); });
+    }
+  }
+};
+
+/* The sparkle: opt-in doorway. Appears sometimes when the Warren is calm. */
+var sparkleTimer = null;
+function scheduleSparkle() {
+  clearTimeout(sparkleTimer);
+  sparkleTimer = setTimeout(function () {
+    if (!mg.active && !S.activeProposal && !quizOpen &&
+        !document.querySelector(".mg-sparkle")) spawnSparkle();
+    scheduleSparkle();
+  }, randi(70000, 130000));
+}
+
+function spawnSparkle() {
+  var world = document.getElementById("world");
+  if (!world) return;
+  var sp = document.createElement("div");
+  sp.className = "mg-sparkle";
+  sp.textContent = "🎪";
+  sp.style.left = randi(15, 85) + "%";
+  sp.style.top = randi(20, 75) + "%";
+  sp.addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    sp.remove();
+    var ids = Object.keys(MINIGAMES);
+    startMinigame(ids[randi(0, ids.length - 1)]);
+  });
+  world.appendChild(sp);
+  setTimeout(function () { if (sp.parentNode) sp.remove(); }, 25000);
+}
+
 /* Territory Actions — territories unlock ABILITIES, not scripted events.
    The goblin decides on its own tick when to use one, from world state.
    unlock ability ≠ press ability button. */
@@ -3447,6 +3670,12 @@ window.WARREN_DEBUG = {
   forcePromptQuiz: function () { quizOpen = true; currentQuiz = promptEngineeringQuiz(); renderSheetQuiz(); return currentQuiz; },
   purchaseTerritoryRaw: function (id) { return purchaseTerritory(id); },
   openCard: function (id) { renderSheetGoblin(id); },
+  startMinigame: function (id) { return startMinigame(id); },
+  mgState: function () { return { active: mg.active, data: mg.data }; },
+  mgMaskTap: function () { mgMaskTap(); },
+  mgGeraldPick: function (i) { mgGeraldPick(i); },
+  mgRepairSet: function (pct) { mg.data.pct = pct; mg.data.holding = false; mgRepairRelease(); },
+  spawnSparkle: function () { spawnSparkle(); },
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
@@ -3482,6 +3711,7 @@ function boot() {
   }
   scheduleRaam(randi(50000, 90000));
   scheduleMoth(randi(45000, 80000));
+  scheduleSparkle();
   setTimeout(function () {
     if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
   }, 12000);
