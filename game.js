@@ -195,7 +195,11 @@ function makeState() {
     lastSavedAt: Date.now(),
     world: { treeHealth: 70, gardenToxicity: 20, bugPressure: 15, soil: 0, warmth: 50, currentSignal: null },
     goblins: goblins,
-    lulu: { mode: "bouffon-tendre", previousMode: null },
+    lulu: { mode: "bouffon-tendre", previousMode: null,
+            needs: { energy: 70, curiosity: 70, connection: 55 },
+            lastVisitAt: null, accessories: [], inCave: false,
+            counts: { talk: 0, rest: 0, explore: 0, give: 0, requestsYes: 0 },
+            pendingRequest: null, requestsDone: [] },
     activeProposal: null,
     objects: [],
     replay: [],
@@ -219,7 +223,8 @@ function validAndComplete(s) {
   return s && s.version === STATE_VERSION && s.world && s.goblins &&
     s.goblins.lulu && s.goblins.pip && s.goblins.zaz && s.goblins.nib &&
     Array.isArray(s.replay) && s.flags && s.progress && s.settings && s.learning &&
-    s.npcAbilities && s.worldSigns && Array.isArray(s.memories) && s.council;
+    s.npcAbilities && s.worldSigns && Array.isArray(s.memories) && s.council &&
+    s.lulu && s.lulu.needs && s.lulu.counts;
 }
 
 function mergeDefaults(loaded) {
@@ -240,6 +245,10 @@ function mergeDefaults(loaded) {
     }
     out.progress = Object.assign({}, d.progress, loaded.progress || {});
     out.lulu = Object.assign({}, d.lulu, loaded.lulu || {});
+    out.lulu.needs = Object.assign({}, d.lulu.needs, (loaded.lulu && loaded.lulu.needs) || {});
+    out.lulu.counts = Object.assign({}, d.lulu.counts, (loaded.lulu && loaded.lulu.counts) || {});
+    out.lulu.accessories = Array.isArray(loaded.lulu && loaded.lulu.accessories) ? loaded.lulu.accessories : [];
+    out.lulu.requestsDone = Array.isArray(loaded.lulu && loaded.lulu.requestsDone) ? loaded.lulu.requestsDone : [];
     out.activeProposal = loaded.activeProposal || null;
     out.objects = Array.isArray(loaded.objects) ? loaded.objects : [];
     out.replay = Array.isArray(loaded.replay) ? loaded.replay : [];
@@ -904,6 +913,237 @@ function showCouncilLesson(card) {
   lessonOverlay.classList.remove("hidden");
 }
 
+/* ---------------------------------------------------------------------
+   LULU'S TAMAGOTCHI SYSTEM — she lives, she remembers, she reacts.
+   3 needs · 4 care actions · absence continuity · reunion ritual ·
+   requests (care ≠ obedience) · accessory growth · never dies.
+--------------------------------------------------------------------- */
+
+var ABSENCE_MESSAGES = [
+  "While you were gone, I interviewed a mushroom.",
+  "Pip said not to touch the receipt. So I named it.",
+  "I followed a bug. The bug followed me back.",
+  "I built a throne. It collapsed. Perfect.",
+  "I reorganized the mushrooms by emotional distance.",
+  "I found a rock that looks like Tuesday.",
+  "Gerald and I had a meeting. No minutes were kept.",
+  "I practiced being mysterious. Nib noticed. Ruined.",
+  "The Tree hummed. I hummed back. We are in talks.",
+  "I drew a map of places I have not been yet."
+];
+
+var LULU_REQUESTS = [
+  { id: "tree",     text: "Can we visit the Akashic Tree tonight?",      yes: "She waves at the Tree for a long time.", modify: "Fine — we wave from HERE. Diplomatically." },
+  { id: "gerald",   text: "Can Gerald sleep here tonight?",              yes: "Gerald gets the warm corner. Obviously.", modify: "Gerald sleeps NEAR here. A compromise." },
+  { id: "zol",      text: "Can I spend 20 ZOL on something unnecessary?", yes: "She buys a tiny trumpet. It is perfect.", modify: "10 ZOL. Half a trumpet. Still perfect.", cost: 20, costModify: 10 },
+  { id: "compost",  text: "Can we compost one boring idea?",             yes: "Something boring becomes soil. Relief.", modify: "We compost HALF of it. The boring half." },
+  { id: "theater",  text: "Can you help me build a tiny theater?",       yes: "Curtain up. The audience is mushrooms.", modify: "A puppet stage. The puppets are leaves." },
+  { id: "moon",     text: "Can we stay up and watch the moon work?",     yes: "The moon did a great job tonight.", modify: "We watch it for one minute. Intensely." },
+  { id: "name",     text: "Can I rename the west path? Officially?",     yes: "It is now called The Path Of Consequences.", modify: "Unofficially renamed. Whispered only." },
+  { id: "hat",      text: "Can I try wearing Pip's hat? Briefly?",       yes: "The hat has been experienced.", modify: "She wears it in her mind. Loudly." },
+  { id: "song",     text: "Can we make up a song about soup?",           yes: "The soup song has three verses now.", modify: "One verse. But it slaps." },
+  { id: "nothing",  text: "Can we do absolutely nothing together?",      yes: "Nothing was done. It was everything.", modify: "We do ALMOST nothing. Rebels." }
+];
+
+var GIVE_OUTCOMES = [
+  { line: "She loves it. Emotionally crunchy — in a good way.", curiosity: 6, connection: 8 },
+  { line: "She gives it to Gerald. Gerald approves.",           curiosity: 4, connection: 6 },
+  { line: "She plants it. “It might grow into a better one.”",  curiosity: 8, connection: 4 },
+  { line: "“Too emotionally crunchy.” She keeps it anyway.",    curiosity: 5, connection: 5 },
+  { line: "It becomes art. The frame is a leaf.",               curiosity: 7, connection: 5 },
+  { line: "She studies it with a tiny magnifier. Suspicious.",  curiosity: 9, connection: 3 }
+];
+
+var LULU_ACCESSORIES = [
+  { id: "bag",      emoji: "🎒", name: "explorer bag",            when: function () { return S.lulu.counts.explore >= 3; },
+    announce: "I have a bag now. For findings. And feelings." },
+  { id: "hatshroom",emoji: "🍄", name: "hat mushroom",            when: function () { return S.lulu.counts.give >= 3; },
+    announce: "A mushroom grew on my hat. We are close." },
+  { id: "notebook", emoji: "📓", name: "labelled notebook",       when: function () { return S.lulu.counts.talk >= 5; },
+    announce: "Pip gave me a labelled notebook. I hate it. I use it daily." },
+  { id: "postits",  emoji: "📝", name: "personal post-its",       when: function () { return S.lulu.needs.connection >= 90; },
+    announce: "I left you a note. Then I forgot where. It says nice things." }
+];
+
+function clampLuluNeeds() {
+  var n = S.lulu.needs;
+  /* Floors at 5 — Lulu never dies; she only gets mysterious. */
+  n.energy = clamp(n.energy, 5, 100);
+  n.curiosity = clamp(n.curiosity, 5, 100);
+  n.connection = clamp(n.connection, 5, 100);
+}
+
+function luluMood() {
+  /* Pure function of needs + cave state (L6). Priority order matters. */
+  var n = S.lulu.needs;
+  if (S.lulu.inCave)        return { id: "cave-dweller", emoji: "🕯️", line: "I was not neglected. I entered a period of private mythology." };
+  if (n.energy < 30)        return { id: "sleepy",       emoji: "🌙", line: "Nothing is urgent after a blanket." };
+  if (n.connection < 35)    return { id: "lonely",       emoji: "💜", line: "I reorganized the mushrooms by emotional distance." };
+  if (n.curiosity < 35)     return { id: "suspicious",   emoji: "👁️", line: "The Warren has become suspiciously reasonable." };
+  if (n.curiosity > 80 && n.energy > 45) return { id: "curious", emoji: "✨", line: "What happens if we press both buttons?" };
+  if (n.energy > 80)        return { id: "energetic",    emoji: "☀️", line: "Let's do everything!" };
+  return { id: "proud", emoji: "👑", line: "I fixed it by not touching it." };
+}
+
+function applyLuluMood() {
+  var g = S.goblins.lulu;
+  if (!g) return;
+  var m = luluMood();
+  g.mood = m.id;
+  if (S.lulu.inCave && g.zone !== "gate") { moveGoblinToZone(g, "gate"); g.task = "being mysterious"; }
+}
+
+function luluAbsenceDecay(elapsedMs) {
+  /* Deterministic from elapsed time only (L2): away-time restores energy,
+     starves curiosity, and slowly thins connection. */
+  var mins = Math.floor(elapsedMs / 60000);
+  if (mins <= 0) return 0;
+  var n = S.lulu.needs;
+  n.energy += Math.min(40, mins * 2);
+  n.curiosity -= Math.floor(mins / 8);
+  n.connection -= Math.floor(mins / 12);
+  clampLuluNeeds();
+  if (n.connection < 20) S.lulu.inCave = true;
+  return mins;
+}
+
+function luluAbsenceMessage(mins) {
+  /* Deterministic pick (L4): same elapsed time + mode → same story. */
+  var idx = (mins * 7 + S.lulu.mode.length * 3) % ABSENCE_MESSAGES.length;
+  return ABSENCE_MESSAGES[idx];
+}
+
+function luluReunion(elapsedMs) {
+  var mins = luluAbsenceDecay(elapsedMs);
+  var n = S.lulu.needs;
+  var title = n.connection >= 70 ? "LULU MISSED YOU"
+            : n.connection >= 35 ? "LULU WAS BUSY"
+            : "LULU PRETENDED NOT TO MISS YOU";
+  var msg = luluAbsenceMessage(Math.max(1, mins));
+
+  var overlay = document.getElementById("lulu-reunion");
+  if (overlay) {
+    document.getElementById("reunion-title").textContent = title;
+    document.getElementById("reunion-msg").textContent = "“" + msg + "”";
+    overlay.classList.remove("hidden");
+    var dismiss = function () {
+      overlay.classList.add("hidden");
+      overlay.removeEventListener("click", dismiss);
+      var g = S.goblins.lulu;
+      if (g && !S.lulu.inCave) { g.x = 50; g.y = 60; g.zone = "garden"; renderGoblins(); }
+      showBubble("lulu", msg, 4200);
+      /* Sometimes the reunion comes with a request (deterministic-ish gate). */
+      if (!S.lulu.pendingRequest && mins % 3 === 0 && !S.lulu.inCave) maybeLuluRequest();
+      saveState();
+    };
+    overlay.addEventListener("click", dismiss);
+  }
+  pushReplay("lulu", "Reunion", "lulu-reunion", title + " — “" + msg + "”", msg);
+  applyLuluMood();
+  saveState();
+  return { title: title, msg: msg, mins: mins };
+}
+
+function maybeLuluRequest() {
+  if (S.lulu.pendingRequest) return null;
+  var remaining = LULU_REQUESTS.filter(function (r) { return S.lulu.requestsDone.indexOf(r.id) === -1; });
+  if (!remaining.length) remaining = LULU_REQUESTS;
+  var r = remaining[(S.lulu.counts.talk + S.lulu.counts.explore + S.lulu.requestsDone.length) % remaining.length];
+  S.lulu.pendingRequest = r.id;
+  showBubble("lulu", r.text, 4200);
+  saveState();
+  return r.id;
+}
+
+function answerLuluRequest(answer) {
+  /* care ≠ obedience: YES grants it, LATER she notes it, MODIFY reinterprets. */
+  var r = LULU_REQUESTS.find(function (x) { return x.id === S.lulu.pendingRequest; });
+  if (!r) return false;
+  var n = S.lulu.needs, line = "";
+  if (answer === "yes") {
+    if (r.cost && S.learning.zolBalance < r.cost) { showBubble("lulu", "We are not yet wealthy enough. Noted.", 3200); S.lulu.pendingRequest = null; saveState(); return true; }
+    if (r.cost) S.learning.zolBalance -= r.cost;
+    n.connection += 10; n.curiosity += 6;
+    S.lulu.counts.requestsYes++;
+    S.lulu.requestsDone.push(r.id);
+    line = r.yes;
+  } else if (answer === "modify") {
+    if (r.costModify && S.learning.zolBalance >= r.costModify) S.learning.zolBalance -= r.costModify;
+    n.connection += 6; n.curiosity += 4;
+    S.lulu.requestsDone.push(r.id);
+    line = r.modify;
+  } else { /* later */
+    n.connection -= 2;
+    line = "Later is a real place. I have been there.";
+  }
+  clampLuluNeeds();
+  S.lulu.pendingRequest = null;
+  showBubble("lulu", line, 4000);
+  pushReplay("lulu", "Request: " + r.text, "lulu-request-" + answer, line, line);
+  checkLuluAccessories();
+  applyLuluMood();
+  saveState();
+  renderTopbar();
+  return true;
+}
+
+function careLulu(kind) {
+  var g = S.goblins.lulu, n = S.lulu.needs;
+  if (!g) return false;
+  var line = "";
+  if (kind === "talk") {
+    n.connection += 8; n.curiosity += 2;
+    S.lulu.counts.talk++;
+    if (S.lulu.inCave) { S.lulu.inCave = false; n.connection += 6; line = "You found me. I was being extremely mysterious."; }
+    else line = pick(["I found a thing. It found me first.", "Ask me about the rock. ASK ME.", "Today I thought about doors. Conclusion: yes."]);
+  } else if (kind === "rest") {
+    n.energy += 16;
+    S.lulu.counts.rest++;
+    g.resting = true; g.task = "resting rebelliously";
+    line = "Resting is a rebellion. I am VERY rebellious right now.";
+  } else if (kind === "explore") {
+    if (n.energy < 15) { showBubble("lulu", "I am horizontally strategic right now.", 3200); return false; }
+    n.curiosity += 12; n.energy -= 8;
+    S.lulu.counts.explore++;
+    line = pick(["A side quest! For me?", "I already have a map out.", "If I am not back in five minutes, wait longer."]);
+    dropParticle(g, "🗺️", true);
+  } else if (kind === "give") {
+    var o = GIVE_OUTCOMES[(S.lulu.counts.give + S.lulu.counts.talk) % GIVE_OUTCOMES.length];
+    n.curiosity += o.curiosity; n.connection += o.connection;
+    S.lulu.counts.give++;
+    line = o.line;
+    dropParticle(g, "🎁", true);
+  } else return false;
+
+  clampLuluNeeds();
+  showBubble("lulu", line, 4000);
+  pushReplay("lulu", "Care: " + kind, "care-" + kind, line, line);
+  Sound.squeak("lulu");
+  checkLuluAccessories();
+  applyLuluMood();
+  saveState();
+  return true;
+}
+
+function checkLuluAccessories() {
+  LULU_ACCESSORIES.forEach(function (a) {
+    if (S.lulu.accessories.indexOf(a.id) !== -1) return;
+    if (a.when()) {
+      S.lulu.accessories.push(a.id);
+      showBubble("lulu", a.announce, 4600);
+      pushReplay("lulu", "Lulu grew", "lulu-accessory", "Lulu gained " + a.name + " " + a.emoji + ". " + a.announce, a.announce);
+      Sound.bloom();
+    }
+  });
+}
+
+function luluAccessoryEmojis() {
+  return S.lulu.accessories.map(function (id) {
+    var a = LULU_ACCESSORIES.find(function (x) { return x.id === id; });
+    return a ? a.emoji : "";
+  }).join("");
+}
+
 /* Territory Actions — territories unlock ABILITIES, not scripted events.
    The goblin decides on its own tick when to use one, from world state.
    unlock ability ≠ press ability button. */
@@ -1232,6 +1472,24 @@ function tickGoblin(id) {
     pipClarifySign();
     scheduleGoblinTick(id, randi(9000, 14000));
     return;
+  }
+
+  /* Lulu lives: needs drift slowly in-session, moods follow needs,
+     and sometimes she simply asks for something. */
+  if (id === "lulu") {
+    var ln = S.lulu.needs;
+    ln.energy -= g.resting ? -3 : 1.5;
+    ln.curiosity -= 0.8;
+    ln.connection -= 0.4;
+    clampLuluNeeds();
+    if (ln.connection < 20 && !S.lulu.inCave) {
+      S.lulu.inCave = true;
+      showBubble("lulu", "I have gone to the cave to become mysterious.", 4200);
+    }
+    applyLuluMood();
+    if (!S.lulu.pendingRequest && !S.lulu.inCave && ln.connection >= 35 && Math.random() < 0.06) {
+      maybeLuluRequest();
+    }
   }
 
   if (g.resting) {
@@ -1978,6 +2236,64 @@ function renderSheetGoblin(id) {
   document.getElementById("card-thought").textContent = "“" + fillTemplate(pick(STRANGE_THOUGHTS)) + "”";
   var actionText = g.resting ? "finally take that nap" : "sneak toward the " + zoneName(g.preference);
   document.getElementById("card-action").textContent = actionText;
+  renderLuluCare(id);
+}
+
+function needBar(v) {
+  var filled = Math.round(v / 20);
+  return "▮".repeat(filled) + "▯".repeat(5 - filled) + " " + Math.round(v);
+}
+
+function renderLuluCare(id) {
+  var host = document.getElementById("card-care");
+  if (!host) return;
+  if (id !== "lulu") { host.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.classList.remove("hidden");
+  var n = S.lulu.needs;
+  var m = luluMood();
+  var acc = luluAccessoryEmojis();
+
+  var html =
+    '<div class="care-needs">' +
+      '<span>🌙 ' + needBar(n.energy) + '</span>' +
+      '<span>✨ ' + needBar(n.curiosity) + '</span>' +
+      '<span>💜 ' + needBar(n.connection) + '</span>' +
+    '</div>' +
+    '<div class="care-mood">' + m.emoji + ' ' + m.id + (acc ? ' · her things: ' + acc : '') + '</div>' +
+    '<div class="care-actions">' +
+      '<button class="care-btn" data-care="talk">💬 Talk</button>' +
+      '<button class="care-btn" data-care="rest">🌙 Rest</button>' +
+      '<button class="care-btn" data-care="explore">🗺️ Explore</button>' +
+      '<button class="care-btn" data-care="give">🎁 Give</button>' +
+    '</div>';
+
+  var req = LULU_REQUESTS.find(function (r) { return r.id === S.lulu.pendingRequest; });
+  if (req) {
+    html += '<div class="care-request"><div class="care-request-text">“' + req.text + '”</div>' +
+      '<div class="care-request-btns">' +
+      '<button class="care-btn req" data-req="yes">YES</button>' +
+      '<button class="care-btn req" data-req="later">LATER</button>' +
+      '<button class="care-btn req" data-req="modify">MODIFY</button>' +
+      '</div></div>';
+  }
+  host.innerHTML = html;
+
+  host.querySelectorAll("[data-care]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      ensureAudio(); resumeAudio();
+      careLulu(btn.getAttribute("data-care"));
+      renderLuluCare("lulu");
+    });
+  });
+  host.querySelectorAll("[data-req]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      ensureAudio(); resumeAudio();
+      answerLuluRequest(btn.getAttribute("data-req"));
+      renderLuluCare("lulu");
+    });
+  });
 }
 
 function renderSheetProposal() {
@@ -3042,6 +3358,16 @@ window.WARREN_DEBUG = {
   tickPip: function () { tickGoblin("pip"); },
   forcePromptQuiz: function () { quizOpen = true; currentQuiz = promptEngineeringQuiz(); renderSheetQuiz(); return currentQuiz; },
   purchaseTerritoryRaw: function (id) { return purchaseTerritory(id); },
+  openCard: function (id) { renderSheetGoblin(id); },
+  getLulu: function () { return S.lulu; },
+  luluMood: function () { return luluMood(); },
+  careLulu: function (kind) { return careLulu(kind); },
+  setLuluNeeds: function (o) { Object.assign(S.lulu.needs, o || {}); clampLuluNeeds(); applyLuluMood(); saveState(); return S.lulu.needs; },
+  luluAbsence: function (mins) { return luluAbsenceMessage(mins); },
+  forceReunion: function (ms) { return luluReunion(ms || 3600000); },
+  forceLuluRequest: function () { return maybeLuluRequest(); },
+  answerLuluRequest: function (a) { return answerLuluRequest(a); },
+  tickLulu: function () { tickGoblin("lulu"); },
   getCouncil: function () { return S.council; },
   getCouncilEpisode: function () { return COUNCIL_EPISODE; },
   getCouncilPositions: function () { return councilPositions(); },
@@ -3081,6 +3407,14 @@ function boot() {
       }
     }, GERALD_QUEST.triggerDelay);
   }
+
+  /* Lulu lived while you were away: reunion ritual for returning players */
+  var away = S.lulu.lastVisitAt ? (Date.now() - S.lulu.lastVisitAt) : 0;
+  S.lulu.lastVisitAt = Date.now();
+  if (!isFreshBoot && away > 120000) {
+    setTimeout(function () { luluReunion(away); }, 1200);
+  }
+  saveState();
 
   /* Council convenes for returning players who resolved Gerald but never held the hearing */
   if (!S.council.done && S.learning.geraldQuest.stage === "T5A_RESOLVED") {

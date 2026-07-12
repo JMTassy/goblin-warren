@@ -1453,6 +1453,84 @@ html, body {
 }
 
 /* ZOL Shop */
+/* ---------- LULU CARE — tamagotchi panel + reunion ---------- */
+#card-care {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--panel-edge);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+#card-care.hidden { display: none; }
+.care-needs {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.care-mood { font-size: 10px; color: var(--glow-pink); font-style: italic; }
+.care-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.care-btn {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--glow-pink);
+  background: linear-gradient(160deg, rgba(255,110,166,0.14), rgba(255,110,166,0.05));
+  color: var(--ink);
+  font-size: 10px;
+  cursor: pointer;
+}
+.care-btn:active { transform: scale(0.93); box-shadow: 0 0 12px rgba(255,110,166,0.5); }
+.care-request {
+  background: rgba(244,228,161,0.08);
+  border: 1px solid rgba(244,228,161,0.4);
+  border-radius: 10px;
+  padding: 7px 8px;
+}
+.care-request-text { font-size: 11px; color: var(--glow-cream); margin-bottom: 6px; }
+.care-request-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.care-btn.req { border-color: var(--glow-cream); background: rgba(244,228,161,0.10); color: var(--glow-cream); font-weight: 700; }
+
+#lulu-reunion {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(8,5,16,0.82);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#lulu-reunion.hidden { display: none; }
+#reunion-card {
+  text-align: center;
+  padding: 28px 26px;
+  border-radius: 20px;
+  border: 2px solid var(--glow-pink);
+  background: linear-gradient(170deg, #241a44, #16112a);
+  box-shadow: 0 0 40px rgba(255,110,166,0.35);
+  max-width: 300px;
+  animation: reunionin 0.5s ease-out;
+}
+@keyframes reunionin { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#reunion-sprite { font-size: 44px; animation: zonebob 2s ease-in-out infinite; }
+#reunion-title {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--glow-pink);
+}
+#reunion-msg { margin-top: 10px; font-size: 12px; color: var(--ink); line-height: 1.45; }
+#reunion-hint { margin-top: 14px; font-size: 9px; color: var(--ink-dim); animation: dotpulse 1.6s ease-in-out infinite; }
+
 /* ---------- GOBLIN COUNCIL — debate chamber ---------- */
 #sheet-council {
   display: flex;
