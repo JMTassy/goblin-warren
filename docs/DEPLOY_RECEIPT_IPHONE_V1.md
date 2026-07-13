@@ -444,3 +444,27 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - IPHONE_SAFARI_STATUS for v1.26: untested (awaits the operator's thumb —
   also witnesses whether iOS provides a female en voice for Lulu; if not,
   she stays a text-bubble goblin, nothing breaks).
+
+## v1.27 update — 2026-07-13 (operator style correction: "too mystical / too cute,
+## not adult enough · change nanobanana to another generator")
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · game_id unchanged ·
+  source pinned @ deploy/goblin-warren-v1.27.zip.
+- STYLE PIVOT + GENERATOR SWITCH: the L3/L4 nano_banana scenes were rejected
+  twice (first too mystical/abstract, then too cute). Regenerated both with
+  RECRAFT V4.1 (standard, 2k) — a different, more expressive engine — in a
+  gritty, weathered, mature fantasy concept-art style matching the operator's
+  reference (campfire village square + forge/workshop district, moody muted
+  palette, warm lantern accents, "not cute / not cartoon"). L3 = THE VILLAGE,
+  L4 = THE WORKSHOPS; darker gradient + near-neutral tint so the grade holds.
+- HONEST CONSTRAINT: the operator's two pasted reference images are not on
+  disk this session (chat pastes aren't saved as files, and higgsfield/
+  CloudFront egress is blocked for direct download), so the exact pixels
+  could not be bundled — these are close style-matches generated to the
+  reference, not the literal images. If the operator wants the exact file,
+  dropping it into the repo (or any raw.githubusercontent URL) lets it be
+  bundled directly next round.
+- TESTS: verify.js 28/28. CREDITS: 2 images (Recraft V4.1 2k ×2); the two
+  earlier nano_banana village attempts (~2 credits) are unused/superseded.
+- IPHONE_SAFARI_STATUS for v1.27: untested (awaits the operator's eye on the
+  new level art).
