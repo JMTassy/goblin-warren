@@ -2288,6 +2288,112 @@ html, body {
   box-shadow: 0 0 12px rgba(150, 200, 80, 0.4);
 }
 
+/* VISION_V1_30 §1 — the level gate: same lightweight modal pattern,
+   cyan-themed to match #level-chip. */
+#level-gate {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 10, 23, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  backdrop-filter: blur(3px);
+  animation: maestroFadeIn 0.3s ease;
+}
+
+#level-gate.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+#level-gate-modal {
+  position: relative;
+  width: 85vw;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(40, 70, 90, 0.95), rgba(25, 50, 65, 0.95));
+  border: 2px solid var(--glow-cyan);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 30px rgba(80, 208, 255, 0.4), inset 0 0 20px rgba(80, 208, 255, 0.1);
+  text-align: center;
+}
+
+#level-gate-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--glow-cyan);
+}
+
+#level-gate-desc {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: var(--ink-faded);
+}
+
+#level-gate-riddles, #level-gate-toll {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+#level-gate-unlock {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(80, 208, 255, 0.2), rgba(60, 170, 220, 0.2));
+  border: 1.5px solid var(--glow-cyan);
+  border-radius: 8px;
+  color: var(--glow-cyan);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#level-gate-unlock:active {
+  background: linear-gradient(135deg, rgba(80, 208, 255, 0.4), rgba(60, 170, 220, 0.4));
+  box-shadow: 0 0 20px rgba(80, 208, 255, 0.5);
+}
+
+#level-gate-unlock:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+}
+
+#level-gate-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--glow-cyan);
+  background: rgba(80, 208, 255, 0.1);
+  color: var(--glow-cyan);
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+#level-gate-close:active {
+  transform: scale(0.9);
+  background: rgba(80, 208, 255, 0.3);
+  box-shadow: 0 0 12px rgba(80, 208, 255, 0.4);
+}
+
+/* the level chip pulses once when a riddle just crossed a gate's threshold */
+#level-chip.chip-pulse { animation: chippulse 0.9s ease-out; }
+@keyframes chippulse {
+  0% { transform: scale(1); box-shadow: 0 0 4px rgba(80,208,255,0.2); }
+  40% { transform: scale(1.18); box-shadow: 0 0 18px rgba(80,208,255,0.8); }
+  100% { transform: scale(1); box-shadow: 0 0 4px rgba(80,208,255,0.2); }
+}
+
 @media (prefers-color-scheme: light) {
   /* This world stays night-garden regardless of OS theme — it is a place, not a UI. */
 }

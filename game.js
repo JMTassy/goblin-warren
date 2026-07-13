@@ -321,7 +321,10 @@ function makeState() {
     replay: [],
     flags: { greeted: false, firstSignalSeen: false, firstProposalResolved: false, secondEventReferencedFirst: false, geraldFate: null,
              boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0, serpentTapped: false, organPlayed: false },
-    progress: { level: 1, glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0 },
+    /* VISION_V1_30 §1 — levels are earned doors, not a free carousel.
+       levelsUnlocked holds every chapter id the player has paid the toll
+       for; L1 is always free (default [1]). */
+    progress: { level: 1, levelsUnlocked: [1], glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0 },
     settings: { muted: false },
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
@@ -379,6 +382,16 @@ function mergeDefaults(loaded) {
       out.goblins.kin = Object.assign({}, makeGoblin(kdef), (loaded.goblins && loaded.goblins.kin) || {});
     }
     out.progress = Object.assign({}, d.progress, loaded.progress || {});
+    /* VISION_V1_30 §1 — migration: grandfather old saves. A save from
+       before this law existed had no levelsUnlocked; unlock 1..level
+       (whatever chapter it had already reached), min [1]. L1 always in. */
+    if (!Array.isArray(out.progress.levelsUnlocked) || !out.progress.levelsUnlocked.length) {
+      var grandfathered = [];
+      var maxKnownLevel = Math.max(1, out.progress.level || 1);
+      for (var glv = 1; glv <= maxKnownLevel; glv++) grandfathered.push(glv);
+      out.progress.levelsUnlocked = grandfathered;
+    }
+    if (out.progress.levelsUnlocked.indexOf(1) < 0) out.progress.levelsUnlocked.unshift(1);
     out.lulu = Object.assign({}, d.lulu, loaded.lulu || {});
     out.lulu.needs = Object.assign({}, d.lulu.needs, (loaded.lulu && loaded.lulu.needs) || {});
     out.lulu.counts = Object.assign({}, d.lulu.counts, (loaded.lulu && loaded.lulu.counts) || {});
@@ -3198,6 +3211,15 @@ var LEVELS = [
     tint: "saturate(1.05)" }
 ];
 
+/* VISION_V1_30 §1 — the progression law, both pure functions of state.
+   needKnow: riddles the Moth must have confirmed (S.flags.quizRight).
+   tollZOL: ZOL paid once from S.learning.zolBalance. Level 1 needs neither. */
+function needKnow(n) { return Math.max(0, (n - 1) * 3); }
+function tollZOL(n) { return Math.max(0, (n - 1) * 5); }
+function isLevelUnlocked(n) {
+  return (S.progress.levelsUnlocked || [1]).indexOf(n) !== -1;
+}
+
 function currentLevel() {
   var lv = (S.progress && S.progress.level) || 1;
   return LEVELS[clamp(lv - 1, 0, LEVELS.length - 1)];
@@ -3284,6 +3306,73 @@ function playLevelTransition(onDone) {
   var played = vid.play && vid.play();
   if (played && played.catch) played.catch(function () { setTimeout(dismiss, 500); });
   setTimeout(dismiss, 4200); /* hard ceiling — the veil never traps anyone */
+}
+
+/* ---------------------------------------------------------------------
+   THE GATE — VISION_V1_30 §1. A locked level is never a dead end: the
+   chip stops there and shows what it costs. Membrane: toll deducts exact
+   ZOL only (garden play-money), never touches verdicts or the Kernel;
+   every unlock writes a receipt.
+--------------------------------------------------------------------- */
+function openLevelGate(n) {
+  var lv = LEVELS[clamp(n - 1, 0, LEVELS.length - 1)];
+  var need = needKnow(n), toll = tollZOL(n);
+  var have = S.flags.quizRight || 0;
+  var overlay = document.getElementById("level-gate");
+  if (!overlay) return;
+  var nameEl = document.getElementById("level-gate-name");
+  var riddleEl = document.getElementById("level-gate-riddles");
+  var tollEl = document.getElementById("level-gate-toll");
+  var btn = document.getElementById("level-gate-unlock");
+  if (nameEl) nameEl.textContent = lv.name;
+  if (riddleEl) riddleEl.textContent = "🦋 " + Math.min(have, need) + "/" + need + " riddles known";
+  if (tollEl) tollEl.textContent = "🪙 toll " + toll + " ZOL";
+  var met = have >= need && S.learning.zolBalance >= toll;
+  if (btn) { btn.disabled = !met; btn.setAttribute("data-level", String(n)); }
+  overlay.classList.remove("hidden");
+}
+
+function closeLevelGate() {
+  var overlay = document.getElementById("level-gate");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+/* VISION_V1_30 §2 — instant gratification wiring. Fires only on the exact
+   move that crosses a still-locked level's needKnow threshold (quizRight
+   climbs by exactly 1 per correct answer, so equality never gets skipped). */
+function checkLevelGateProgress() {
+  var have = S.flags.quizRight || 0;
+  for (var n = 2; n <= LEVELS.length; n++) {
+    if (isLevelUnlocked(n)) continue;
+    if (have === needKnow(n)) {
+      showBubble("lulu", "a gate just heard you learning…", 3200);
+      var chip = document.getElementById("level-chip");
+      if (chip) flashClass(chip, "chip-pulse", 900);
+      break;
+    }
+  }
+}
+
+/* Pays the toll and pushes the id into levelsUnlocked. Refuses (no
+   deduction, no unlock) unless both the knowledge and the ZOL are in
+   hand — never punishes, just holds the door shut. */
+function tryUnlockLevel(n) {
+  if (isLevelUnlocked(n)) return false;
+  var need = needKnow(n), toll = tollZOL(n);
+  var have = S.flags.quizRight || 0;
+  if (have < need || S.learning.zolBalance < toll) { Sound.chirp(); return false; }
+  S.learning.zolBalance -= toll;
+  S.progress.levelsUnlocked.push(n);
+  var lv = LEVELS[clamp(n - 1, 0, LEVELS.length - 1)];
+  pushReplay("gate", "Level unlocked", "unlock",
+    lv.name + " opened — " + need + " riddles known, toll " + toll + " ZOL paid", "");
+  renderReplayStrip();
+  zolCelebrate(toll); /* the coin burst runs in reverse — deduct is already done, this just celebrates */
+  luluVoiceLine("travel");
+  closeLevelGate();
+  saveState();
+  playLevelTransition(function () { setLevel(n); });
+  return true;
 }
 
 /* The sparkle: opt-in doorway. Appears sometimes when the Warren is calm.
@@ -4558,7 +4647,11 @@ function renderTopbar() {
   if (zolBtn && !zolCounting) zolBtn.textContent = "🪙" + S.learning.zolBalance;
 
   var lvChip = document.getElementById("level-chip");
-  if (lvChip) lvChip.textContent = "🗺️ L" + ((S.progress && S.progress.level) || 1);
+  if (lvChip) {
+    var curLv = (S.progress && S.progress.level) || 1;
+    var nextLv = (curLv % LEVELS.length) + 1;
+    lvChip.textContent = "🗺️ L" + curLv + (isLevelUnlocked(nextLv) ? "" : " 🔒");
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -6407,6 +6500,7 @@ function answerQuiz(option) {
   var mothG = mothEl ? { x: parseFloat(mothEl.style.left), y: parseFloat(mothEl.style.top) } : null;
   if (right) {
     S.flags.quizRight = (S.flags.quizRight || 0) + 1;
+    checkLevelGateProgress(); /* VISION_V1_30 §2 — legible progress toward the next gate */
     S.world.warmth = clamp(S.world.warmth + 2, 0, 100);
     S.world.soil = clamp(S.world.soil + 1, 0, 100);
     earn(0, 2);
@@ -7360,6 +7454,13 @@ function wireInput() {
     lvChip.addEventListener("click", function () {
       ensureAudio(); resumeAudio();
       var next = ((S.progress.level || 1) % LEVELS.length) + 1;
+      /* VISION_V1_30 §1 — the chip cycles ONLY unlocked levels. The next
+         locked chapter is a gate stop, not a free ride. */
+      if (!isLevelUnlocked(next)) {
+        Sound.chirp();
+        openLevelGate(next);
+        return;
+      }
       playLevelTransition(function () {
         setLevel(next);
         var lv = currentLevel();
@@ -7369,6 +7470,18 @@ function wireInput() {
       });
     });
   }
+
+  /* Level gate card — VISION_V1_30 §1 */
+  var levelGateClose = document.getElementById("level-gate-close");
+  if (levelGateClose) levelGateClose.addEventListener("click", function () { closeLevelGate(); });
+  var levelGateUnlockBtn = document.getElementById("level-gate-unlock");
+  if (levelGateUnlockBtn) {
+    levelGateUnlockBtn.addEventListener("click", function () {
+      var n = parseInt(levelGateUnlockBtn.getAttribute("data-level"), 10);
+      if (n) tryUnlockLevel(n);
+    });
+  }
+
   document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
   document.getElementById("btn-hold").addEventListener("click", function () { stampFX("hold"); resolveProposal("hold"); });
   document.getElementById("btn-compost").addEventListener("click", function () { stampFX("compost"); resolveProposal("compost"); });
@@ -7535,6 +7648,18 @@ window.WARREN_DEBUG = {
   setLevel: function (n) { return setLevel(n); },
   getLevels: function () { return LEVELS; },
   currentLevel: function () { return currentLevel(); },
+  /* level gate — VISION_V1_30 §1 */
+  getLevelsUnlocked: function () { return (S.progress.levelsUnlocked || [1]).slice(); },
+  unlockAllLevels: function () {
+    var all = [];
+    for (var i = 1; i <= LEVELS.length; i++) all.push(i);
+    S.progress.levelsUnlocked = all;
+    saveState();
+    return all.slice();
+  },
+  tryUnlockLevel: function (n) { return tryUnlockLevel(n); },
+  needKnow: function (n) { return needKnow(n); },
+  tollZOL: function (n) { return tollZOL(n); },
   /* click congas (VISION_V1_28 §4) */
   getCongaIdx: function () { return congaIdx; },
   /* Lulu voice seam (VISION_V1_28 §5) */
