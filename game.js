@@ -234,8 +234,8 @@ function makeState() {
     objects: [],
     replay: [],
     flags: { greeted: false, firstSignalSeen: false, firstProposalResolved: false, secondEventReferencedFirst: false, geraldFate: null,
-             boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0 },
-    progress: { level: 1, glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0 },
+             boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0, serpentTapped: false, organPlayed: false },
+    progress: { level: 1, glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0 },
     settings: { muted: false },
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
@@ -253,7 +253,13 @@ function makeState() {
        misgeneralizes, and acts only when the child stamps. */
     teaching: { lessons: [], taughtCount: {}, pending: null },
     /* the adopted kin — a wanderer named and stamped by the operator */
-    adopted: null
+    adopted: null,
+    /* the Wonder Cache — six relics EARNED through play, then found by tapping.
+       Each surfaces only when its milestone is reached (progression-linked,
+       not decoration). Finding is expressive: it sings, tells a line, and
+       writes a garden receipt. It grants no ZOL and admits nothing (membrane
+       law). unlocked = has surfaced in the moss · found = has been tapped. */
+    collectibles: { unlocked: [], found: [] }
   };
 }
 
@@ -309,6 +315,12 @@ function mergeDefaults(loaded) {
     out.verdicts = (loaded.verdicts && Array.isArray(loaded.verdicts.history)) ? loaded.verdicts : { history: [] };
     out.teaching.lessons = Array.isArray(out.teaching.lessons) ? out.teaching.lessons.slice(-24) : [];
     out.teaching.taughtCount = out.teaching.taughtCount || {};
+    out.collectibles = {
+      unlocked: (loaded.collectibles && Array.isArray(loaded.collectibles.unlocked)) ? loaded.collectibles.unlocked.slice(0, 16) : [],
+      found: (loaded.collectibles && Array.isArray(loaded.collectibles.found)) ? loaded.collectibles.found.slice(0, 16) : []
+    };
+    /* a found relic is necessarily unlocked (older saves, or hand-edits) */
+    out.collectibles.found.forEach(function (id) { if (out.collectibles.unlocked.indexOf(id) < 0) out.collectibles.unlocked.push(id); });
   } catch (e) { return d; }
   return out;
 }
@@ -328,6 +340,11 @@ function loadState() {
 var loaded = loadState();
 var S = loaded.state;
 var isFreshBoot = loaded.fresh;
+/* belt-and-suspenders: an older save can pass validAndComplete without the
+   collectibles field (it isn't required there); guarantee it exists so the
+   Wonder Cache never reads undefined. */
+if (!S.collectibles || !Array.isArray(S.collectibles.found)) S.collectibles = { unlocked: [], found: [] };
+if (!Array.isArray(S.collectibles.unlocked)) S.collectibles.unlocked = S.collectibles.found.slice();
 
 function saveState() {
   S.lastSavedAt = Date.now();
@@ -742,6 +759,18 @@ var Sound = {
       tone(f * p[0], 0.01, p[2], "sine", p[1]);
       tone(f * p[0] * 1.003, 0.03, p[2] * 0.9, "sine", p[1] * 0.7); /* beating pair */
     });
+  },
+
+  harmonyShimmer: function (base) {
+    /* The Tree's answer when the organ finds a real interval: the natural
+       overtone series (×2, ×3, ×4) climbing softly above the drones, then a
+       faint bowl-partial ghost. Confirmation, not fanfare — the harmony
+       itself stays the loudest thing in the room. */
+    var f = base || SOLFEGGIO.connection;
+    tone(f * 2, 0.05, 1.6, "sine", 0.028);
+    tone(f * 3, 0.35, 1.4, "sine", 0.02);
+    tone(f * 4, 0.7, 1.2, "sine", 0.014);
+    tone(f * 2.72, 0.5, 2.4, "sine", 0.01); /* the bowl ghost */
   }
 };
 
@@ -1718,10 +1747,22 @@ function detectHarmony(freqs) {
 var organStops = {};   /* station idx → { osc1, osc2, gain } sustained voices */
 var organEl = null;
 
+/* BUGFIX: latching is a MUSICAL decision, not an audio side-effect. The old
+   code refused to latch while muted, so a muted organ looked broken (buttons
+   dead, no harmony named). Now the stop always latches — voice.silent marks
+   a latch whose audio is absent (muted / no ctx); the harmony display works
+   regardless, and audio joins on unmute. Meaning is free; sound is earned. */
 function organVoiceStart(idx) {
-  if (S.settings.muted) return;
+  if (organStops[idx]) return;
+  organStops[idx] = { o1: null, o2: null, g: null, silent: true };
+  organVoiceAudioStart(idx);
+}
+
+function organVoiceAudioStart(idx) {
+  var v = organStops[idx];
+  if (!v || !v.silent || S.settings.muted) return;
   var ctx = ensureAudio();
-  if (!ctx || organStops[idx]) return;
+  if (!ctx) return;
   var f = SERPENT_STATIONS[idx].freq;
   var g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -1730,24 +1771,43 @@ function organVoiceStart(idx) {
   var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = f * 1.003; /* organ breath */
   o1.connect(g); o2.connect(g); g.connect(ctx.destination);
   o1.start(); o2.start();
-  organStops[idx] = { o1: o1, o2: o2, g: g };
+  v.o1 = o1; v.o2 = o2; v.g = g; v.silent = false;
+}
+
+function organVoiceAudioStop(v) {
+  if (!v || v.silent) return;
+  try {
+    var ctx = ensureAudio();
+    v.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+    (function (o1, o2) {
+      setTimeout(function () { try { o1.stop(); o2.stop(); } catch (e) {} }, 700);
+    })(v.o1, v.o2);
+  } catch (e) {}
+  v.o1 = null; v.o2 = null; v.g = null; v.silent = true;
 }
 
 function organVoiceStop(idx) {
   var v = organStops[idx];
   if (!v) return;
   delete organStops[idx];
-  try {
-    var ctx = ensureAudio();
-    v.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-    setTimeout(function () { try { v.o1.stop(); v.o2.stop(); } catch (e) {} }, 700);
-  } catch (e) {}
+  organVoiceAudioStop(v);
+}
+
+/* BUGFIX: muting mid-drone used to leave latched voices sounding forever
+   (organVoiceStart checked mute; nothing ever silenced running stops).
+   The mute button now calls this: latches stay, audio follows the switch. */
+function organSetAudible(on) {
+  organLatched().forEach(function (idx) {
+    if (on) organVoiceAudioStart(idx);
+    else organVoiceAudioStop(organStops[idx]);
+  });
 }
 
 function organLatched() {
   return Object.keys(organStops).map(function (k) { return parseInt(k, 10); });
 }
 
+var organLastHarmony = null;
 function organUpdateHarmony() {
   var el = document.getElementById("organ-harmony");
   if (!el) return;
@@ -1758,6 +1818,19 @@ function organUpdateHarmony() {
   if (tree) tree.style.filter = idxs.length
     ? "drop-shadow(0 0 " + (8 + idxs.length * 5) + "px " + SERPENT_STATIONS[idxs[idxs.length - 1]].color + ")"
     : "";
+  /* HARMONY LAYERS — when a real interval forms (h.k names a consonance),
+     the Tree answers: a soft overtone shimmer on top of the drones, and —
+     with three or more hands — the shamanic heartbeat wakes underneath.
+     Fires only when the NAMED harmony changes, so held chords stay calm. */
+  var key = h && h.k !== undefined ? h.k + ":" + idxs.length : null;
+  if (key && key !== organLastHarmony && idxs.length >= 2) {
+    var base = SERPENT_STATIONS[idxs[0]].freq;
+    Sound.harmonyShimmer(base);
+    if (idxs.length >= 3) Sound.shamanicBurst(1); /* heartbeat pairs, ~5s */
+    el.classList.remove("harmony-bloom"); void el.offsetWidth;
+    el.classList.add("harmony-bloom");
+  }
+  organLastHarmony = key;
 }
 
 function toggleOrganStop(idx) {
@@ -1766,6 +1839,7 @@ function toggleOrganStop(idx) {
   else {
     if (organLatched().length >= 4) return false; /* four hands maximum */
     organVoiceStart(idx);
+    S.flags.organPlayed = true; /* milestone: the Solfeggio Shard may surface */
   }
   var btn = document.querySelector('#organ [data-stop="' + idx + '"]');
   if (btn) btn.classList.toggle("latched", !!organStops[idx]);
@@ -1821,6 +1895,7 @@ function renderSerpent() {
     serpentEl.addEventListener("click", function (e) {
       e.stopPropagation();
       ensureAudio(); resumeAudio();
+      S.flags.serpentTapped = true; /* milestone: the Serpent Coil may surface */
       var cur = SERPENT_STATIONS[serpentHeight()];
       Sound.bijaTone(cur.freq);
       showBubbleFree(cur.name + " — “" + cur.line + "”", 56, Math.max(6, 20 - serpentHeight() * 2));
@@ -2833,9 +2908,13 @@ var LEVELS = [
     bg: "bg/level2-glade.jpeg",
     tint: "saturate(1.05)" },
   { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
+    /* painted cavern (this session's generated set, same storybook style as
+       the glade) layered OVER the gradient — offline, the gradient carries */
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
     scene: "linear-gradient(180deg, #0a0a1e 0%, #16112a 45%, #241a2e 100%)",
     tint: "hue-rotate(-14deg) brightness(0.9) saturate(1.15)" },
   { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
     scene: "linear-gradient(180deg, #1a1140 0%, #2c2154 55%, #3a2a63 100%)",
     tint: "hue-rotate(20deg) brightness(1.06) saturate(1.1)" }
 ];
@@ -2853,6 +2932,14 @@ function applyLevelBackdrop() {
     /* readability scrim over bundled level art (image sits under the goblins) */
     world.style.backgroundImage =
       "linear-gradient(rgba(10,7,20,0.32), rgba(10,7,20,0.42) 62%, rgba(8,5,16,0.6)), url('" + lv.bg + "')";
+    world.style.backgroundSize = "cover";
+    world.style.backgroundPosition = "center";
+  } else if (lv.bgRemote && lv.scene) {
+    /* painted remote art layered over the offline gradient: scrim → painting
+       → gradient. A blocked painting simply falls through to the gradient —
+       same "any missing layer falls through" law as the L1 world scene. */
+    world.style.backgroundImage =
+      "linear-gradient(rgba(10,7,20,0.3), rgba(10,7,20,0.4) 62%, rgba(8,5,16,0.58)), url('" + lv.bgRemote + "'), " + lv.scene;
     world.style.backgroundSize = "cover";
     world.style.backgroundPosition = "center";
   } else if (lv.scene) {
@@ -2879,15 +2966,59 @@ function setLevel(n) {
   return n;
 }
 
-/* The sparkle: opt-in doorway. Appears sometimes when the Warren is calm. */
-var sparkleTimer = null;
+/* ---------------------------------------------------------------------
+   LEVEL TRANSITION — a ~3s cinematic ascent (same teaser pixel style:
+   village floor → up the Akashic trunk → the Spire above the canopy)
+   played over the level swap. LAW OF THE VEIL: the switch itself happens
+   immediately UNDER the overlay (onDone is called right away), the video
+   is pure theater on top — tap skips it, "ended" ends it, and a hard
+   safety timer ends it even if the video never loads. Offline players
+   get a brief dark veil and the same instant switch. Never blocks play.
+--------------------------------------------------------------------- */
+var LEVEL_TRANSITION_URL = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_233931_2cd228d2-20a4-4060-adbb-25fa5aedfa2a.mp4";
+var levelTransitionEl = null;
+
+function playLevelTransition(onDone) {
+  if (levelTransitionEl) { if (onDone) onDone(); return; } /* already mid-veil: just switch */
+  var veil = document.createElement("div");
+  veil.id = "level-transition";
+  veil.innerHTML =
+    '<video muted playsinline preload="auto" src="' + LEVEL_TRANSITION_URL + '"></video>' +
+    '<div class="lt-hint">tap to skip</div>';
+  document.body.appendChild(veil);
+  levelTransitionEl = veil;
+  var vid = veil.querySelector("video");
+  vid.playbackRate = 1.6; /* 5s clip ≈ 3s ride */
+  var done = false;
+  var dismiss = function () {
+    if (done) return;
+    done = true;
+    veil.classList.add("lt-out");
+    setTimeout(function () { veil.remove(); levelTransitionEl = null; }, 450);
+  };
+  /* the world switches NOW, under the veil — theater never gates state */
+  if (onDone) onDone();
+  veil.addEventListener("pointerdown", dismiss);
+  vid.addEventListener("ended", dismiss);
+  vid.addEventListener("error", function () { setTimeout(dismiss, 500); });
+  var played = vid.play && vid.play();
+  if (played && played.catch) played.catch(function () { setTimeout(dismiss, 500); });
+  setTimeout(dismiss, 4200); /* hard ceiling — the veil never traps anyone */
+}
+
+/* The sparkle: opt-in doorway. Appears sometimes when the Warren is calm.
+   The very first one hurries (~35s) so a new player meets the circus inside
+   the opening minute; after that it keeps the old unhurried cadence. */
+var sparkleTimer = null, sparkleFirst = true;
 function scheduleSparkle() {
   clearTimeout(sparkleTimer);
+  var wait = sparkleFirst ? randi(30000, 45000) : randi(70000, 130000);
+  sparkleFirst = false;
   sparkleTimer = setTimeout(function () {
     if (!mg.active && !S.activeProposal && !quizOpen &&
         !document.querySelector(".mg-sparkle")) spawnSparkle();
     scheduleSparkle();
-  }, randi(70000, 130000));
+  }, wait);
 }
 
 function spawnSparkle() {
@@ -3899,6 +4030,161 @@ function renderWorldSigns(layer) {
   });
 }
 
+/* ---------------------------------------------------------------------
+   THE WONDER CACHE — six relics resting in the moss. Each shows painted
+   art (Higgsfield CDN) over an emoji fallback, so a blocked image simply
+   reveals the glyph beneath — play never depends on the network. Tapping
+   one sings a tone, tells a NO_CLAIM line (one glyph = one real meaning,
+   per the WULmoji legend), and — first time only — writes a garden
+   receipt to the replay log. MEMBRANE LAW: finding is expressive. It adds
+   to S.collectibles.found and to the log; it grants no ZOL and admits
+   nothing. Meaning is free; state is earned.
+--------------------------------------------------------------------- */
+var COLLECTIBLES = [
+  { id: "serpent-coil", name: "Serpent Coil", glyph: "🐍", tone: 396, x: 10, y: 27,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190954_190a0753-be81-485e-a3bc-219c611b33da.png",
+    lore: "🐍 The coil climbs by care, never by coin. parable ⊬ doctrine." },
+  { id: "solfeggio-shard", name: "Solfeggio Shard", glyph: "💎", tone: 528, x: 90, y: 27,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190958_2851913e-f8e5-451a-aeff-a4f2b94e3bde.png",
+    lore: "💎 A tone you can feel, never a cure you can buy. For wonder, not medicine." },
+  { id: "mycelial-knot", name: "Mycelial Knot", glyph: "🍄", tone: 639, x: 9, y: 60,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190959_e8def8d4-5f3b-4c8d-9520-48bdff7c358d.png",
+    lore: "🍄 Threads that connect ⊬ threads that command. The Warren is woven, not ruled." },
+  { id: "memory-lantern", name: "Memory Lantern", glyph: "🏮", tone: 741, x: 91, y: 60,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190955_df4aae82-85f2-4679-8e86-5ad6ac5cb0d8.png",
+    lore: "🏮 It holds what the log holds — light re-read, not light stored. memory = f(log)." },
+  { id: "verdict-circle", name: "Verdict Circle", glyph: "⭕", tone: 417, x: 12, y: 86,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190957_cd8db180-4569-4e91-aaad-47cc4ddf561c.png",
+    lore: "⭕ Where a day is stamped 🌱⏳🍂. The circle rules nothing; your hand does." },
+  { id: "verdict-seal", name: "Verdict Seal", glyph: "🔏", tone: 852, x: 88, y: 86,
+    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_191001_de98c45f-44c4-4752-8ab6-bdea2cf4a52b.png",
+    lore: "🔏 A seal marks what was tended — existence ≠ admission. Only the operator makes it true." }
+];
+function collectibleById(id) { for (var i = 0; i < COLLECTIBLES.length; i++) if (COLLECTIBLES[i].id === id) return COLLECTIBLES[i]; return null; }
+function collectibleFound(id) { return !!(S.collectibles && S.collectibles.found.indexOf(id) >= 0); }
+function collectibleUnlocked(id) { return !!(S.collectibles && S.collectibles.unlocked.indexOf(id) >= 0); }
+
+/* Progression law: relics are EARNED, then found — not decoration. Each
+   milestone below is a pure fold of state (deterministic, replayable);
+   when it turns true the relic surfaces in the moss with a soft glint.
+   Surfacing changes nothing sovereign — it only makes a tap possible. */
+var COLLECTIBLE_UNLOCKS = {
+  "serpent-coil":    { hint: "the Serpent noticed you noticing it",        ok: function () { return !!S.flags.serpentTapped; } },
+  "solfeggio-shard": { hint: "a tone you played crystallized in the moss", ok: function () { return !!S.flags.organPlayed; } },
+  "memory-lantern":  { hint: "three memories lit it from inside",          ok: function () { return S.replay.length >= 3; } },
+  "verdict-circle":  { hint: "your first stamped day drew a circle",       ok: function () { return !!(S.verdicts && S.verdicts.history && S.verdicts.history.length >= 1); } },
+  "mycelial-knot":   { hint: "five boops wove the threads together",       ok: function () { return (S.flags.boops || 0) >= 5; } },
+  "verdict-seal":    { hint: "a humbled boss left it behind",              ok: function () { return ((S.progress.crownDefeats || 0) + (S.progress.raamDefeats || 0)) >= 1; } }
+};
+
+function checkCollectibleUnlocks() {
+  var newly = [];
+  COLLECTIBLES.forEach(function (c) {
+    if (collectibleUnlocked(c.id)) return;
+    var u = COLLECTIBLE_UNLOCKS[c.id];
+    if (u && u.ok()) { S.collectibles.unlocked.push(c.id); newly.push(c); }
+  });
+  if (newly.length) {
+    newly.forEach(function (c) {
+      showBubbleFree("✨ something glints in the moss — " + COLLECTIBLE_UNLOCKS[c.id].hint, clamp(c.x, 8, 70), clamp(c.y - 8, 6, 84));
+    });
+    saveState();
+  }
+  return newly;
+}
+
+var collectibleEls = {};
+function renderCollectibles() {
+  var layer = document.getElementById("objects-layer");
+  if (!layer) return;
+  checkCollectibleUnlocks();
+  COLLECTIBLES.forEach(function (c) {
+    if (!collectibleUnlocked(c.id)) return; /* earned, then seen */
+    var el = collectibleEls[c.id];
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "collectible";
+      el.title = c.name;
+      el.innerHTML =
+        '<span class="col-glyph">' + c.glyph + '</span>' +
+        '<img class="col-img" alt="" />' +
+        '<span class="col-check">✓</span>' +
+        '<div class="col-sign">' + c.name + '</div>';
+      var img = el.querySelector(".col-img");
+      /* graceful fallback: if the painted art is blocked/offline, hide the
+         <img> so the emoji glyph beneath shows through. */
+      img.addEventListener("error", function () { img.style.display = "none"; });
+      img.addEventListener("load", function () { el.classList.add("art-loaded"); });
+      img.src = c.img;
+      (function (item, node) {
+        node.addEventListener("click", function (e) {
+          e.stopPropagation();
+          discoverCollectible(item.id);
+        });
+      })(c, el);
+      el.classList.add("surfacing"); /* entrance: it just surfaced */
+      setTimeout(function () { el.classList.remove("surfacing"); }, 1200);
+      layer.appendChild(el);
+      collectibleEls[c.id] = el;
+    }
+    el.style.left = c.x + "%";
+    el.style.top = c.y + "%";
+    el.classList.toggle("found", collectibleFound(c.id));
+  });
+}
+
+function discoverCollectible(id) {
+  var c = collectibleById(id);
+  if (!c || !collectibleUnlocked(id)) return; /* can't find what hasn't surfaced */
+  ensureAudio(); resumeAudio();
+  Sound.tibetanBowl(c.tone); /* relics ring bronze — every find is a bowl strike */
+  var el = collectibleEls[id];
+  if (el) { el.classList.remove("singing"); void el.offsetWidth; el.classList.add("singing"); }
+  showBubbleFree(c.lore, clamp(c.x, 8, 74), clamp(c.y - 8, 6, 84));
+  var first = !collectibleFound(id);
+  if (first) {
+    S.collectibles.found.push(id);
+    /* a garden receipt — expressive only. No ZOL, no admission. */
+    pushReplay("You", "Found the " + c.name, "discover", c.name + " joined the Wonder Cache.", c.lore);
+    var n = S.collectibles.found.length;
+    if (n >= COLLECTIBLES.length) {
+      pushReplay("The Warren", "Wonder Cache complete", "note",
+        "all six relics found — the moss keeps nothing back now.",
+        "Six found. Meaning is free; state is still earned.");
+      wonderCacheFinale();
+    }
+    renderReplayStrip();
+    renderCollectibles();
+    saveState();
+  }
+}
+
+/* THE FINALE — six of six. Pure theater: dance, sparks, one proud line.
+   Nothing sovereign moves; the celebration IS the reward. */
+function wonderCacheFinale() {
+  var world = document.getElementById("world");
+  Object.keys(goblinEls).forEach(function (k) { flashClass(goblinEls[k], "dancing", 3600); });
+  Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
+  Sound.party();
+  appBounce();
+  if (world) {
+    for (var i = 0; i < 16; i++) {
+      (function (i) {
+        setTimeout(function () {
+          var sp = document.createElement("div");
+          sp.className = "cache-spark";
+          sp.textContent = ["✨", "🌟", "💫"][i % 3];
+          sp.style.left = (8 + ((i * 37 + 11) % 85)) + "%";
+          sp.style.top = (18 + ((i * 53 + 7) % 70)) + "%";
+          world.appendChild(sp);
+          setTimeout(function () { sp.remove(); }, 2600);
+        }, i * 130);
+      })(i);
+    }
+  }
+  showBubble("lulu", "SIX OF SIX! The moss is out of secrets. We are not. ✨", 3200);
+}
+
 function showBubble(goblinId, text, duration) {
   var host = goblinEls[goblinId];
   if (!host) return;
@@ -4652,6 +4938,7 @@ function renderAll() {
   renderTopbar();
   renderGoblins();
   renderObjects();
+  renderCollectibles();
   renderReplayStrip();
   renderWeather();
   renderBreath();
@@ -5097,8 +5384,14 @@ function spawnRaam() {
   raamEl = document.createElement("div");
   raamEl.className = "raam";
   raamEl.innerHTML = '<div class="raam-line">' + pick(RAAM_TAUNTS) + '</div>' +
-    '<div class="raam-glyph" style="font-size:' + raamGlyphSize() + 'px">👹</div>' +
+    '<div class="raam-glyph" style="font-size:' + raamGlyphSize() + 'px">👹' +
+    '<img class="boss-mask-art" alt="" /></div>' +
     '<div class="raam-base">🍄🍄</div>';
+  /* the painted mask (cracked red, horned) rides OVER the emoji; if the art
+     can't load, the 👹 beneath carries the boss — play never depends on it */
+  var raamArt = raamEl.querySelector(".boss-mask-art");
+  raamArt.addEventListener("error", function () { raamArt.style.display = "none"; });
+  raamArt.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200459_ee77a9e0-cdb5-45aa-8bd0-58d13c36ee2f.png";
   raamEl.style.left = "86%";
   raamEl.style.top = "58%";
   raamEl.addEventListener("click", tapRaam);
@@ -5135,10 +5428,12 @@ function tapRaam() {
   clearTimeout(raamHopTimer);
   if (line) line.textContent = "…boo? …boop. …you caught me.";
   raamEl.classList.add("unmasked");
+  maskBurst(parseFloat(raamEl.style.left) || 50, parseFloat(raamEl.style.top) || 50);
   S.progress.raamDefeats++;
   earn(3, 0);
   addObject("🎭", "A Very Polite Mask", "gate");
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
+  Sound.shamanicBurst(4); /* the rising call — victory drums under the party */
   Sound.party();
   appBounce();
   pushReplay("The Warren", "Raâm the Loud Mask", "boop", "Raâm was laughed down to size. The mask got polite.", "");
@@ -5148,6 +5443,122 @@ function tapRaam() {
   var el = raamEl; raamEl = null;
   setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1500);
   scheduleRaam(randi(180000, 360000)); // volume always recovers eventually
+  if (S.progress.raamDefeats === 1) scheduleSeren(randi(45000, 90000)); // the quiet one heard the laughter
+  saveState();
+}
+
+/* a small mask-shatter celebration at (x,y)% — pure theater, reuses the
+   cache-spark styling; state was already decided before this plays */
+function maskBurst(xPct, yPct) {
+  var world = document.getElementById("world");
+  if (!world) return;
+  for (var i = 0; i < 8; i++) {
+    (function (i) {
+      setTimeout(function () {
+        var sp = document.createElement("div");
+        sp.className = "cache-spark";
+        sp.textContent = ["✨", "🎭", "💫", "🌟"][i % 4];
+        sp.style.left = clamp(xPct + ((i * 23 + 5) % 22) - 11, 4, 92) + "%";
+        sp.style.top = clamp(yPct + ((i * 17 + 3) % 16) - 8, 8, 88) + "%";
+        world.appendChild(sp);
+        setTimeout(function () { sp.remove(); }, 2600);
+      }, i * 90);
+    })(i);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   SEREN THE SILENT MASK — Boss Level 2 of the mask ladder (appears only
+   after Raâm has been unmasked once: the quiet one heard the laughter).
+   Raâm was false ALARM — all volume, no danger. Seren is false GRAVITY —
+   all stillness, no weight. She stands perfectly still near the Tree
+   radiating enormous meaningful silence; the goblins are convinced the
+   silence Means Something. It doesn't. Four gentle boops and she cracks
+   a smile. Same law as every boss: she threatens nothing real, the
+   Kernel never notices her, and laughter — soft laughter, this time —
+   is the whole weapon. mystery ⊬ authority.
+--------------------------------------------------------------------- */
+
+var serenEl = null, serenTimer = null, serenHP = 0;
+var SEREN_LINES = [
+  "…",
+  "( the silence deepens meaningfully )",
+  "( she says nothing. LOUDLY. )",
+  "( profound stillness, source unverified )",
+  "( 100% quiet. 0% receipts. )"
+];
+var SEREN_WHISPERS = [
+  "psst… she blinked. I saw it.",
+  "is she… judging the moss?",
+  "quiet contest! she's winning…",
+  "someone check if she's a rock.",
+  "the silence has no receipts!"
+];
+
+function scheduleSeren(delay) {
+  clearTimeout(serenTimer);
+  serenTimer = setTimeout(spawnSeren, delay);
+}
+
+function spawnSeren() {
+  if (serenEl || raamEl) return; /* one mask at a time — theater etiquette */
+  if ((S.progress.raamDefeats || 0) < 1) return; /* earned, like everything here */
+  var world = document.getElementById("world");
+  if (!world) return;
+  serenHP = 4;
+  serenEl = document.createElement("div");
+  serenEl.className = "seren";
+  serenEl.innerHTML = '<div class="seren-line">' + SEREN_LINES[0] + '</div>' +
+    '<div class="seren-glyph">🗿<img class="boss-mask-art" alt="" /></div>' +
+    '<div class="raam-base">🌫️</div>';
+  var art = serenEl.querySelector(".boss-mask-art");
+  art.addEventListener("error", function () { art.style.display = "none"; });
+  art.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200501_037b7c5f-b8dc-4298-b79c-8cf4451dc77a.png";
+  serenEl.style.left = "34%";
+  serenEl.style.top = "30%";
+  serenEl.addEventListener("click", tapSeren);
+  world.appendChild(serenEl);
+  Sound.bijaTone ? Sound.bijaTone(285) : Sound.chirp();
+  Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "uneasy"; });
+  showBubble("pip", "A new mask. This one is… quiet. That's worse, somehow.", 2800);
+  renderGoblins();
+}
+
+function tapSeren() {
+  if (!serenEl || serenHP <= 0) return;
+  ensureAudio(); resumeAudio();
+  serenHP--;
+  earn(0, 1); /* every gentle boop shakes loose a drop of sap */
+  flashClass(serenEl, "bonked", 450);
+  Sound.giggle();
+  var who = pick(Object.keys(S.goblins));
+  S.goblins[who].mood = "giggly";
+  showBubble(who, pick(SEREN_WHISPERS), 1800);
+  var line = serenEl.querySelector(".seren-line");
+  if (serenHP > 0) {
+    if (line) line.textContent = SEREN_LINES[4 - serenHP] || "…";
+    serenEl.style.setProperty("--seren-calm", String(serenHP / 4));
+    saveState();
+    return;
+  }
+  /* the smile: enormous meaning resolves into a very small "pfff" */
+  if (line) line.textContent = "…pfff. okay. that one was funny.";
+  serenEl.classList.add("unmasked");
+  maskBurst(parseFloat(serenEl.style.left) || 34, parseFloat(serenEl.style.top) || 30);
+  S.progress.serenDefeats = (S.progress.serenDefeats || 0) + 1;
+  earn(0, 3);
+  addObject("🌫️", "A Very Calm Mask", "tree");
+  Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
+  Sound.tibetanBowl(SOLFEGGIO.regeneration); /* her defeat rings, quietly — of course */
+  Sound.party();
+  appBounce();
+  pushReplay("The Warren", "Seren the Silent Mask", "boop",
+    "Seren smiled. The meaningful silence was just quiet.", "mystery ⊬ authority — the stillness had no receipts.");
+  renderObjects();
+  renderReplayStrip();
+  var el = serenEl; serenEl = null;
+  setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1800);
+  scheduleSeren(randi(240000, 420000)); /* silence, too, recovers eventually */
   saveState();
 }
 
@@ -5355,7 +5766,51 @@ var AI_QCM = [
     pool: ["The goblins unblocked the irrigation pipe", "The violet lantern's ancient power", "Mog believed hard enough", "Purple is causally superior"],
     correct: "The goblins unblocked the irrigation pipe",
     topic: "evidence", lesson: "myth may convene attention; only the repair changes conditions",
-    explain: "The lantern did not grow the mushrooms — it merely convened the idiots, and that was enough. Myth → attention → cooperation → repair → outcome. Not myth → magic → outcome. (docs/WARREN_LESSONS.md)" }
+    explain: "The lantern did not grow the mushrooms — it merely convened the idiots, and that was enough. Myth → attention → cooperation → repair → outcome. Not myth → magic → outcome. (docs/WARREN_LESSONS.md)" },
+  /* ---- AI-literacy batch (operator-ordered "more educative quiz"): eight
+     new lessons — hallucination, training data, determinism, receipts,
+     causation, authority, repetition, sources. Same law as ever: the quiz
+     teaches the epistemics the Warren runs on. ---- */
+  { q: "HAL confidently declares 'the lantern was forged by seven kings' — but no goblin, log, or scroll ever said that. What just happened?",
+    pool: ["HAL invented a plausible-sounding fact — a hallucination", "HAL discovered ancient truth", "HAL is lying on purpose to hoard mushrooms", "The lantern told HAL directly"],
+    correct: "HAL invented a plausible-sounding fact — a hallucination",
+    topic: "hallucination", lesson: "a model can sound certain and still be wrong",
+    explain: "Hallucination: fluent output, zero receipt. Confidence ⊬ correctness — always ask 'where's the log entry?'" },
+  { q: "Runt only ever watched goblins hoard mushrooms, so Runt now insists every goblin hoards mushrooms. What does this teach about how models learn?",
+    pool: ["They learn patterns from their examples, not universal truth", "They know every goblin personally", "They invent new goblins from scratch", "They ask each goblin directly before answering"],
+    correct: "They learn patterns from their examples, not universal truth",
+    topic: "training_data", lesson: "a model reflects its examples, not the whole world",
+    explain: "Garbage in, goblin-shaped out: training data is a sample, never a census. Narrow diet, narrow view." },
+  { q: "The Warren replays the exact same event log twice and lands on the exact same ending both times. Why doesn't it roll dice like Zaz's fortune mushrooms?",
+    pool: ["The reducer is deterministic — same input always gives the same output", "The Warren got lucky twice in a row", "Dice are outlawed inside the Warren", "The log secretly remembers the weather"],
+    correct: "The reducer is deterministic — same input always gives the same output",
+    topic: "determinism", lesson: "deterministic systems are replayable; random ones are not",
+    explain: "No dice in the reducer, only a seeded hash: same seed, same story, every single time. Replay is the whole point." },
+  { q: "Two goblins argue over who bought the third mushroom mound. One 'just remembers.' The other checks the ledger. Who should the Warren trust?",
+    pool: ["Whoever the ledger says — memory fades, receipts don't", "Whoever shouts loudest", "Whoever remembered first", "Both, since memories are always accurate"],
+    correct: "Whoever the ledger says — memory fades, receipts don't",
+    topic: "receipts", lesson: "a written receipt beats a remembered story",
+    explain: "Goblin memory is vivid and often wrong; the ledger is boring and never lies. Trust the boring thing." },
+  { q: "Every time Mog wears the striped hat, the mushrooms grow. Mog wants a hat-shaped festival. What should the Warren check first?",
+    pool: ["Whether the hat causes growth, or just coincides with watering days", "Nothing — buy more striped hats immediately", "Whether the hat is a flattering color", "Whether other goblins also enjoy hats"],
+    correct: "Whether the hat causes growth, or just coincides with watering days",
+    topic: "causation", lesson: "things that happen together aren't automatically causing each other",
+    explain: "Hat and harvest merely correlate; the irrigation pipe causes. Check the pipe before you canonize the hat." },
+  { q: "GOBLIN's AI voice pitches a brilliant plan straight to the treasury, skipping the admission gate entirely. What does Warren law say?",
+    pool: ["The model may narrate; it never decides — only your admission counts", "Brilliant plans get an automatic pass", "The loudest pitch always wins", "AI-voiced proposals outrank goblin ones"],
+    correct: "The model may narrate; it never decides — only your admission counts",
+    topic: "authority", lesson: "the model may narrate; it never decides",
+    explain: "HAL checks it, you admit it. A live voice can suggest all day — the gate stays in goblin hands. Skip-the-gate talk is an auto-DENY." },
+  { q: "Three separate goblins repeat 'the lantern grants wishes' — not one of them ever actually tested it. Is it true now?",
+    pool: ["No — repeating a claim doesn't test it", "Yes — three goblins can't all be wrong", "Yes, if they say it loudly enough", "Only once a fourth goblin agrees"],
+    correct: "No — repeating a claim doesn't test it",
+    topic: "repetition", lesson: "hearing a claim many times doesn't make it tested",
+    explain: "Rumor has excellent stereo but zero receipts. Count witnesses only after you count evidence." },
+  { q: "A dusty scroll claims goblins can fly. Before believing it and leaping off the mushroom tower, what's the goblin-scholar move?",
+    pool: ["Check who wrote it, when, and whether it can be tested", "Copy it into three more scrolls", "Trust scrolls more than living goblins", "Ignore it unless it rhymes"],
+    correct: "Check who wrote it, when, and whether it can be tested",
+    topic: "sources", lesson: "check the source before you trust the claim",
+    explain: "Author, date, testability — three questions before a scroll becomes a fact. Untested scrolls are just fan fiction." }
 ];
 
 function aiQuizCandidate() {
@@ -5598,6 +6053,10 @@ function answerQuiz(option) {
     var sheetEl = document.getElementById("sheet-quiz");
     var sr = sheetEl ? sheetEl.getBoundingClientRect() : null;
     zolCelebrate(payout, sr ? sr.left + sr.width / 2 : undefined, sr ? sr.top : undefined);
+    /* motion: the sheet pops with pride, one goblin does a victory wiggle */
+    flashClass(sheetEl, "quiz-yay", 900);
+    var cheer = pick(Object.keys(goblinEls));
+    if (goblinEls[cheer]) flashClass(goblinEls[cheer], "dancing", 1600);
 
     if (result) result.textContent = (currentQuiz.explain ? currentQuiz.explain + " " : pick([
       "The Moth nods. It already knew. ",
@@ -5610,6 +6069,8 @@ function answerQuiz(option) {
     S.flags.quizWrong = (S.flags.quizWrong || 0) + 1;
     S.learning.quizStreak = 0;
     Sound.riddleWrong();
+    /* motion: the sheet sneezes — a sympathetic little shake, never a punishment */
+    flashClass(document.getElementById("sheet-quiz"), "quiz-sneeze", 650);
     if (result) result.textContent = "Achoo! It was: " + currentQuiz.correct +
       (currentQuiz.explain ? " — " + currentQuiz.explain : "");
   }
@@ -6147,6 +6608,7 @@ function wireInput() {
     ensureAudio(); resumeAudio();
     S.settings.muted = !S.settings.muted;
     applyAmbientMute();
+    organSetAudible(!S.settings.muted); /* latched organ stops follow the switch */
     saveState();
     renderTopbar();
     if (!S.settings.muted) Sound.chirp();
@@ -6226,11 +6688,13 @@ function wireInput() {
     lvChip.addEventListener("click", function () {
       ensureAudio(); resumeAudio();
       var next = ((S.progress.level || 1) % LEVELS.length) + 1;
-      setLevel(next);
-      var lv = currentLevel();
-      showBubble("lulu", lv.name + " — its games: " + lv.mgs.length + ". Find the 🎪.", 3600);
-      /* offer the sparkle immediately so travel always has something to do */
-      setTimeout(spawnSparkle, 600);
+      playLevelTransition(function () {
+        setLevel(next);
+        var lv = currentLevel();
+        showBubble("lulu", lv.name + " — its games: " + lv.mgs.length + ". Find the 🎪.", 3600);
+        /* offer the sparkle immediately so travel always has something to do */
+        setTimeout(spawnSparkle, 600);
+      });
     });
   }
   document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
@@ -6351,10 +6815,15 @@ window.WARREN_DEBUG = {
   boop: function (id) { doBoop(id); },
   boopSeq: function (ids) { ids.forEach(function (id) { doBoop(id); }); },
   addObject: function (emoji, sign, zoneId) { addObject(emoji, sign, zoneId); renderObjects(); },
+  getCollectibles: function () { return { defs: COLLECTIBLES, unlocked: S.collectibles.unlocked.slice(), found: S.collectibles.found.slice() }; },
+  discoverCollectible: function (id) { discoverCollectible(id); },
+  checkCollectibleUnlocks: function () { var n = checkCollectibleUnlocks(); renderCollectibles(); return n.map(function (c) { return c.id; }); },
   bubble: function (id, text) { showBubble(id, text, 4000); },
   award: function (orbs, sap) { earn(orbs || 0, sap || 0); saveState(); },
   spawnCrown: function () { spawnCrown(); },
   spawnRaam: function () { spawnRaam(); },
+  spawnSeren: function () { spawnSeren(); },
+  tapSeren: function () { tapSeren(); },
   spawnMoth: function () { spawnMoth(); },
   getQuiz: function () { return currentQuiz; },
   answerQuiz: function (opt) { answerQuiz(opt); },
@@ -6492,7 +6961,12 @@ function boot() {
     scheduleCrown(randi(30000, 90000));
   }
   scheduleRaam(randi(50000, 90000));
-  scheduleMoth(randi(45000, 80000));
+  if ((S.progress.raamDefeats || 0) >= 1) scheduleSeren(randi(120000, 200000));
+  /* FIRST-MINUTE PACING: the opening arc is choreographed so the first 60s
+     always offers something — 12s Lulu's boop hint · ~20s the Moth's first
+     riddle · ~35s the circus sparkle · ~55s Raâm crashes in. Later spawns
+     relax to the old unhurried cadence. */
+  scheduleMoth(randi(16000, 26000));
   scheduleSparkle();
   setTimeout(function () {
     if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
