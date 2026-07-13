@@ -557,3 +557,29 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - CREDITS: 0 this slice.
 - IPHONE_SAFARI_STATUS for v1.30: untested (operator witnesses the gate
   ceremony on touch).
+
+## v1.31 update — 2026-07-13 ("The Curve" — gameplay-fundamentals slice)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · game_id
+  d95bb0da… unchanged · source @ v1.31.zip · VISION docs/VISION_V1_31.md
+  (from the operator's game-design brief: loop legibility, difficulty
+  curve, consistency).
+- VISIBLE LOOP: quests panel leads with the next locked gate — live
+  '🔒 Open <NAME> — 🦋 X/Y · 🪙 Z ZOL', tap opens the gate modal;
+  all-open → '🗺️ all nine chapters open'.
+- THE CURVE: bosses toughen with mastery (taps = 4 + min(defeats,4);
+  per-tap rewards unchanged — mastery pays MORE total, per the brief's
+  power→mastery→new-challenge cycle; 'I DID SQUATS!' / '( the silence has
+  been training )' announce it); deeper levels draw harder riddles
+  (hard share 0.15 → 0.5 cap; L1 untouched = gentle onboarding).
+- CONSISTENCY SWEEP: 🌱⏳🍂 and 🔒 conventions verified everywhere;
+  zero violations (isolated plant-emoji flavor uses judged non-conventional
+  and left alone — flagged, not hidden).
+- TESTS: 42/42 (T39 next-goal row live-updates + advances gate-to-gate;
+  T40 boss curve exact math at defeats=3 → 7 taps; T41 hard-share fold
+  0.15/0.5). Fable validated independently after Sonnet's 3 clean runs.
+- ALSO THIS TURN: operator's local-migration prompt delivered (HELEN LOCAL
+  OS: harvest CDN assets locally, rewire URLs, Ollama+Gemma goblin voices
+  through the v2-proven seam — 0 credits by design).
+- CREDITS: 0 this slice.
+- IPHONE_SAFARI_STATUS for v1.31: untested.
