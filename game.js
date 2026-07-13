@@ -1839,6 +1839,7 @@ function toggleOrganStop(idx) {
   else {
     if (organLatched().length >= 4) return false; /* four hands maximum */
     organVoiceStart(idx);
+    Sound.tibetanBowl(SERPENT_STATIONS[idx].freq); /* the latch strikes bronze over the drone */
     S.flags.organPlayed = true; /* milestone: the Solfeggio Shard may surface */
   }
   var btn = document.querySelector('#organ [data-stop="' + idx + '"]');
@@ -2352,6 +2353,55 @@ function adoptWanderer(name) {
 --------------------------------------------------------------------- */
 
 var mg = { active: null, ui: {}, timer: null, data: {} };
+
+/* ---------------------------------------------------------------------
+   TONE WEAVE — the music-making minigame. Seven blossoms carry the seven
+   serpent-station solfeggio tones; the player picks three. Every tap IS
+   a tibetan bowl strike (the game cannot be played without making music),
+   and the finished weave is judged by the SAME detectHarmony fold the
+   Akashic Organ uses — a real interval wins, the comma smiles otherwise.
+   Ear-training smuggled inside a flower-picking game.
+--------------------------------------------------------------------- */
+function mgToneWeavePlay() {
+  var arena = document.getElementById("mg-arena");
+  if (!arena) return;
+  mg.data.picks = [];
+  arena.innerHTML = '<div class="mg-tones">' + SERPENT_STATIONS.map(function (st, i) {
+    return '<button class="mg-tone" data-i="' + i + '" style="--tone-c:' + st.color + '" title="' + st.name + '">🌸</button>';
+  }).join("") + '</div><div id="mg-weave">tap three blossoms…</div>';
+  Array.prototype.forEach.call(arena.querySelectorAll(".mg-tone"), function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      if (mg.active !== "toneweave" || mg.data.picks.length >= 3 || b.classList.contains("picked")) return;
+      var i = parseInt(b.getAttribute("data-i"), 10);
+      b.classList.add("picked");
+      mg.data.picks.push(i);
+      Sound.tibetanBowl(SERPENT_STATIONS[i].freq); /* the tap is the music */
+      var w = document.getElementById("mg-weave");
+      if (w) w.textContent = mg.data.picks.map(function (k) { return SERPENT_STATIONS[k].name; }).join(" · ");
+      if (mg.data.picks.length === 3) setTimeout(mgToneWeaveJudge, 900);
+    });
+  });
+  mg.timer = setTimeout(function () {
+    endMinigame(false, "The blossoms closed, unhurried. Music waits; it never chases.", 0, null);
+  }, 25000);
+}
+
+function mgToneWeaveJudge() {
+  if (mg.active !== "toneweave" || !mg.data.picks || mg.data.picks.length < 3) return;
+  clearTimeout(mg.timer);
+  var freqs = mg.data.picks.map(function (i) { return SERPENT_STATIONS[i].freq; });
+  var h = detectHarmony(freqs);
+  /* the reward IS the music: the woven chord rings back as slow bowls */
+  freqs.forEach(function (f, i) { setTimeout(function () { Sound.tibetanBowl(f); }, i * 380); });
+  if (h && h.k !== undefined) {
+    setTimeout(function () { Sound.harmonyShimmer(Math.min.apply(null, freqs)); }, 1200);
+    setTimeout(function () { Sound.shamanicBurst(1); }, 1500); /* the heartbeat approves */
+    endMinigame(true, "A real " + h.name + "! The Tree hums it back, twice.", 8, null);
+  } else {
+    endMinigame(false, "“" + (h ? h.name : "silence") + "” — no blame; even the comma smiles. Weave again.", 0, null);
+  }
+}
 
 function mgOverlay() { return document.getElementById("minigame"); }
 
@@ -2872,6 +2922,10 @@ var MINIGAMES = {
     title: "FIND GERALD 🐛", problem: "He peeks once. Things move. Remember.",
     play: function () { mgGeraldRound(); }
   },
+  toneweave: {
+    title: "TONE WEAVE 🎶", problem: "Pick three blossoms. Every tap rings a bowl — if the three tones fit, the Tree hums them back.",
+    play: function () { mgToneWeavePlay(); }
+  },
   repair: {
     title: "OVER-REPAIR ALERT 🔧", problem: "Hold to repair. Release in the green. Do NOT let Nib finish.",
     play: function () {
@@ -2902,21 +2956,25 @@ var MINIGAMES = {
 /* Levels: each is a themed chapter with its own backdrop + 3 side quests.
    Level 1 is the Warren (current CSS scene); Level 2 uses the glade art. */
 var LEVELS = [
-  { id: 1, name: "THE WARREN", mgs: ["mask", "gerald", "repair"], bg: null,
+  { id: 1, name: "THE WARREN", mgs: ["mask", "gerald", "repair", "toneweave"], bg: null,
     tint: "" },
   { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
     bg: "bg/level2-glade.jpeg",
     tint: "saturate(1.05)" },
   { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
-    /* painted cavern (this session's generated set, same storybook style as
-       the glade) layered OVER the gradient — offline, the gradient carries */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
+    /* the OLD level-1 hero scene re-introduced here by operator order —
+       regenerated more vivid, less red, more green (same storybook style
+       as the glade). Layered OVER the gradient; offline, the gradient
+       carries. */
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130015_1bd48783-3a62-4215-9bae-2d2ef874db0c.png",
     scene: "linear-gradient(180deg, #0a0a1e 0%, #16112a 45%, #241a2e 100%)",
-    tint: "hue-rotate(-14deg) brightness(0.9) saturate(1.15)" },
+    tint: "saturate(1.1)" },
   { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
+    /* freshly generated to match L2+L3's painterly style — vivid greens
+       and violet crystal, no red */
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
     scene: "linear-gradient(180deg, #1a1140 0%, #2c2154 55%, #3a2a63 100%)",
-    tint: "hue-rotate(20deg) brightness(1.06) saturate(1.1)" }
+    tint: "saturate(1.08)" }
 ];
 
 function currentLevel() {
@@ -3794,17 +3852,21 @@ function bootScriptedArc() {
     saveState();
   }, 2200);
 
+  /* FIRST-30-SECONDS LAW: something must be HAPPENING before the first
+     half-minute ends, or the tab closes. 2s greeting → 10s the bug skitters
+     → ~20s the first proposal card (a real governed choice) → the Moth and
+     the circus follow. The player is deciding things inside 30 seconds. */
   setTimeout(function () {
     if (S.flags.firstSignalSeen) return;
     ambientBugEscape();
-  }, 15000);
+  }, 10000);
 
   setTimeout(function () {
     if (S.activeProposal || S.flags.firstProposalResolved) return;
     var signal = S.world.currentSignal && S.world.currentSignal.type === "bug"
       ? S.world.currentSignal : createSignal("bug");
     createProposalFromSignal(signal, "Name the bug Gerald and give it a tiny apartment.");
-  }, randi(25000, 40000));
+  }, randi(18000, 28000));
 }
 
 function ambientBugEscape() {
@@ -4185,7 +4247,51 @@ function wonderCacheFinale() {
   showBubble("lulu", "SIX OF SIX! The moss is out of secrets. We are not. ✨", 3200);
 }
 
+/* ---------------------------------------------------------------------
+   LULU'S VOICE — a calm, slow, lullaby-toned voice for the little guide,
+   via the browser's own Speech Synthesis (no network, no key, no cost).
+   Garden-only by construction: speaking changes nothing; if the device
+   has no voices (headless, very old browsers) it silently does nothing.
+   Respects mute. rate 0.72 / soft volume = the hypnotic tamagotchi purr.
+--------------------------------------------------------------------- */
+var luluVoiceObj = null;
+function pickLuluVoice() {
+  try {
+    if (!window.speechSynthesis) return null;
+    var vs = speechSynthesis.getVoices();
+    if (!vs || !vs.length) return null;
+    var prefs = ["samantha", "google uk english female", "google us english",
+                 "victoria", "karen", "moira", "tessa", "fiona", "female"];
+    for (var i = 0; i < prefs.length; i++)
+      for (var j = 0; j < vs.length; j++)
+        if (vs[j].name.toLowerCase().indexOf(prefs[i]) >= 0) return vs[j];
+    for (var k = 0; k < vs.length; k++) if (/^en/i.test(vs[k].lang)) return vs[k];
+    return vs[0];
+  } catch (e) { return null; }
+}
+if (window.speechSynthesis && speechSynthesis.addEventListener) {
+  try { speechSynthesis.addEventListener("voiceschanged", function () { luluVoiceObj = null; }); } catch (e) {}
+}
+function luluSpeak(text) {
+  try {
+    if (S.settings.muted || !window.speechSynthesis) return;
+    if (!luluVoiceObj) luluVoiceObj = pickLuluVoice();
+    if (!luluVoiceObj) return;
+    /* she speaks words; the signs stay on screen where they belong */
+    var clean = String(text).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").trim();
+    if (!clean) return;
+    speechSynthesis.cancel(); /* one thought at a time — she never talks over herself */
+    var u = new SpeechSynthesisUtterance(clean);
+    u.voice = luluVoiceObj;
+    u.rate = 0.72;   /* slow-motion lullaby */
+    u.pitch = 1.25;  /* small and bright */
+    u.volume = 0.45; /* a murmur beside the bowls, never over them */
+    speechSynthesis.speak(u);
+  } catch (e) { /* voice is a gift, not a dependency */ }
+}
+
 function showBubble(goblinId, text, duration) {
+  if (goblinId === "lulu") luluSpeak(text);
   var host = goblinEls[goblinId];
   if (!host) return;
   if (text.length > 90) text = text.slice(0, 89) + "…";
@@ -5008,6 +5114,7 @@ function tinyHash(s) {
 function stampFX(choice) {
   ensureAudio(); resumeAudio();
   Sound.stampThunk();
+  drumHit(72, 0.03, 0.32, 0.22, 38); /* the tam-tam body under the thunk — a stamp should be FELT */
   var sheet = document.getElementById("sheet") || document.body;
   var r = sheet.getBoundingClientRect();
   var cx = r.left + r.width / 2, cy = r.top + 44;
@@ -5108,6 +5215,7 @@ function checkTreeParty() {
   flashClass(document.getElementById("zone-tree"), "party", 4000);
   Object.keys(goblinEls).forEach(function (k) { flashClass(goblinEls[k], "dancing", 3000); });
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
+  Sound.shamanicBurst(2); /* the djembe call rolls under the party chord */
   Sound.party();
   appBounce();
   showBubble("lulu", "TREE PARTY!", 2600);
@@ -6824,6 +6932,9 @@ window.WARREN_DEBUG = {
   spawnRaam: function () { spawnRaam(); },
   spawnSeren: function () { spawnSeren(); },
   tapSeren: function () { tapSeren(); },
+  startMinigame: function (id) { return startMinigame(id); },
+  luluSpeak: function (t) { luluSpeak(t); },
+  organLatchedIdx: function () { return organLatched(); },
   spawnMoth: function () { spawnMoth(); },
   getQuiz: function () { return currentQuiz; },
   answerQuiz: function (opt) { answerQuiz(opt); },
