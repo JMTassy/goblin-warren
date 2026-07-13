@@ -1825,7 +1825,7 @@ html, body {
 
 /* Pattern Texture Backgrounds */
 .pattern-sky {
-  background-image: url('https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260711_222910_5e8b0aaa-4a32-4922-9d84-54c928bb1192.svg');
+  background-image: url('assets/bg/hf_20260711_222910_bg.svg');
   background-repeat: repeat;
   background-size: 200px 200px;
 }

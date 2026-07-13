@@ -17,19 +17,20 @@ var STATE_VERSION = 1;
    never overlap, always respect mute.
 --------------------------------------------------------------------- */
 /* Luna (ElevenLabs via Higgsfield), operator-chosen voice — see
-   docs/LULU_VOICE_LINES.md for the full line catalog + durations. */
-var LULU_VOICE_CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/";
+   docs/LULU_VOICE_LINES.md for the full line catalog + durations.
+   v-local.1: assets local — CDN no longer required at runtime. */
+var LULU_VOICE_CDN = "assets/audio/"; /* local path; was CDN prefix */
 var LULU_VOICE_URLS = {
-  greet:     LULU_VOICE_CDN + "hf_20260713_142245_58e06e4b-1d21-43e6-9cb2-87c0525e1e46.mp3",
-  boop:      LULU_VOICE_CDN + "hf_20260713_142252_e1563091-a522-491c-8df7-121bc7c5a004.mp3",
-  quizRight: LULU_VOICE_CDN + "hf_20260713_142258_816264eb-3920-48bc-829c-2b0fa41fe9b4.mp3",
-  quizWrong: LULU_VOICE_CDN + "hf_20260713_142303_67759c07-61d5-4b4b-8c8f-b86302144cac.mp3",
-  verdict:   LULU_VOICE_CDN + "hf_20260713_142306_7395670f-2f69-47f8-8500-37a8033c9dda.mp3",
-  compost:   LULU_VOICE_CDN + "hf_20260713_142313_fb7c76f1-88e4-45b5-9515-b82a0f3c6a61.mp3",
-  matcha:    LULU_VOICE_CDN + "hf_20260713_142319_b030e459-990b-4d39-a7b8-0d34a480917a.mp3",
-  travel:    LULU_VOICE_CDN + "hf_20260713_142322_b91079b5-087e-410a-8f4d-c116f1a57783.mp3",
-  relic:     LULU_VOICE_CDN + "hf_20260713_142325_ddc34987-9401-427b-91e9-210f86b65033.mp3",
-  goodnight: LULU_VOICE_CDN + "hf_20260713_142332_dad79502-1677-49be-9b73-2c44542ca12f.mp3"
+  greet:     LULU_VOICE_CDN + "hf_20260713_142245_greet.mp3",
+  boop:      LULU_VOICE_CDN + "hf_20260713_142252_boop.mp3",
+  quizRight: LULU_VOICE_CDN + "hf_20260713_142258_quizRight.mp3",
+  quizWrong: LULU_VOICE_CDN + "hf_20260713_142303_quizWrong.mp3",
+  verdict:   LULU_VOICE_CDN + "hf_20260713_142306_verdict.mp3",
+  compost:   LULU_VOICE_CDN + "hf_20260713_142313_compost.mp3",
+  matcha:    LULU_VOICE_CDN + "hf_20260713_142319_matcha.mp3",
+  travel:    LULU_VOICE_CDN + "hf_20260713_142322_travel.mp3",
+  relic:     LULU_VOICE_CDN + "hf_20260713_142325_relic.mp3",
+  goodnight: LULU_VOICE_CDN + "hf_20260713_142332_goodnight.mp3"
 };
 /* fallback TTS says the same words the Luna recordings say */
 var LULU_VOICE_TEXT = {
@@ -75,12 +76,12 @@ function luluVoiceLine(key) {
    staringLose has no clip yet (per the vision doc) — TTS carries it.
 --------------------------------------------------------------------- */
 var LULU_SURPRISE_URLS = {
-  faint:      LULU_VOICE_CDN + "hf_20260713_162124_a1fe7b42-d87f-45a4-affa-adfd6556f913.mp3",
-  staringWin: LULU_VOICE_CDN + "hf_20260713_162130_94f9c774-7404-4721-9c70-fa336c8feb4a.mp3",
+  faint:      LULU_VOICE_CDN + "hf_20260713_162124_faint.mp3",
+  staringWin: LULU_VOICE_CDN + "hf_20260713_162130_staringWin.mp3",
   staringLose: "", /* TTS-only fallback for now */
-  matchaRain: LULU_VOICE_CDN + "hf_20260713_162132_79e4f224-8029-4bab-a004-86b76c52d24e.mp3",
-  disco:      LULU_VOICE_CDN + "hf_20260713_162135_91bc26bb-2db1-41c3-ab6e-5598af66bd1e.mp3",
-  secret:     LULU_VOICE_CDN + "hf_20260713_162145_8f36e64c-18d0-4d94-a984-c08f28d06bf9.mp3"
+  matchaRain: LULU_VOICE_CDN + "hf_20260713_162132_matchaRain.mp3",
+  disco:      LULU_VOICE_CDN + "hf_20260713_162135_disco.mp3",
+  secret:     LULU_VOICE_CDN + "hf_20260713_162145_secret.mp3"
 };
 var LULU_SURPRISE_TEXT = {
   faint: "You booped too well... a goblin has fainted... from pure joy... please... send snacks...",
@@ -560,13 +561,13 @@ function resumeAudio() { if (actx && actx.state === "suspended") actx.resume(); 
 --------------------------------------------------------------------- */
 
 var MUSIC_TRACKS = [    /* tanpura drones — no piano, no melody; hypnotic, looped */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022435_e466659d-ce50-4820-b9f3-230f7582f3ec.m4a",
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022438_d067c7e4-5277-4396-b24f-b25164438354.m4a"
+  "assets/audio/hf_20260712_022435_sfx_a.m4a",
+  "assets/audio/hf_20260712_022438_sfx_b.m4a"
 ];
 var NATURE_LOOP =        /* grillons + flowing water over stones */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022440_a5f91bfe-3b7d-4c05-86ac-f35ce866ecb1.mp3";
+  "assets/audio/hf_20260712_022440_sfx_c.mp3";
 var BIRD_CLIP =          /* occasional soft birds one-shot */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013728_6740726c-9d11-4809-8b8d-03a210140515.mp3";
+  "assets/audio/hf_20260712_013728_sfx_d.mp3";
 
 var ambient = { started: false, music: null, nature: null, birds: null, trackIndex: 0, birdTimer: null };
 
@@ -3175,38 +3176,38 @@ var LEVELS = [
        (campfire, cottages, watchtower, mushroom house, mine) — gritty,
        moody, mature concept art (Recraft V4.1, not nano_banana, which the
        operator found too cute). Remote-over-gradient, offline fallthrough. */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131830_da27def8-b3ca-4b38-87d1-c5709d8bc6e5.png",
+    bgRemote: "assets/bg/hf_20260713_131830_bg_a.png",
     scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
     tint: "saturate(1.02)" },
   { id: 4, name: "THE WORKSHOPS", mgs: ["bubblepop", "inflation", "bell"], bg: null,
     /* same weathered village style, workshop/forge district (Recraft V4.1) */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131834_5bdbe42c-db84-42fb-b8dc-1e6a79441348.png",
+    bgRemote: "assets/bg/hf_20260713_131834_bg_b.png",
     scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
     tint: "saturate(1.02)" },
   /* VISION_V1_28 §1 — nothing discarded, every art gets its own level.
      L5-8 reuse existing minigame keys (no new mechanics), remote-over-gradient
      pattern identical to L3/L4: a blocked painting simply falls through. */
   { id: 5, name: "THE DEEP", mgs: ["ingredients", "memory", "feed", "staring"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
+    bgRemote: "assets/art/hf_20260712_085446_goblin_1.png",
     scene: "linear-gradient(180deg, #070912 0%, #0c1420 48%, #0a1018 100%)",
     tint: "saturate(1.0)" },
   { id: 6, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
+    bgRemote: "assets/art/hf_20260712_085449_goblin_2.png",
     scene: "linear-gradient(180deg, #10122a 0%, #191c38 48%, #14172c 100%)",
     tint: "saturate(1.04)" },
   { id: 7, name: "THE EMERALD HOLLOW", mgs: ["mask", "toneweave", "gerald"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130015_1bd48783-3a62-4215-9bae-2d2ef874db0c.png",
+    bgRemote: "assets/bg/hf_20260713_130015_bg_c.png",
     scene: "linear-gradient(180deg, #0a1810 0%, #122419 48%, #0d1c13 100%)",
     tint: "saturate(1.06)" },
   { id: 8, name: "THE CRYSTAL CANOPY", mgs: ["stackhats", "zolrain", "toneweave"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
+    bgRemote: "assets/bg/hf_20260713_130018_bg_d.png",
     scene: "linear-gradient(180deg, #0d1a26 0%, #16283a 48%, #10202e 100%)",
     tint: "saturate(1.08)" },
   /* VISION_V1_29 §1 — the 9th chapter. A previously-generated, already-paid
      cozy-village image, unused since Recraft replaced L3/L4. L1-8 above are
      untouched by this addition. */
   { id: 9, name: "THE OLD VILLAGE", mgs: ["ingredients", "toneweave", "feed"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131431_9fe64662-32de-4eee-b4cc-f31102c33bfc.png",
+    bgRemote: "assets/bg/hf_20260713_131431_bg_e.png",
     scene: "linear-gradient(180deg, #12101f 0%, #1c1730 48%, #241d2e 100%)",
     tint: "saturate(1.05)" }
 ];
@@ -3276,7 +3277,7 @@ function setLevel(n) {
    safety timer ends it even if the video never loads. Offline players
    get a brief dark veil and the same instant switch. Never blocks play.
 --------------------------------------------------------------------- */
-var LEVEL_TRANSITION_URL = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_233931_2cd228d2-20a4-4060-adbb-25fa5aedfa2a.mp4";
+var LEVEL_TRANSITION_URL = "assets/video/hf_20260712_233931_level_transition.mp4";
 var levelTransitionEl = null;
 
 function playLevelTransition(onDone) {
@@ -4420,22 +4421,22 @@ function renderWorldSigns(layer) {
 --------------------------------------------------------------------- */
 var COLLECTIBLES = [
   { id: "serpent-coil", name: "Serpent Coil", glyph: "🐍", tone: 396, x: 10, y: 27,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190954_190a0753-be81-485e-a3bc-219c611b33da.png",
+    img: "assets/art/hf_20260712_190954_persona_1.png",
     lore: "🐍 The coil climbs by care, never by coin. parable ⊬ doctrine." },
   { id: "solfeggio-shard", name: "Solfeggio Shard", glyph: "💎", tone: 528, x: 90, y: 27,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190958_2851913e-f8e5-451a-aeff-a4f2b94e3bde.png",
+    img: "assets/art/hf_20260712_190958_persona_4.png",
     lore: "💎 A tone you can feel, never a cure you can buy. For wonder, not medicine." },
   { id: "mycelial-knot", name: "Mycelial Knot", glyph: "🍄", tone: 639, x: 9, y: 60,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190959_e8def8d4-5f3b-4c8d-9520-48bdff7c358d.png",
+    img: "assets/art/hf_20260712_190999_persona_5.png",
     lore: "🍄 Threads that connect ⊬ threads that command. The Warren is woven, not ruled." },
   { id: "memory-lantern", name: "Memory Lantern", glyph: "🏮", tone: 741, x: 91, y: 60,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190955_df4aae82-85f2-4679-8e86-5ad6ac5cb0d8.png",
+    img: "assets/art/hf_20260712_190955_persona_2.png",
     lore: "🏮 It holds what the log holds — light re-read, not light stored. memory = f(log)." },
   { id: "verdict-circle", name: "Verdict Circle", glyph: "⭕", tone: 417, x: 12, y: 86,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190957_cd8db180-4569-4e91-aaad-47cc4ddf561c.png",
+    img: "assets/art/hf_20260712_190957_persona_3.png",
     lore: "⭕ Where a day is stamped 🌱⏳🍂. The circle rules nothing; your hand does." },
   { id: "verdict-seal", name: "Verdict Seal", glyph: "🔏", tone: 852, x: 88, y: 86,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_191001_de98c45f-44c4-4752-8ab6-bdea2cf4a52b.png",
+    img: "assets/art/hf_20260712_191001_persona_6.png",
     lore: "🔏 A seal marks what was tended — existence ≠ admission. Only the operator makes it true." }
 ];
 function collectibleById(id) { for (var i = 0; i < COLLECTIBLES.length; i++) if (COLLECTIBLES[i].id === id) return COLLECTIBLES[i]; return null; }
@@ -5860,7 +5861,7 @@ function spawnRaam() {
      can't load, the 👹 beneath carries the boss — play never depends on it */
   var raamArt = raamEl.querySelector(".boss-mask-art");
   raamArt.addEventListener("error", function () { raamArt.style.display = "none"; });
-  raamArt.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200459_ee77a9e0-cdb5-45aa-8bd0-58d13c36ee2f.png";
+  raamArt.src = "assets/art/hf_20260712_200459_raam.png";
   raamEl.style.left = "86%";
   raamEl.style.top = "58%";
   raamEl.addEventListener("click", tapRaam);
@@ -5982,7 +5983,7 @@ function spawnSeren() {
     '<div class="raam-base">🌫️</div>';
   var art = serenEl.querySelector(".boss-mask-art");
   art.addEventListener("error", function () { art.style.display = "none"; });
-  art.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200501_037b7c5f-b8dc-4298-b79c-8cf4451dc77a.png";
+  art.src = "assets/art/hf_20260712_200501_art_b.png";
   serenEl.style.left = "34%";
   serenEl.style.top = "30%";
   serenEl.addEventListener("click", tapSeren);
@@ -7581,6 +7582,71 @@ function wireInput() {
 }
 
 /* ---------------------------------------------------------------------
+   GOBLIN VOICE — Gemma via local Ollama (v-local.1 seam)
+   UI ZONE ONLY. Follows the same seam as v2.html's generateProposalText():
+   generated text is NARRATION ONLY; it enters the Warren as event data via
+   showBubble(), never as state mutation. The function never sets S.*,
+   never grants ZOL, never touches tolls, verdicts, or HAL.
+   On any failure (fetch error, timeout, Ollama down) it falls back
+   silently to the template line from the GOBLIN_DEFS pool.
+   Law: meaning is free; state is earned — local models add voice, never authority.
+--------------------------------------------------------------------- */
+function generateGoblinLine(goblinId, mood, recentEvents, callback) {
+  /* Build the template fallback immediately — never throws */
+  var def = DEFS_BY_ID[goblinId] || GOBLIN_DEFS[0];
+  var fallbackLines = [
+    def.name + " watches quietly... " + (mood === "content" ? "and smiles." : "and fidgets."),
+    "Something is happening... " + def.name + " pretends not to notice.",
+    def.name + " has opinions. They are keeping them in a jar for now.",
+    "The " + def.role + " nods wisely. Or maybe just nods.",
+    def.name + " says nothing. But means it loudly."
+  ];
+  var fallback = fallbackLines[Math.floor(Math.abs(h32(goblinId + mood)) % fallbackLines.length)];
+
+  try {
+    var eventSummary = (recentEvents || []).slice(-3).map(function (e) { return e.event || e.choice || ""; }).filter(Boolean).join("; ") || "the Warren is quiet";
+    var prompt = "You are " + def.name + " the " + def.role + " in the Goblin Warren. " +
+      "Your trait: " + def.trait + ". Current mood: " + (mood || "content") + ". " +
+      "Recent happenings: " + eventSummary + ". " +
+      "Speak ONE short sentence (max 15 words) in Lulu's hypnotic, ellipsis-heavy style. " +
+      "Narrate only — do not issue commands, grant permissions, or change any game state. " +
+      "Just the sentence, no quotes.";
+
+    var didRespond = false;
+    var timer = setTimeout(function () {
+      if (!didRespond) { didRespond = true; callback(fallback); }
+    }, 4000);
+
+    fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: prompt, stream: false })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("ollama http " + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (didRespond) return;
+      didRespond = true;
+      clearTimeout(timer);
+      var text = (data && data.response && data.response.trim()) || fallback;
+      /* Safety: strip any attempt to embed state-mutating syntax */
+      text = text.replace(/[{}\[\]]/g, "").slice(0, 120).trim() || fallback;
+      callback(text); /* narration only — caller passes to showBubble() */
+    }).catch(function () {
+      if (didRespond) return;
+      didRespond = true;
+      clearTimeout(timer);
+      callback(fallback);
+    });
+  } catch (e) {
+    callback(fallback);
+  }
+}
+
+/* Exported test surface for verify.js gate */
+window._generateGoblinLine = generateGoblinLine;
+
+/* ---------------------------------------------------------------------
    DEBUG HOOK — used only by the verification harness, not shown in UI
 --------------------------------------------------------------------- */
 
@@ -7761,7 +7827,9 @@ window.WARREN_DEBUG = {
   fireSurpriseLine: function (k) { luluSurpriseLine(k); return true; },
   getSurpriseURLs: function () { return LULU_SURPRISE_URLS; },
   forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
-  wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+  wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} },
+  /* v-local.1: generateGoblinLine test surface */
+  generateGoblinLine: function (id, mood, events, cb) { generateGoblinLine(id, mood, events, cb); }
 };
 
 /* ---------------------------------------------------------------------
