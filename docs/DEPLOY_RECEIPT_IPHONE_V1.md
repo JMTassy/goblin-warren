@@ -350,3 +350,59 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   if not, the tap still enters and the splash is unchanged).
 - CREDITS SPENT: teaser video generation (kling3_0_turbo, 5s); thumbnail +
   favicon reused from existing V2 key-art (no new image credits).
+
+## v1.25 update — 2026-07-13 (operator-ordered: mouthless goblins · collectibles as
+## progression · mask boss · more educative quiz · motion design · L3/L4 art ·
+## first-minute pacing · organ debug + harmony layers)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · deploy_game
+  {"success":true} · game_id d95bb0da… unchanged · source pinned @
+  deploy/goblin-warren-v1.25.zip (raw-CDN size-matched before deploy).
+- MOUTHLESS GOBLINS: .g-mouth display:none (one line, reversible); mood still
+  fully carried by eyes, body glow, floating mood symbol. (The operator's
+  "I still see the mouth" was the live v1.24 — this deploy ships it.)
+- WONDER CACHE (the six generated relics, now REAL collectibles): progression-
+  linked (serpent tap · organ play · 3 memories · first verdict · 5 boops ·
+  boss defeat), surface with an entrance animation + glint bubble, tappable
+  (painted art over emoji fallback, CDN-blocked ⇒ glyph carries), lore line
+  per relic (each maps to a real game law), discovery receipt in the replay
+  log, no ZOL/orbs/sap ever granted (membrane), idempotent re-taps, persists
+  via localStorage, old saves merge (found ⊆ unlocked reconciliation).
+  Six-of-six = finale dance + spark shower.
+- MASK BOSSES: Raâm now wears his painted cracked-horned mask (art-over-emoji);
+  SEREN THE SILENT added as mask boss lv2 — false GRAVITY to Raâm's false
+  ALARM: perfectly still, meaningfully silent, zero receipts. Gated behind
+  one Raâm defeat; four gentle boops → smile → A Very Calm Mask at the Tree,
+  +1 sap/boop +3 on defeat (exact, T28). mystery ⊬ authority.
+- QUIZ: +8 AI-literacy questions (hallucination, training data, determinism,
+  receipts-vs-memory, correlation/causation, model-never-decides, repetition,
+  source-checking) — Sonnet-authored to spec, Fable-integrated.
+- MOTION DESIGN: level-transition veil (the ascent video, same pixel style as
+  the teaser; tap-skip + video-end + 4.2s hard ceiling; the level switches
+  UNDER the veil so theater never gates state; offline = brief dark veil);
+  quiz pride-pop / sneeze-shake; mask-burst on boss defeats; relic surfacing
+  pop; harmony-bloom on the organ label.
+- LEVEL 3+4 BACKDROPS: THE DEEP cavern + THE SPIRE tower (this session's
+  generated set, same storybook style as the L2 glade) layered over the
+  offline gradients — scrim → painting → gradient fallthrough.
+  BUNDLE FIX: bg/level2-glade.jpeg restored to deploy.sh FILES (v1.24 had
+  dropped it; live L2 art was silently falling back).
+- AKASHIC ORGAN DEBUGGED: (1) muted organ was dead — stops now latch and
+  name harmony regardless of mute; audio joins on unmute ("meaning is free;
+  sound is earned"); (2) muting mid-drone leaked latched voices forever —
+  mute now silences them, unmute restores. HARMONY LAYERS: overtone-series
+  shimmer (×2·×3·×4 + bowl ghost) when a real interval forms; shamanic
+  heartbeat under 3+ voices; label bloom. More bronze everywhere: relics
+  ring tibetan bowls, Raâm's defeat gets the rising-call drums, Seren's a
+  quiet bowl.
+- FIRST-MINUTE PACING (retention): 0s teaser → 12s Lulu's boop hint →
+  ~20s first Moth riddle → ~35s first circus sparkle → ~55s Raâm. Later
+  spawns relax to the old cadence.
+- TESTS: verify.js grown 26 → 28 gates; 28/28 before deploy (T27 rewritten:
+  progression-lock + membrane + idempotency; T28 Seren: gate refusal, exact
+  economy, receipt). Playwright extras: veil auto-dismiss with video blocked,
+  muted-organ latch ("unison" named), L3 fallback + Seren render witnessed.
+- CREDITS SPENT: 1 video (kling3_0_turbo 5s transition). L3/L4 art, mask art,
+  relic art: reused from this session's already-generated set (0 new).
+- IPHONE_SAFARI_STATUS for v1.25: untested (awaits the operator's thumb —
+  witnesses teaser autoplay, veil playback, and CDN art on real 4G).
