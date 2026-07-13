@@ -501,3 +501,35 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
 - CREDITS: 10 short Luna TTS clips this slice; images 0 (all reused).
 - IPHONE_SAFARI_STATUS for v1.28: untested (operator's thumb witnesses
   Luna playback + matcha carry UX on touch).
+
+## v1.29 update — 2026-07-13 ("The Warren Giggles" — Fable vision, Sonnet 5 execution)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · game_id
+  d95bb0da… unchanged · source @ v1.29.zip. VISION: docs/VISION_V1_29.md.
+- NINE LEVELS: L1 THE WARREN (root-hollow, operator favorite) untouched;
+  appended L9 THE OLD VILLAGE reusing an already-paid village image. Level
+  cycle generalized off the hardcoded count.
+- SURPRISE PACK (all garden-only, receipts everywhere):
+  · Fainting Boop — ~1/18 boops, goblin faints from joy (googly eyes, spin).
+  · Staring Contest minigame (L1+L5) — don't tap 5s → +12 ZOL coin rain;
+    tap early → the goblin gloats. (+12 is a minigame prize, same class as
+    the others; T33.)
+  · It's Raining Matcha — rare sparkle spawns falling 🍵; tap to catch →
+    sap only, never ZOL (T37).
+  · Disco Mushroom — 5 fast Akashic-Tree taps → 3s disco (hue-cycle +
+    wobble + congas), zero currency, auto-clears (T36).
+  · Secret whisper — fires once when help + temple both opened.
+- LULU SURPRISE VOICE: 5 new Luna (ElevenLabs) lines wired (faint,
+  staringWin, matchaRain, disco, secret); staringLose = TTS fallback.
+  Catalog in docs/LULU_VOICE_LINES.md. Seam T35.
+- TESTS: 38/38. Fable (CEO) validation corrected two brittle Sonnet test
+  expectations that encoded transient state — T29a mood now checks the
+  moodBucket is not 'lonely' (delivery makes them happy; a tick may evolve
+  delighted→content) and T35 checks the seam shape + filled URLs rather
+  than the pre-fill 'allEmpty' snapshot. Neither is a governance weaken:
+  the membrane invariants (sap-only, ZOL untouched, receipts) still assert
+  hard and pass.
+- CREDITS: 5 short Luna TTS clips (well under the operator's 20-credit cap);
+  images 0 (9th level reused an existing asset).
+- IPHONE_SAFARI_STATUS for v1.29: untested (operator's thumb witnesses the
+  surprises + Luna surprise lines on touch).
