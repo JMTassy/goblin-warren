@@ -568,6 +568,41 @@ var NATURE_LOOP =        /* grillons + flowing water over stones */
 var BIRD_CLIP =          /* occasional soft birds one-shot */
   "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013728_6740726c-9d11-4809-8b8d-03a210140515.mp3";
 
+/* ---------------------------------------------------------------------
+   VISION_V1_32 §3 — SFX SEAM. Same shape as MUSIC_TRACKS/LULU_VOICE_URLS:
+   empty string = synth plays; a HeyGen sample URL drops in with zero other
+   code change (see docs/HEYGEN_SFX.md). No credits, no egress either way.
+--------------------------------------------------------------------- */
+var SFX_URLS = { whoosh: "", riser: "", click: "", shutter: "" };
+var SFX_POOL_SIZE = 3; /* small pool per key so rapid taps overlap, not cut off */
+var sfxPools = {};     /* key -> { els: [Audio...], i: round-robin index } */
+var sfxSynthCount = 0; /* T42 spy: counts synth-fallback plays; debug can read/reset */
+
+function sfxPool(key) {
+  var p = sfxPools[key];
+  if (!p) { p = sfxPools[key] = { els: [], i: 0 }; for (var i = 0; i < SFX_POOL_SIZE; i++) p.els.push(new Audio()); }
+  return p;
+}
+/* playSfx(key, synthFn): sample overrides synth when SFX_URLS[key] is set;
+   muted plays nothing on either path; sample errors fall back to synthFn;
+   never throws. This is the ONLY place §2's SFX calls should route through. */
+function playSfx(key, synthFn) {
+  if (S && S.settings && S.settings.muted) return;
+  var url = SFX_URLS[key];
+  if (!url) { sfxSynthCount++; if (synthFn) synthFn(); return; }
+  try {
+    var pool = sfxPool(key);
+    var el = pool.els[pool.i];
+    pool.i = (pool.i + 1) % pool.els.length;
+    el.onerror = function () { sfxSynthCount++; if (synthFn) synthFn(); };
+    el.src = url;
+    el.volume = 0.5;
+    el.currentTime = 0;
+    var played = el.play();
+    if (played && played.catch) played.catch(function () { sfxSynthCount++; if (synthFn) synthFn(); });
+  } catch (e) { sfxSynthCount++; if (synthFn) synthFn(); }
+}
+
 var ambient = { started: false, music: null, nature: null, birds: null, trackIndex: 0, birdTimer: null };
 
 function ambientAllowed() { return !S.settings.muted; }
@@ -910,8 +945,71 @@ var Sound = {
     tone(f * 3, 0.35, 1.4, "sine", 0.02);
     tone(f * 4, 0.7, 1.2, "sine", 0.014);
     tone(f * 2.72, 0.5, 2.4, "sine", 0.01); /* the bowl ghost */
+  },
+
+  /* -------------------------------------------------------------------
+     VISION_V1_32 §1 — four punch SFX. Route these through playSfx(), never
+     call them directly from a handler, so the HeyGen seam (§3) can swap
+     synth for sample later with zero other change.
+  ------------------------------------------------------------------- */
+  whoosh: function () {
+    /* A transition made physical: bandpass noise sweeping 400→3000Hz, ~0.35s. */
+    if (S.settings.muted) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    var dur = 0.35;
+    var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.1;
+    bp.frequency.setValueAtTime(400, ctx.currentTime);
+    bp.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + dur);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 0.05); /* quick in */
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur); /* quick out */
+    src.connect(bp).connect(g).connect(ctx.destination);
+    src.start(ctx.currentTime);
+  },
+  riser: function () {
+    /* Tension into the drop: ~1.2s sine glide 200→900Hz under a swelling
+       noise bed, resolving into a soft cymbal-ish burst. */
+    tone(200, 0, 1.2, "sine", 0.09, 900);
+    if (S.settings.muted) return;
+    var ctx = ensureAudio();
+    if (!ctx) return;
+    var dur = 1.2;
+    var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (i / len); /* swell in */
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1200;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + dur);
+    src.connect(hp).connect(g).connect(ctx.destination);
+    src.start(ctx.currentTime);
+    noiseBurst(dur, 0.12, 0.14, 5000); /* soft cymbal-ish tail at the drop */
+  },
+  uiClick: function () {
+    /* Buttons should feel touchable — keep this QUIET, it fires on every tap. */
+    tone(1800, 0, 0.012, "square", 0.05);
+    noiseBurst(0, 0.006, 0.03, 3000);
+  },
+  shutter: function () {
+    /* Burst-shutter feel for finales: three fast noise bursts, tailing off. */
+    noiseBurst(0, 0.05, 0.18, 2600);
+    noiseBurst(0.09, 0.05, 0.16, 2200);
+    noiseBurst(0.18, 0.06, 0.14, 1800);
   }
 };
+
+/* SFX_URLS ↔ synth fallback lookup, for the debug playSfx(key) hook only —
+   every real call site names its own Sound.<fn> directly (see §2). */
+var SFX_SYNTH_FNS = { whoosh: Sound.whoosh, riser: Sound.riser, click: Sound.uiClick, shutter: Sound.shutter };
 
 /* Each world object rings its own bowl: the solfeggio frequency is chosen
    deterministically from the object's id, so one object = one voice, always. */
@@ -2575,6 +2673,7 @@ function mgStaringWin() {
   if (mg.active !== "staring" || mg.data.ended) return;
   mgStaringCleanup();
   luluSurpriseLine("staringWin");
+  playSfx("shutter", Sound.shutter); /* VISION_V1_32 §2 — staring-win coin rain */
   endMinigame(true, "You blinked last — which means you win, at doing absolutely nothing.", 12, null);
 }
 
@@ -3289,6 +3388,7 @@ var levelTransitionEl = null;
 function playLevelTransition(onDone) {
   if (levelTransitionEl) { if (onDone) onDone(); return; } /* already mid-veil: just switch */
   luluVoiceLine("travel");
+  playSfx("whoosh", Sound.whoosh); /* VISION_V1_32 §2 — the veil appearing is physical */
   var veil = document.createElement("div");
   veil.id = "level-transition";
   veil.innerHTML =
@@ -3369,6 +3469,7 @@ function tryUnlockLevel(n) {
   var have = S.flags.quizRight || 0;
   if (have < need || S.learning.zolBalance < toll) { Sound.chirp(); return false; }
   S.learning.zolBalance -= toll;
+  playSfx("riser", Sound.riser); /* VISION_V1_32 §2 — gate unlock success, right after the toll is paid */
   S.progress.levelsUnlocked.push(n);
   var lv = LEVELS[clamp(n - 1, 0, LEVELS.length - 1)];
   pushReplay("gate", "Level unlocked", "unlock",
@@ -4552,6 +4653,7 @@ function wonderCacheFinale() {
   Object.keys(goblinEls).forEach(function (k) { flashClass(goblinEls[k], "dancing", 3600); });
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
   Sound.party();
+  playSfx("shutter", Sound.shutter); /* VISION_V1_32 §2 — Wonder Cache finale */
   luluVoiceLine("goodnight");
   appBounce();
   if (world) {
@@ -5954,6 +6056,7 @@ function tapRaam() {
   addObject("🎭", "A Very Polite Mask", "gate");
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
   Sound.shamanicBurst(4); /* the rising call — victory drums under the party */
+  playSfx("riser", Sound.riser); /* VISION_V1_32 §2 — layered under the drums, not replacing them */
   Sound.party();
   appBounce();
   pushReplay("The Warren", "Raâm the Loud Mask", "boop", "Raâm was laughed down to size. The mask got polite.", "");
@@ -6072,6 +6175,7 @@ function tapSeren() {
   addObject("🌫️", "A Very Calm Mask", "tree");
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
   Sound.tibetanBowl(SOLFEGGIO.regeneration); /* her defeat rings, quietly — of course */
+  playSfx("riser", Sound.riser); /* VISION_V1_32 §2 — layered under the bowl/party, not replacing them */
   Sound.party();
   appBounce();
   pushReplay("The Warren", "Seren the Silent Mask", "boop",
@@ -6147,6 +6251,7 @@ function tapCrown() {
   S.progress.crownDefeats++;
   addObject("🎩", "A Very Humble Hat", "spire");
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "victorious"; });
+  playSfx("riser", Sound.riser); /* VISION_V1_32 §2 — Crown defeat, layered under the party */
   Sound.party();
   appBounce();
   pushReplay("The Warren", "The False Crown", "compost", "the False Crown was composted into a humble hat.", "");
@@ -6991,6 +7096,7 @@ function finishMatchaRain() {
   matchaRainCupEls = [];
   var sap = caught >= 5 ? 3 : 1;
   earn(0, sap); /* sap only — never ZOL, this is a garden-only surprise */
+  playSfx("shutter", Sound.shutter); /* VISION_V1_32 §2 — matcha-rain catch tally */
   luluSurpriseLine("matchaRain");
   pushReplay("The Sky", "It's Raining Matcha", "matchaRain",
     "Caught " + caught + " matcha", "the sky rained matcha; I caught " + caught + ".");
@@ -7455,6 +7561,7 @@ function wireInput() {
   if (zolWallet) {
     zolWallet.addEventListener("click", function () {
       ensureAudio(); resumeAudio();
+      playSfx("click", Sound.uiClick); /* VISION_V1_32 §2 — top-bar chip tap */
       var shop = document.getElementById("sheet-zol-shop");
       if (shop && shop.classList.contains("hidden")) { Sound.chirp(); renderTerritoryShop(); }
       else renderSheetIdle();
@@ -7498,7 +7605,7 @@ function wireInput() {
 
   /* Riddle chip — always-available quiz for ZOL (the Moth, on demand) */
   var riddleChip = document.getElementById("riddle-chip");
-  if (riddleChip) riddleChip.addEventListener("click", function () { openRiddle(); });
+  if (riddleChip) riddleChip.addEventListener("click", function () { playSfx("click", Sound.uiClick); openRiddle(); });
 
   /* Tapping the Akashic Tree also summons a riddle */
   var treeZone = document.getElementById("zone-tree");
@@ -7516,6 +7623,7 @@ function wireInput() {
   if (lvChip) {
     lvChip.addEventListener("click", function () {
       ensureAudio(); resumeAudio();
+      playSfx("click", Sound.uiClick); /* VISION_V1_32 §2 — top-bar chip tap */
       var next = ((S.progress.level || 1) % LEVELS.length) + 1;
       /* VISION_V1_30 §1 — the chip cycles ONLY unlocked levels. The next
          locked chapter is a gate stop, not a free ride. */
@@ -7545,9 +7653,9 @@ function wireInput() {
     });
   }
 
-  document.getElementById("btn-try").addEventListener("click", function () { stampFX("try"); resolveProposal("try"); });
-  document.getElementById("btn-hold").addEventListener("click", function () { stampFX("hold"); resolveProposal("hold"); });
-  document.getElementById("btn-compost").addEventListener("click", function () { stampFX("compost"); resolveProposal("compost"); });
+  document.getElementById("btn-try").addEventListener("click", function () { playSfx("click", Sound.uiClick); stampFX("try"); resolveProposal("try"); });
+  document.getElementById("btn-hold").addEventListener("click", function () { playSfx("click", Sound.uiClick); stampFX("hold"); resolveProposal("hold"); });
+  document.getElementById("btn-compost").addEventListener("click", function () { playSfx("click", Sound.uiClick); stampFX("compost"); resolveProposal("compost"); });
   document.getElementById("proposal-inspect-btn").addEventListener("click", function (e) {
     e.stopPropagation();
     toggleProposalInspector();
@@ -7830,6 +7938,12 @@ window.WARREN_DEBUG = {
   fireSurpriseLine: function (k) { luluSurpriseLine(k); return true; },
   getSurpriseURLs: function () { return LULU_SURPRISE_URLS; },
   forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
+  /* VISION_V1_32 §3/§4 — SFX seam debug hooks */
+  getSfxUrls: function () { return SFX_URLS; },
+  setSfxUrl: function (key, url) { SFX_URLS[key] = url; },
+  playSfx: function (key) { playSfx(key, SFX_SYNTH_FNS[key]); },
+  getSfxSynthCount: function () { return sfxSynthCount; },
+  resetSfxSynthCount: function () { sfxSynthCount = 0; },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
