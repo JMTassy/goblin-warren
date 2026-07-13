@@ -406,3 +406,41 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   relic art: reused from this session's already-generated set (0 new).
 - IPHONE_SAFARI_STATUS for v1.25: untested (awaits the operator's thumb —
   witnesses teaser autoplay, veil playback, and CDN art on real 4G).
+
+## v1.26 update — 2026-07-13 (operator-ordered: old L1 scene → L3 regraded green ·
+## generate L4 to match · first-30s retention · more drums/bowls · organ round 2 ·
+## music-making minigame · Lulu lullaby voice)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · deploy_game
+  {"success":true} · game_id d95bb0da… unchanged · source pinned @
+  deploy/goblin-warren-v1.26.zip.
+- L3 BACKDROP: the old level-1 hero scene re-introduced (operator screenshot
+  order: "more vivid colors, less red, more green") — regenerated in the
+  same storybook style, emerald-dominant, amber reduced to lantern touches.
+  L4 BACKDROP: freshly generated matching spire (vivid greens + violet
+  crystal, no red). Both remote-over-gradient with offline fallthrough;
+  hue-rotate tints dropped so the new grading survives.
+- TONE WEAVE (new minigame, L1 pool): seven blossoms = the seven serpent
+  solfeggio tones; every tap strikes a tibetan bowl; three picks weave a
+  chord judged by the organ's own detectHarmony fold. Real interval =
+  +8 ZOL and the chord rings back (bowls → shimmer → heartbeat). Fun that
+  cannot happen without making harmonious music. Witnessed end-to-end:
+  "A real perfect fourth!" + receipt.
+- LULU'S VOICE: calm female lullaby TTS via browser speechSynthesis —
+  rate 0.72, soft volume, female-voice preference list, emoji stripped
+  from speech, speechSynthesis.cancel() so she never talks over herself.
+  Zero network, zero credits, zero state effects; silently absent in
+  browsers without voices; respects mute. Tamagotchi presence: she now
+  SAYS her bubble lines as she says them.
+- PERCUSSION ROUND 2: organ stop latch = bronze strike over the drone ·
+  tree party = djembe call under the chord · verdict stamp = tam-tam body
+  under the thunk.
+- FIRST-30-SECONDS LAW: greeting 2s → bug skitters 10s → FIRST GOVERNED
+  PROPOSAL 18-28s (T5 witnessed 20.2s) → Moth ~20s → circus ~35s → Raâm
+  ~55s. The player is deciding things before the half-minute ends.
+- TESTS: 28/28 (T5 re-witnessed under the new pacing; Tone Weave + voice
+  guard exercised by hand in headless Chromium, zero page errors).
+- CREDITS SPENT: 2 images (nano_banana_flash 1k ×2 — L3 regrade, L4 spire).
+- IPHONE_SAFARI_STATUS for v1.26: untested (awaits the operator's thumb —
+  also witnesses whether iOS provides a female en voice for Lulu; if not,
+  she stays a text-bubble goblin, nothing breaks).
