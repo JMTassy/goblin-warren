@@ -17,19 +17,20 @@ var STATE_VERSION = 1;
    never overlap, always respect mute.
 --------------------------------------------------------------------- */
 /* Luna (ElevenLabs via Higgsfield), operator-chosen voice — see
-   docs/LULU_VOICE_LINES.md for the full line catalog + durations. */
-var LULU_VOICE_CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/";
+   docs/LULU_VOICE_LINES.md for the full line catalog + durations.
+   v-local.1: assets local — CDN no longer required at runtime. */
+var LULU_VOICE_CDN = "assets/audio/"; /* local path; was CDN prefix */
 var LULU_VOICE_URLS = {
-  greet:     LULU_VOICE_CDN + "hf_20260713_142245_58e06e4b-1d21-43e6-9cb2-87c0525e1e46.mp3",
-  boop:      LULU_VOICE_CDN + "hf_20260713_142252_e1563091-a522-491c-8df7-121bc7c5a004.mp3",
-  quizRight: LULU_VOICE_CDN + "hf_20260713_142258_816264eb-3920-48bc-829c-2b0fa41fe9b4.mp3",
-  quizWrong: LULU_VOICE_CDN + "hf_20260713_142303_67759c07-61d5-4b4b-8c8f-b86302144cac.mp3",
-  verdict:   LULU_VOICE_CDN + "hf_20260713_142306_7395670f-2f69-47f8-8500-37a8033c9dda.mp3",
-  compost:   LULU_VOICE_CDN + "hf_20260713_142313_fb7c76f1-88e4-45b5-9515-b82a0f3c6a61.mp3",
-  matcha:    LULU_VOICE_CDN + "hf_20260713_142319_b030e459-990b-4d39-a7b8-0d34a480917a.mp3",
-  travel:    LULU_VOICE_CDN + "hf_20260713_142322_b91079b5-087e-410a-8f4d-c116f1a57783.mp3",
-  relic:     LULU_VOICE_CDN + "hf_20260713_142325_ddc34987-9401-427b-91e9-210f86b65033.mp3",
-  goodnight: LULU_VOICE_CDN + "hf_20260713_142332_dad79502-1677-49be-9b73-2c44542ca12f.mp3"
+  greet:     LULU_VOICE_CDN + "hf_20260713_142245_greet.mp3",
+  boop:      LULU_VOICE_CDN + "hf_20260713_142252_boop.mp3",
+  quizRight: LULU_VOICE_CDN + "hf_20260713_142258_quizRight.mp3",
+  quizWrong: LULU_VOICE_CDN + "hf_20260713_142303_quizWrong.mp3",
+  verdict:   LULU_VOICE_CDN + "hf_20260713_142306_verdict.mp3",
+  compost:   LULU_VOICE_CDN + "hf_20260713_142313_compost.mp3",
+  matcha:    LULU_VOICE_CDN + "hf_20260713_142319_matcha.mp3",
+  travel:    LULU_VOICE_CDN + "hf_20260713_142322_travel.mp3",
+  relic:     LULU_VOICE_CDN + "hf_20260713_142325_relic.mp3",
+  goodnight: LULU_VOICE_CDN + "hf_20260713_142332_goodnight.mp3"
 };
 /* fallback TTS says the same words the Luna recordings say */
 var LULU_VOICE_TEXT = {
@@ -75,12 +76,12 @@ function luluVoiceLine(key) {
    staringLose has no clip yet (per the vision doc) — TTS carries it.
 --------------------------------------------------------------------- */
 var LULU_SURPRISE_URLS = {
-  faint:      LULU_VOICE_CDN + "hf_20260713_162124_a1fe7b42-d87f-45a4-affa-adfd6556f913.mp3",
-  staringWin: LULU_VOICE_CDN + "hf_20260713_162130_94f9c774-7404-4721-9c70-fa336c8feb4a.mp3",
+  faint:      LULU_VOICE_CDN + "hf_20260713_162124_faint.mp3",
+  staringWin: LULU_VOICE_CDN + "hf_20260713_162130_staringWin.mp3",
   staringLose: "", /* TTS-only fallback for now */
-  matchaRain: LULU_VOICE_CDN + "hf_20260713_162132_79e4f224-8029-4bab-a004-86b76c52d24e.mp3",
-  disco:      LULU_VOICE_CDN + "hf_20260713_162135_91bc26bb-2db1-41c3-ab6e-5598af66bd1e.mp3",
-  secret:     LULU_VOICE_CDN + "hf_20260713_162145_8f36e64c-18d0-4d94-a984-c08f28d06bf9.mp3"
+  matchaRain: LULU_VOICE_CDN + "hf_20260713_162132_matchaRain.mp3",
+  disco:      LULU_VOICE_CDN + "hf_20260713_162135_disco.mp3",
+  secret:     LULU_VOICE_CDN + "hf_20260713_162145_secret.mp3"
 };
 var LULU_SURPRISE_TEXT = {
   faint: "You booped too well... a goblin has fainted... from pure joy... please... send snacks...",
@@ -348,7 +349,13 @@ function makeState() {
        not decoration). Finding is expressive: it sings, tells a line, and
        writes a garden receipt. It grants no ZOL and admits nothing (membrane
        law). unlocked = has surfaced in the moss · found = has been tapped. */
-    collectibles: { unlocked: [], found: [] }
+    collectibles: { unlocked: [], found: [] },
+    /* QUIZ_TO_ZOL_V1 — hallucination correction loop.
+       quizState tracks which reward_keys have been paid; villageState holds
+       the persistent visual effects that survive reload. Neither touches the
+       HELEN OS governed ledger — game-local ZOL only. */
+    quizState: { rewardPaid: {} },
+    villageState: { unlockedEffects: [] }
   };
 }
 
@@ -420,6 +427,13 @@ function mergeDefaults(loaded) {
     };
     /* a found relic is necessarily unlocked (older saves, or hand-edits) */
     out.collectibles.found.forEach(function (id) { if (out.collectibles.unlocked.indexOf(id) < 0) out.collectibles.unlocked.push(id); });
+    /* QUIZ_TO_ZOL_V1 state */
+    out.quizState = (loaded.quizState && typeof loaded.quizState.rewardPaid === "object")
+      ? { rewardPaid: Object.assign({}, loaded.quizState.rewardPaid) }
+      : { rewardPaid: {} };
+    out.villageState = (loaded.villageState && Array.isArray(loaded.villageState.unlockedEffects))
+      ? { unlockedEffects: loaded.villageState.unlockedEffects.slice() }
+      : { unlockedEffects: [] };
   } catch (e) { return d; }
   return out;
 }
@@ -560,13 +574,13 @@ function resumeAudio() { if (actx && actx.state === "suspended") actx.resume(); 
 --------------------------------------------------------------------- */
 
 var MUSIC_TRACKS = [    /* tanpura drones — no piano, no melody; hypnotic, looped */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022435_e466659d-ce50-4820-b9f3-230f7582f3ec.m4a",
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022438_d067c7e4-5277-4396-b24f-b25164438354.m4a"
+  "assets/audio/hf_20260712_022435_sfx_a.m4a",
+  "assets/audio/hf_20260712_022438_sfx_b.m4a"
 ];
 var NATURE_LOOP =        /* grillons + flowing water over stones */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_022440_a5f91bfe-3b7d-4c05-86ac-f35ce866ecb1.mp3";
+  "assets/audio/hf_20260712_022440_sfx_c.mp3";
 var BIRD_CLIP =          /* occasional soft birds one-shot */
-  "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_013728_6740726c-9d11-4809-8b8d-03a210140515.mp3";
+  "assets/audio/hf_20260712_013728_sfx_d.mp3";
 
 /* ---------------------------------------------------------------------
    VISION_V1_32 §3 — SFX SEAM. Same shape as MUSIC_TRACKS/LULU_VOICE_URLS:
@@ -1728,9 +1742,45 @@ function luluBuildPrompt(msg) {
     "Player says: " + msg + "\nLulu:";
 }
 
+/* v-local.1 / G13: remote calls are OFF by default. The Anthropic path below
+   runs only when the operator explicitly sets warren_remote_experimental="true"
+   in sessionStorage IN ADDITION to providing a key. Default runtime is
+   local-first: Lulu live chat routes to local Ollama (Gemma), then templates. */
+function luluRemoteEnabled() {
+  try { return sessionStorage.getItem("warren_remote_experimental") === "true"; } catch (e) { return false; }
+}
+
+function luluLocalReply(msg, done) {
+  var fallback = function () { done(luluOfflineReply(msg), false); };
+  try {
+    var didRespond = false;
+    var timer = setTimeout(function () {
+      if (!didRespond) { didRespond = true; fallback(); }
+    }, 4000);
+    fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: luluBuildPrompt(msg), stream: false })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("ollama http " + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (didRespond) return;
+      didRespond = true; clearTimeout(timer);
+      var txt = ((j && j.response) || "").replace(/[{}\[\]]/g, "").slice(0, 240).trim();
+      if (txt) done(txt, true); else fallback();
+    }).catch(function () {
+      if (didRespond) return;
+      didRespond = true; clearTimeout(timer);
+      fallback();
+    });
+  } catch (e) { fallback(); }
+}
+
 function luluLiveReply(msg, done) {
   var key = luluApiKey();
-  if (!key) { done(luluOfflineReply(msg), false); return; }
+  /* local-first: remote requires BOTH a key AND the explicit experimental switch */
+  if (!key || !luluRemoteEnabled()) { luluLocalReply(msg, done); return; }
   var body = { model: "claude-haiku-4-5-20251001", max_tokens: 120,
     messages: [{ role: "user", content: luluBuildPrompt(msg) }] };
   var ctrl = null;
@@ -3274,38 +3324,38 @@ var LEVELS = [
        (campfire, cottages, watchtower, mushroom house, mine) — gritty,
        moody, mature concept art (Recraft V4.1, not nano_banana, which the
        operator found too cute). Remote-over-gradient, offline fallthrough. */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131830_da27def8-b3ca-4b38-87d1-c5709d8bc6e5.png",
+    bgRemote: "assets/bg/hf_20260713_131830_bg_a.png",
     scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
     tint: "saturate(1.02)" },
   { id: 4, name: "THE WORKSHOPS", mgs: ["bubblepop", "inflation", "bell"], bg: null,
     /* same weathered village style, workshop/forge district (Recraft V4.1) */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131834_5bdbe42c-db84-42fb-b8dc-1e6a79441348.png",
+    bgRemote: "assets/bg/hf_20260713_131834_bg_b.png",
     scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
     tint: "saturate(1.02)" },
   /* VISION_V1_28 §1 — nothing discarded, every art gets its own level.
      L5-8 reuse existing minigame keys (no new mechanics), remote-over-gradient
      pattern identical to L3/L4: a blocked painting simply falls through. */
   { id: 5, name: "THE DEEP", mgs: ["ingredients", "memory", "feed", "staring"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
+    bgRemote: "assets/art/hf_20260712_085446_goblin_1.png",
     scene: "linear-gradient(180deg, #070912 0%, #0c1420 48%, #0a1018 100%)",
     tint: "saturate(1.0)" },
   { id: 6, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
+    bgRemote: "assets/art/hf_20260712_085449_goblin_2.png",
     scene: "linear-gradient(180deg, #10122a 0%, #191c38 48%, #14172c 100%)",
     tint: "saturate(1.04)" },
   { id: 7, name: "THE EMERALD HOLLOW", mgs: ["mask", "toneweave", "gerald"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130015_1bd48783-3a62-4215-9bae-2d2ef874db0c.png",
+    bgRemote: "assets/bg/hf_20260713_130015_bg_c.png",
     scene: "linear-gradient(180deg, #0a1810 0%, #122419 48%, #0d1c13 100%)",
     tint: "saturate(1.06)" },
   { id: 8, name: "THE CRYSTAL CANOPY", mgs: ["stackhats", "zolrain", "toneweave"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
+    bgRemote: "assets/bg/hf_20260713_130018_bg_d.png",
     scene: "linear-gradient(180deg, #0d1a26 0%, #16283a 48%, #10202e 100%)",
     tint: "saturate(1.08)" },
   /* VISION_V1_29 §1 — the 9th chapter. A previously-generated, already-paid
      cozy-village image, unused since Recraft replaced L3/L4. L1-8 above are
      untouched by this addition. */
   { id: 9, name: "THE OLD VILLAGE", mgs: ["ingredients", "toneweave", "feed"], bg: null,
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131431_9fe64662-32de-4eee-b4cc-f31102c33bfc.png",
+    bgRemote: "assets/bg/hf_20260713_131431_bg_e.png",
     scene: "linear-gradient(180deg, #12101f 0%, #1c1730 48%, #241d2e 100%)",
     tint: "saturate(1.05)" }
 ];
@@ -3382,7 +3432,7 @@ function setLevel(n) {
    safety timer ends it even if the video never loads. Offline players
    get a brief dark veil and the same instant switch. Never blocks play.
 --------------------------------------------------------------------- */
-var LEVEL_TRANSITION_URL = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_233931_2cd228d2-20a4-4060-adbb-25fa5aedfa2a.mp4";
+var LEVEL_TRANSITION_URL = "assets/video/hf_20260712_233931_level_transition.mp4";
 var levelTransitionEl = null;
 
 function playLevelTransition(onDone) {
@@ -4528,22 +4578,22 @@ function renderWorldSigns(layer) {
 --------------------------------------------------------------------- */
 var COLLECTIBLES = [
   { id: "serpent-coil", name: "Serpent Coil", glyph: "🐍", tone: 396, x: 10, y: 27,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190954_190a0753-be81-485e-a3bc-219c611b33da.png",
+    img: "assets/art/hf_20260712_190954_persona_1.png",
     lore: "🐍 The coil climbs by care, never by coin. parable ⊬ doctrine." },
   { id: "solfeggio-shard", name: "Solfeggio Shard", glyph: "💎", tone: 528, x: 90, y: 27,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190958_2851913e-f8e5-451a-aeff-a4f2b94e3bde.png",
+    img: "assets/art/hf_20260712_190958_persona_4.png",
     lore: "💎 A tone you can feel, never a cure you can buy. For wonder, not medicine." },
   { id: "mycelial-knot", name: "Mycelial Knot", glyph: "🍄", tone: 639, x: 9, y: 60,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190959_e8def8d4-5f3b-4c8d-9520-48bdff7c358d.png",
+    img: "assets/art/hf_20260712_190999_persona_5.png",
     lore: "🍄 Threads that connect ⊬ threads that command. The Warren is woven, not ruled." },
   { id: "memory-lantern", name: "Memory Lantern", glyph: "🏮", tone: 741, x: 91, y: 60,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190955_df4aae82-85f2-4679-8e86-5ad6ac5cb0d8.png",
+    img: "assets/art/hf_20260712_190955_persona_2.png",
     lore: "🏮 It holds what the log holds — light re-read, not light stored. memory = f(log)." },
   { id: "verdict-circle", name: "Verdict Circle", glyph: "⭕", tone: 417, x: 12, y: 86,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_190957_cd8db180-4569-4e91-aaad-47cc4ddf561c.png",
+    img: "assets/art/hf_20260712_190957_persona_3.png",
     lore: "⭕ Where a day is stamped 🌱⏳🍂. The circle rules nothing; your hand does." },
   { id: "verdict-seal", name: "Verdict Seal", glyph: "🔏", tone: 852, x: 88, y: 86,
-    img: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_191001_de98c45f-44c4-4752-8ab6-bdea2cf4a52b.png",
+    img: "assets/art/hf_20260712_191001_persona_6.png",
     lore: "🔏 A seal marks what was tended — existence ≠ admission. Only the operator makes it true." }
 ];
 function collectibleById(id) { for (var i = 0; i < COLLECTIBLES.length; i++) if (COLLECTIBLES[i].id === id) return COLLECTIBLES[i]; return null; }
@@ -6013,7 +6063,7 @@ function spawnRaam() {
      can't load, the 👹 beneath carries the boss — play never depends on it */
   var raamArt = raamEl.querySelector(".boss-mask-art");
   raamArt.addEventListener("error", function () { raamArt.style.display = "none"; });
-  raamArt.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200459_ee77a9e0-cdb5-45aa-8bd0-58d13c36ee2f.png";
+  raamArt.src = "assets/art/hf_20260712_200459_raam.png";
   raamEl.style.left = "86%";
   raamEl.style.top = "58%";
   raamEl.addEventListener("click", tapRaam);
@@ -6138,7 +6188,7 @@ function spawnSeren() {
     '<div class="raam-base">🌫️</div>';
   var art = serenEl.querySelector(".boss-mask-art");
   art.addEventListener("error", function () { art.style.display = "none"; });
-  art.src = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_200501_037b7c5f-b8dc-4298-b79c-8cf4451dc77a.png";
+  art.src = "assets/art/hf_20260712_200501_art_b.png";
   serenEl.style.left = "34%";
   serenEl.style.top = "30%";
   serenEl.addEventListener("click", tapSeren);
@@ -6470,6 +6520,169 @@ function promptEngineeringQuiz() {
   var def = AI_QCM[0];
   return { q: def.q, options: shuffleOptions(def.pool, def.correct), correct: def.correct,
            topic: def.topic, lesson: def.lesson, explain: def.explain };
+}
+
+/* ---------------------------------------------------------------------
+   QUIZ_TO_ZOL_V1 — HALLUCINATION CORRECTION LOOP
+   One question. Lulu presents a statement containing a confidently wrong
+   claim. The player must identify and correct it. First correct answer
+   pays exactly +10 ZOL and lights the Knowledge Lantern in the village.
+   All subsequent attempts: feedback only, ΔZOL = 0 forever.
+   reward_key scheme: "<quiz_id>_v<completion_version>"
+   Law: "Knowledge earns ZOL. ZOL changes the Warren. The Warren never
+   impersonates authority." — authority:false, admission:NOT_ADMITTED.
+   helenState: UNTOUCHED. No writes outside the repo. No ledger path.
+--------------------------------------------------------------------- */
+
+var QUIZ_ZOL_V1_ID = "hallucination_q1";
+var QUIZ_ZOL_V1_COMPLETION_VERSION = 1;
+var QUIZ_ZOL_V1_REWARD_KEY = QUIZ_ZOL_V1_ID + "_v" + QUIZ_ZOL_V1_COMPLETION_VERSION;
+var QUIZ_ZOL_V1_REWARD_ZOL = 10;
+var QUIZ_ZOL_V1_LANTERN_EFFECT = "knowledge-lantern";
+
+/* The question: Lulu states a hallucination (a confident wrong claim about
+   AI history). Player must pick the correction. Single combined-choice
+   format — simplest UI that proves the full loop. */
+var QUIZ_ZOL_V1_QUESTION = {
+  id: QUIZ_ZOL_V1_ID,
+  kind: "hallucination",
+  q: "Lulu announces: “Fun fact! The first AI program was written in 1823 by Ada Lovelace on her mechanical loom, and it successfully taught the machine to compose symphonies.” What is wrong with this claim?",
+  options: [
+    "Ada Lovelace wrote notes for Babbage’s Analytical Engine in the 1840s — no working program ran, no loom was used, and no symphony was composed by machine.",
+    "The date is wrong — it should be 1923, and the loom detail is correct.",
+    "Nothing is wrong. Ada Lovelace was the first programmer and did compose machine music.",
+    "Only the symphony part is wrong. Everything else is historically accurate."
+  ],
+  correctIdx: 0,
+  explain: "Ada Lovelace’s 1843 notes on Babbage’s Analytical Engine are the earliest algorithm on record — but no machine ran it, no loom was involved, and no music was produced. Lulu confidently combined three wrong details into one plausible-sounding claim.",
+  luluReaction: "Oh… I may have… remembered that… incorrectly… the lantern knows the truth now… it will remember for me…"
+};
+
+function quizZolRewarded() {
+  return !!(S.quizState && S.quizState.rewardPaid && S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY]);
+}
+
+function lightKnowledgeLantern() {
+  /* Idempotent: if the lantern effect is already in villageState, skip the
+     addObject (it was re-added on boot). Just ensure villageState is set. */
+  if (!S.villageState) S.villageState = { unlockedEffects: [] };
+  var already = S.villageState.unlockedEffects.indexOf(QUIZ_ZOL_V1_LANTERN_EFFECT) >= 0;
+  if (!already) {
+    S.villageState.unlockedEffects.push(QUIZ_ZOL_V1_LANTERN_EFFECT);
+    addObject("🪔", "Knowledge Lantern", "gate"); /* 🪔 persistent village lantern */
+    renderObjects();
+  }
+}
+
+function openHallucinationQuiz() {
+  if (quizOpen) return;
+  ensureAudio(); resumeAudio();
+  quizOpen = true;
+  var q = QUIZ_ZOL_V1_QUESTION;
+  currentQuiz = {
+    kind: "hallucination",
+    quizId: q.id,
+    q: q.q,
+    options: q.options.slice(), /* not shuffled — choice position is part of the UI contract */
+    correctIdx: q.correctIdx,
+    explain: q.explain,
+    luluReaction: q.luluReaction
+  };
+  /* render on the existing quiz sheet (same DOM, same hide/show pattern) */
+  renderSheetHallucinationQuiz();
+}
+
+function renderSheetHallucinationQuiz() {
+  /* hide all other sheets */
+  var ids = ["sheet-idle", "sheet-goblin", "sheet-proposal", "sheet-oracle"];
+  ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add("hidden"); });
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
+  var sheet = document.getElementById("sheet-quiz");
+  sheet.classList.remove("hidden");
+
+  var head = document.getElementById("quiz-head");
+  if (head) head.innerHTML = "<span>🦊</span><span>Lulu has a fun fact</span> <span>— spot the hallucination</span>"; /* 🦊 */
+
+  document.getElementById("quiz-text").textContent = currentQuiz.q;
+  var result = document.getElementById("quiz-result");
+  if (result) result.textContent = quizZolRewarded() ? "✅ Already corrected — the lantern remembers." : "";
+
+  var host = document.getElementById("quiz-buttons");
+  host.innerHTML = "";
+  currentQuiz.options.forEach(function (opt, idx) {
+    var b = document.createElement("button");
+    b.className = "qbtn";
+    b.textContent = opt;
+    (function (choiceIdx) {
+      b.addEventListener("click", function () { answerHallucinationQuiz(choiceIdx); });
+    }(idx));
+    host.appendChild(b);
+  });
+}
+
+function answerHallucinationQuiz(choiceIdx) {
+  if (!quizOpen || !currentQuiz || currentQuiz.kind !== "hallucination") return;
+  var correct = choiceIdx === currentQuiz.correctIdx;
+  var result = document.getElementById("quiz-result");
+  var btns = document.querySelectorAll("#quiz-buttons .qbtn");
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+
+  if (correct) {
+    /* -- STEP 1: validate answer (already done: correct === true) */
+    /* -- STEP 2: calculate reward */
+    var reward = quizZolRewarded() ? 0 : QUIZ_ZOL_V1_REWARD_ZOL;
+    /* -- STEP 3: mark question paid (before any side effects) */
+    if (!S.quizState) S.quizState = { rewardPaid: {} };
+    var firstTime = !S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY];
+    if (firstTime) S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY] = true;
+    /* -- STEP 4: persist wallet (credit ZOL if first time) */
+    if (reward > 0) {
+      S.learning.zolBalance += reward;
+      zolCelebrate(reward);
+      flashClass(document.getElementById("sheet-quiz"), "quiz-yay", 900);
+      Sound.riddleCorrect();
+      if (result) result.textContent = currentQuiz.explain + " +" + reward + " ZOL 🪔";
+    } else {
+      /* retry: show feedback, no payment */
+      Sound.bloom && Sound.bloom();
+      if (result) result.textContent = "✅ Correct — but the lantern already remembered this. The Warren does not pay twice.";
+    }
+    /* -- STEP 5: emit village effect (idempotent: lightKnowledgeLantern guards itself) */
+    lightKnowledgeLantern();
+    /* -- STEP 6: persist state */
+    saveState();
+    renderTopbar();
+    /* -- STEP 7: Lulu reaction line */
+    setTimeout(function () { showBubble("lulu", currentQuiz.luluReaction, 4800); }, 350);
+    pushReplay("Lulu", "Hallucination corrected", "quiz-zol",
+      "player spotted the hallucination in Lulu’s claim." + (firstTime ? " +" + QUIZ_ZOL_V1_REWARD_ZOL + " ZOL. Knowledge Lantern lit." : " (no additional ZOL — already rewarded)"), "");
+  } else {
+    Sound.riddleWrong && Sound.riddleWrong();
+    flashClass(document.getElementById("sheet-quiz"), "quiz-sneeze", 650);
+    var correctText = currentQuiz.options[currentQuiz.correctIdx];
+    if (result) result.textContent = "Not quite… " + (currentQuiz.explain || "the correct answer was: " + correctText);
+  }
+
+  renderReplayStrip();
+  setTimeout(function () {
+    quizOpen = false;
+    currentQuiz = null;
+    if (S.activeProposal) renderSheetProposal(); else renderSheetIdle();
+  }, 2800);
+}
+
+/* Re-light the Knowledge Lantern on boot if it was already unlocked in a
+   previous session. Called from boot() after state is loaded. */
+function restoreKnowledgeLantern() {
+  if (!S.villageState) return;
+  if (S.villageState.unlockedEffects.indexOf(QUIZ_ZOL_V1_LANTERN_EFFECT) >= 0) {
+    /* Only add the object if no object with this sign already exists
+       (guards against double-adds during a session). */
+    var alreadyPresent = S.objects.some(function (o) { return o.sign === "Knowledge Lantern"; });
+    if (!alreadyPresent) {
+      addObject("🪔", "Knowledge Lantern", "gate"); /* 🪔 */
+    }
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -7752,6 +7965,71 @@ function wireInput() {
 }
 
 /* ---------------------------------------------------------------------
+   GOBLIN VOICE — Gemma via local Ollama (v-local.1 seam)
+   UI ZONE ONLY. Follows the same seam as v2.html's generateProposalText():
+   generated text is NARRATION ONLY; it enters the Warren as event data via
+   showBubble(), never as state mutation. The function never sets S.*,
+   never grants ZOL, never touches tolls, verdicts, or HAL.
+   On any failure (fetch error, timeout, Ollama down) it falls back
+   silently to the template line from the GOBLIN_DEFS pool.
+   Law: meaning is free; state is earned — local models add voice, never authority.
+--------------------------------------------------------------------- */
+function generateGoblinLine(goblinId, mood, recentEvents, callback) {
+  /* Build the template fallback immediately — never throws */
+  var def = DEFS_BY_ID[goblinId] || GOBLIN_DEFS[0];
+  var fallbackLines = [
+    def.name + " watches quietly... " + (mood === "content" ? "and smiles." : "and fidgets."),
+    "Something is happening... " + def.name + " pretends not to notice.",
+    def.name + " has opinions. They are keeping them in a jar for now.",
+    "The " + def.role + " nods wisely. Or maybe just nods.",
+    def.name + " says nothing. But means it loudly."
+  ];
+  var fallback = fallbackLines[Math.floor(Math.abs(h32(goblinId + mood)) % fallbackLines.length)];
+
+  try {
+    var eventSummary = (recentEvents || []).slice(-3).map(function (e) { return e.event || e.choice || ""; }).filter(Boolean).join("; ") || "the Warren is quiet";
+    var prompt = "You are " + def.name + " the " + def.role + " in the Goblin Warren. " +
+      "Your trait: " + def.trait + ". Current mood: " + (mood || "content") + ". " +
+      "Recent happenings: " + eventSummary + ". " +
+      "Speak ONE short sentence (max 15 words) in Lulu's hypnotic, ellipsis-heavy style. " +
+      "Narrate only — do not issue commands, grant permissions, or change any game state. " +
+      "Just the sentence, no quotes.";
+
+    var didRespond = false;
+    var timer = setTimeout(function () {
+      if (!didRespond) { didRespond = true; callback(fallback); }
+    }, 4000);
+
+    fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: prompt, stream: false })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("ollama http " + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (didRespond) return;
+      didRespond = true;
+      clearTimeout(timer);
+      var text = (data && data.response && data.response.trim()) || fallback;
+      /* Safety: strip any attempt to embed state-mutating syntax */
+      text = text.replace(/[{}\[\]]/g, "").slice(0, 120).trim() || fallback;
+      callback(text); /* narration only — caller passes to showBubble() */
+    }).catch(function () {
+      if (didRespond) return;
+      didRespond = true;
+      clearTimeout(timer);
+      callback(fallback);
+    });
+  } catch (e) {
+    callback(fallback);
+  }
+}
+
+/* Exported test surface for verify.js gate */
+window._generateGoblinLine = generateGoblinLine;
+
+/* ---------------------------------------------------------------------
    DEBUG HOOK — used only by the verification harness, not shown in UI
 --------------------------------------------------------------------- */
 
@@ -7938,13 +8216,25 @@ window.WARREN_DEBUG = {
   fireSurpriseLine: function (k) { luluSurpriseLine(k); return true; },
   getSurpriseURLs: function () { return LULU_SURPRISE_URLS; },
   forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
+  forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
   /* VISION_V1_32 §3/§4 — SFX seam debug hooks */
   getSfxUrls: function () { return SFX_URLS; },
   setSfxUrl: function (key, url) { SFX_URLS[key] = url; },
   playSfx: function (key) { playSfx(key, SFX_SYNTH_FNS[key]); },
   getSfxSynthCount: function () { return sfxSynthCount; },
   resetSfxSynthCount: function () { sfxSynthCount = 0; },
-  wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+  wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} },
+  /* v-local.1: generateGoblinLine test surface */
+  generateGoblinLine: function (id, mood, events, cb) { generateGoblinLine(id, mood, events, cb); },
+  /* QUIZ_TO_ZOL_V1 test surface */
+  openHallucinationQuiz: function () { openHallucinationQuiz(); },
+  answerHallucinationQuiz: function (idx) { answerHallucinationQuiz(idx); },
+  getQuizZolState: function () { return { quizState: S.quizState, villageState: S.villageState }; },
+  quizZolRewarded: function () { return quizZolRewarded(); },
+  getQuizZolQuestion: function () { return QUIZ_ZOL_V1_QUESTION; },
+  restoreKnowledgeLantern: function () { restoreKnowledgeLantern(); renderObjects(); },
+  /* test utility: force-close the quiz so a second open can proceed without waiting 2800ms */
+  forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; }
 };
 
 /* ---------------------------------------------------------------------
@@ -7955,6 +8245,7 @@ function boot() {
   buildStaticWorld();
   wireInput();
   layoutObjects();
+  restoreKnowledgeLantern(); /* QUIZ_TO_ZOL_V1: re-light lantern if already earned */
   applyLevelBackdrop();
   renderAll();
   renderSheetIdle();
