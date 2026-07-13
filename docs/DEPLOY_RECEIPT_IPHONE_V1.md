@@ -533,3 +533,27 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   images 0 (9th level reused an existing asset).
 - IPHONE_SAFARI_STATUS for v1.29: untested (operator's thumb witnesses the
   surprises + Luna surprise lines on touch).
+
+## v1.30 update — 2026-07-13 ("Earn the Key, Pay the Toll" — the progression law)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · game_id
+  d95bb0da… unchanged · source @ v1.30.zip · VISION docs/VISION_V1_30.md.
+  (Deployed twice with the same bundle: first call carried a truncated
+  favicon URL; immediate redeploy fixed it — identical bytes, same URL.)
+- THE LAW (operator asked "how do we progress from layer to layer?"):
+  L1 open; level N needs (N-1)*3 correct riddles (key) + one-time (N-1)*5
+  ZOL toll (sink). Riddles earn both — QUIZ→ZOL is now the spine of
+  progression. Gate modal (name · 🦋 X/Y riddles · 🪙 toll · UNLOCK);
+  refusal deducts nothing; unlock deducts exactly, writes a receipt, rides
+  the cinematic transition; unlocks persist (mergeDefaults grandfathers
+  old saves). Threshold crossings pulse the chip + Lulu whisper. Chip
+  shows 🔒 when the next stop is a gate. Verdicts remain never-for-sale.
+- STYLE RULING RECORDED: operator's pasted rich painterly-village scenes
+  = the canon target style ("more subtle — do not throw away, just add
+  layers"). Exact files still needed in-repo to bundle byte-exact;
+  level slots stay reserved.
+- TESTS: 39/39 (T38 full gate journey incl. reload persistence; T30/T34
+  unlock-aware). Fable validated independently after Sonnet's 3 clean runs.
+- CREDITS: 0 this slice.
+- IPHONE_SAFARI_STATUS for v1.30: untested (operator witnesses the gate
+  ceremony on touch).
