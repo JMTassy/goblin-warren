@@ -3220,6 +3220,13 @@ function isLevelUnlocked(n) {
   return (S.progress.levelsUnlocked || [1]).indexOf(n) !== -1;
 }
 
+/* VISION_V1_31 §1 — the next locked chapter, lowest id first; 0 once every
+   chapter is open. Pure function of state — the quest row's only source. */
+function nextLockedLevel() {
+  for (var n = 1; n <= LEVELS.length; n++) { if (!isLevelUnlocked(n)) return n; }
+  return 0;
+}
+
 function currentLevel() {
   var lv = (S.progress && S.progress.level) || 1;
   return LEVELS[clamp(lv - 1, 0, LEVELS.length - 1)];
@@ -4827,6 +4834,7 @@ function renderSheetIdle() {
   var idle = document.getElementById("sheet-idle");
   idle.classList.remove("hidden");
   idle.innerHTML = questsMarkup();
+  wireQuestGateRow();
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
@@ -5655,6 +5663,36 @@ function ensureTink() {
   scheduleGoblinTick("tink", 1600);
 }
 
+/* VISION_V1_31 §1 — the visible loop's always-first row: the next locked
+   chapter, live cost, one tap to the existing gate modal. Read-only, like
+   every quest row — it opens openLevelGate(), never unlocks anything itself. */
+var NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+function questGateRowMarkup() {
+  var n = nextLockedLevel();
+  if (!n) {
+    return '<div class="quest-row quest-gate-done">' +
+      '<span class="quest-icon">🗺️</span>' +
+      '<span class="quest-label">all ' + (NUMBER_WORDS[LEVELS.length] || LEVELS.length) + ' chapters open</span></div>';
+  }
+  var lv = LEVELS[clamp(n - 1, 0, LEVELS.length - 1)];
+  var need = needKnow(n), toll = tollZOL(n), have = S.flags.quizRight || 0;
+  return '<div class="quest-row quest-gate" id="quest-gate-row" data-gate-level="' + n + '">' +
+    '<span class="quest-icon">🔒</span>' +
+    '<span class="quest-label">Open ' + lv.name + '</span>' +
+    '<span class="quest-prog">🦋 ' + Math.min(have, need) + '/' + need + ' · 🪙 ' + toll + ' ZOL</span></div>';
+}
+
+/* Wires the tap on the (freshly re-rendered each time) gate row — a plain
+   id lookup, same idiom as the level chip; the row itself is rebuilt by
+   every questsMarkup() call so there is nothing stale to unwire. */
+function wireQuestGateRow() {
+  var row = document.getElementById("quest-gate-row");
+  if (row) row.addEventListener("click", function () {
+    ensureAudio(); resumeAudio();
+    openLevelGate(nextLockedLevel());
+  });
+}
+
 /* Quests — read-only views over progress; completing them crowns nothing. */
 function questList() {
   return [
@@ -5676,13 +5714,14 @@ function questsMarkup() {
       '<span class="quest-label">' + q.label + '</span>' +
       '<span class="quest-prog">' + (q.done ? "✓" : q.cur + "/" + q.max) + '</span></div>';
   }).join("");
-  return '<div class="quest-head">WARREN LEVEL ' + S.progress.level + ' · QUESTS</div>' + rows +
+  return '<div class="quest-head">WARREN LEVEL ' + S.progress.level + ' · QUESTS</div>' +
+    questGateRowMarkup() + rows +
     '<div class="quest-hint">Tap a goblin to see what they’re thinking.</div>';
 }
 
 function renderQuests() {
   var idle = document.getElementById("sheet-idle");
-  if (idle && !idle.classList.contains("hidden")) idle.innerHTML = questsMarkup();
+  if (idle && !idle.classList.contains("hidden")) { idle.innerHTML = questsMarkup(); wireQuestGateRow(); }
 }
 
 /* ---------------------------------------------------------------------
@@ -5793,6 +5832,12 @@ function closeOracle() {
   if (S.activeProposal) renderSheetProposal(); else renderSheetIdle();
 }
 
+/* VISION_V1_31 §2a — THE CURVE. Mastery pays: each defeat toughens the
+   next mask by one extra tap, capped at +4 (4..8 taps total). Per-tap and
+   per-defeat rewards are UNCHANGED — harder never means stingier, the
+   total payout simply grows because there's more HP to spend it on. */
+function bossTaps(defeats) { return 4 + Math.min(defeats || 0, 4); }
+
 /* ---------------------------------------------------------------------
    RAÂM, THE LOUD MASK — Boss Level 1. A huge orange mask appears near
    the Mycelial Gate (masks come through dreams) and shouts doom. He has
@@ -5829,11 +5874,14 @@ function scheduleRaam(delay) {
   raamTimer = setTimeout(spawnRaam, delay);
 }
 
+/* VISION_V1_31 §2a — HP now ranges 1..8 (bossTaps): 26+8*5=66px at the
+   toughest spawn, still a readable glyph, so no clamp is needed. */
 function raamGlyphSize() { return 26 + raamHP * 5; }
 
 /* Raâm flees: a fresh hop every ≤2s, quicker as he shrinks. Catching him
-   is the game now — the dash is a 0.45s glide, so a determined finger wins. */
-function raamHopInterval() { return 700 + raamHP * 300; } /* HP4→1.9s … HP1→1s */
+   is the game now — the dash is a 0.45s glide, so a determined finger wins.
+   HP now ranges 1..8: HP8→3.1s … HP1→1s — still comfortably huntable. */
+function raamHopInterval() { return 700 + raamHP * 300; }
 
 function raamHop() {
   if (!raamEl || raamHP <= 0) return;
@@ -5849,10 +5897,13 @@ function spawnRaam() {
   if (raamEl) return;
   var world = document.getElementById("world");
   if (!world) return;
-  raamHP = 4;
+  raamHP = bossTaps(S.progress.raamDefeats);
   raamEl = document.createElement("div");
   raamEl.className = "raam";
-  raamEl.innerHTML = '<div class="raam-line">' + pick(RAAM_TAUNTS) + '</div>' +
+  /* VISION_V1_31 §2a — once he's tougher than his original 4, the spawn
+     line says so. */
+  var raamSpawnLine = raamHP > 4 ? "I DID SQUATS!" : pick(RAAM_TAUNTS);
+  raamEl.innerHTML = '<div class="raam-line">' + raamSpawnLine + '</div>' +
     '<div class="raam-glyph" style="font-size:' + raamGlyphSize() + 'px">👹' +
     '<img class="boss-mask-art" alt="" /></div>' +
     '<div class="raam-base">🍄🍄</div>';
@@ -5974,10 +6025,12 @@ function spawnSeren() {
   if ((S.progress.raamDefeats || 0) < 1) return; /* earned, like everything here */
   var world = document.getElementById("world");
   if (!world) return;
-  serenHP = 4;
+  serenHP = bossTaps(S.progress.serenDefeats);
   serenEl = document.createElement("div");
   serenEl.className = "seren";
-  serenEl.innerHTML = '<div class="seren-line">' + SEREN_LINES[0] + '</div>' +
+  /* VISION_V1_31 §2a — once she's tougher than her original 4, say so. */
+  var serenSpawnLine = serenHP > 4 ? "( the silence has been training )" : SEREN_LINES[0];
+  serenEl.innerHTML = '<div class="seren-line">' + serenSpawnLine + '</div>' +
     '<div class="seren-glyph">🗿<img class="boss-mask-art" alt="" /></div>' +
     '<div class="raam-base">🌫️</div>';
   var art = serenEl.querySelector(".boss-mask-art");
@@ -6283,12 +6336,22 @@ var AI_QCM = [
     explain: "Author, date, testability — three questions before a scroll becomes a fact. Untested scrolls are just fan fiction." }
 ];
 
+/* VISION_V1_31 §2b — riddle difficulty follows depth: the hard share grows
+   5% per warren level past the first, capped at 50%. Level 1 stays at the
+   original 15% (onboarding stays gentle). Pure fold — no randomness here,
+   so it can be asserted directly (see WARREN_DEBUG.hardShare). */
+function hardShareForLevel(level) {
+  return Math.min(0.15 + 0.05 * ((level || 1) - 1), 0.5);
+}
+
 function aiQuizCandidate() {
   // Kid-first: age-appropriate riddles dominate; the grad-level physics
-  // questions (tagged hard) surface only ~15% of the time as a rare treat.
+  // questions (tagged hard) surface at a share that climbs with the
+  // warren's level (hardShareForLevel) as a rarer, then less-rare, treat.
   var easy = AI_QCM.filter(function (d) { return !d.hard; });
   var hard = AI_QCM.filter(function (d) { return d.hard; });
-  var pool = (Math.random() < 0.15 && hard.length) ? hard : (easy.length ? easy : AI_QCM);
+  var hardShare = hardShareForLevel(S.progress.level);
+  var pool = (Math.random() < hardShare && hard.length) ? hard : (easy.length ? easy : AI_QCM);
   var def = pick(pool);
   return {
     q: def.q,
@@ -7610,6 +7673,7 @@ window.WARREN_DEBUG = {
   spawnRaam: function () { spawnRaam(); },
   spawnSeren: function () { spawnSeren(); },
   tapSeren: function () { tapSeren(); },
+  tapRaam: function () { tapRaam(); },
   startMinigame: function (id) { return startMinigame(id); },
   luluSpeak: function (t) { luluSpeak(t); },
   organLatchedIdx: function () { return organLatched(); },
@@ -7660,6 +7724,11 @@ window.WARREN_DEBUG = {
   tryUnlockLevel: function (n) { return tryUnlockLevel(n); },
   needKnow: function (n) { return needKnow(n); },
   tollZOL: function (n) { return tollZOL(n); },
+  /* VISION_V1_31 §1/§2a/§2b */
+  nextLockedLevel: function () { return nextLockedLevel(); },
+  renderSheetIdle: function () { renderSheetIdle(); },
+  hardShare: function (level) { return hardShareForLevel(level); },
+  bossTaps: function (defeats) { return bossTaps(defeats); },
   /* click congas (VISION_V1_28 §4) */
   getCongaIdx: function () { return congaIdx; },
   /* Lulu voice seam (VISION_V1_28 §5) */

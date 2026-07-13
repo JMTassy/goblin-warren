@@ -1098,6 +1098,8 @@ html, body {
 }
 .quest-row.done { color: var(--ink-dim); }
 .quest-row.done .quest-label { text-decoration: line-through; text-decoration-thickness: 1px; }
+.quest-row.quest-gate { cursor: pointer; color: var(--accent); }
+.quest-row.quest-gate-done { color: var(--ink-dim); font-style: italic; }
 .quest-icon { flex: 0 0 auto; }
 .quest-label { flex: 1 1 auto; }
 .quest-prog { flex: 0 0 auto; color: var(--moss); font-weight: 700; font-size: 10.5px; }
