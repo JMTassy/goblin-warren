@@ -1240,6 +1240,36 @@ html, body {
 #app.bounce { animation: appbounce .35s ease; }
 @keyframes appbounce { 0%,100% { transform: scale(1); } 40% { transform: scale(0.985); } 70% { transform: scale(1.006); } }
 
+/* VISION_V1_29 §2a — the Fainting Boop: rotate, hold, settle. Googly eyes
+   ride on top of the goblin's own head for the same 2.5s beat. */
+.goblin.fainting .g-body { animation: faintspin 2.5s ease; }
+@keyframes faintspin {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(92deg); }
+  80%  { transform: rotate(92deg); }
+  100% { transform: rotate(0deg); }
+}
+.g-googly {
+  position: absolute; top: -16px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  pointer-events: none;
+  z-index: 12;
+  animation: gogglyfade 2.5s ease;
+}
+@keyframes gogglyfade { 0%, 100% { opacity: 0; } 10%, 82% { opacity: 1; } }
+
+/* VISION_V1_29 §2d — the Disco Mushroom: a 3s hue-rotate cycle on the
+   whole world, a gentle wobble on every goblin. Zero lingering state —
+   both animations only exist while .disco is present on #world. */
+#world.disco { animation: discohue 1s linear infinite; }
+@keyframes discohue {
+  0%   { filter: hue-rotate(0deg) saturate(1.25); }
+  100% { filter: hue-rotate(360deg) saturate(1.25); }
+}
+#world.disco .goblin .g-body { animation: discowobble 0.5s ease-in-out infinite; }
+@keyframes discowobble { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+
 .particle {
   position: absolute;
   font-size: 14px;
@@ -1607,6 +1637,19 @@ html, body {
   100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 #app.carrying-matcha #world { cursor: pointer; }
+
+/* VISION_V1_29 §2c — It's Raining Matcha: cups glide from top to bottom
+   over 4s (same fall-transition idiom as .goldfall), tap to pop. */
+.matcha-rain-cup {
+  position: absolute;
+  font-size: 22px;
+  z-index: 30;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  padding: 10px; /* generous tap area */
+  filter: drop-shadow(0 0 8px #9be8c5);
+  transition: top 4s linear;
+}
 /* the sap sprinkle rides the same coin-float mechanics as ZOL, on #currency instead of the wallet */
 #currency.zol-pop { animation: zolpop 0.9s ease-out; }
 
@@ -2451,6 +2494,25 @@ html, body {
 }
 .mg-choicebtn:active { transform: scale(0.95); }
 .mg-bigicon { font-size: 72px; margin: 24px 0; animation: zonebob 1.4s ease-in-out infinite; }
+
+/* VISION_V1_29 §2b — Staring Contest: a conic-gradient ring fills as the
+   5s window elapses, driven by the --pct custom property. */
+.mg-stare-ring {
+  --pct: 0;
+  position: relative;
+  width: 120px; height: 120px;
+  margin: 10px auto 14px;
+  border-radius: 50%;
+  background: conic-gradient(var(--glow-cyan) calc(var(--pct) * 1%), rgba(255,255,255,0.08) 0);
+  display: flex; align-items: center; justify-content: center;
+}
+.mg-stare-face {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: #14101f;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px;
+}
 .mg-bubble { font-size: 13px; color: var(--ink); background: rgba(139,124,255,0.1); border-radius: 10px; padding: 10px; margin: 8px 0; }
 .mg-stack { position: relative; height: 200px; }
 .mg-lulu { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-size: 40px; }

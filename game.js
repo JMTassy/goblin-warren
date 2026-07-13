@@ -45,10 +45,12 @@ var LULU_VOICE_TEXT = {
   goodnight: "Close your eyes, little Warren... the log will remember everything... it always does... goodnight..."
 };
 var luluVoiceAudioEl = null;
-function luluVoiceLine(key) {
-  if (!key || (S && S.settings && S.settings.muted)) return;
-  var text = LULU_VOICE_TEXT[key] || "";
-  var url = LULU_VOICE_URLS[key];
+/* shared player: one voice at a time, mute-aware, TTS fallback on any
+   failure. Both the v1.28 seam (luluVoiceLine) and the v1.29 surprise
+   seam (luluSurpriseLine) route through this so the Warren never speaks
+   with two mouths at once. */
+function playLuluAudioLine(url, text) {
+  if (S && S.settings && S.settings.muted) return;
   if (!url) { if (text) luluSpeak(text); return; }
   try {
     if (!luluVoiceAudioEl) luluVoiceAudioEl = new Audio();
@@ -60,6 +62,37 @@ function luluVoiceLine(key) {
     var played = luluVoiceAudioEl.play();
     if (played && played.catch) played.catch(function () { if (text) luluSpeak(text); });
   } catch (e) { if (text) luluSpeak(text); }
+}
+function luluVoiceLine(key) {
+  if (!key) return;
+  playLuluAudioLine(LULU_VOICE_URLS[key], LULU_VOICE_TEXT[key] || "");
+}
+
+/* ---------------------------------------------------------------------
+   VISION_V1_29 §3 — LULU'S SURPRISE VOICE. Six rare-and-delighted lines,
+   same seam shape as §5's LULU_VOICE_URLS: empty strings until Fable
+   fills them post-generation, TTS covers every gap, nothing ever throws.
+   staringLose has no clip yet (per the vision doc) — TTS carries it.
+--------------------------------------------------------------------- */
+var LULU_SURPRISE_URLS = {
+  faint:      LULU_VOICE_CDN + "hf_20260713_162124_a1fe7b42-d87f-45a4-affa-adfd6556f913.mp3",
+  staringWin: LULU_VOICE_CDN + "hf_20260713_162130_94f9c774-7404-4721-9c70-fa336c8feb4a.mp3",
+  staringLose: "", /* TTS-only fallback for now */
+  matchaRain: LULU_VOICE_CDN + "hf_20260713_162132_79e4f224-8029-4bab-a004-86b76c52d24e.mp3",
+  disco:      LULU_VOICE_CDN + "hf_20260713_162135_91bc26bb-2db1-41c3-ab6e-5598af66bd1e.mp3",
+  secret:     LULU_VOICE_CDN + "hf_20260713_162145_8f36e64c-18d0-4d94-a984-c08f28d06bf9.mp3"
+};
+var LULU_SURPRISE_TEXT = {
+  faint: "You booped too well... a goblin has fainted... from pure joy... please... send snacks...",
+  staringWin: "You blinked last... which means... you win... at doing absolutely nothing... my favorite sport...",
+  staringLose: "You looked away... the goblin is victorious... it will not stop bragging...",
+  matchaRain: "It is raining matcha... catch it with your fingers... or your soul... fingers are faster...",
+  disco: "Oh no... you woke the disco mushroom... now we must all... vibrate... politely...",
+  secret: "You found a secret... I will pretend to be surprised... oh... wow... a secret..."
+};
+function luluSurpriseLine(key) {
+  if (!key) return;
+  playLuluAudioLine(LULU_SURPRISE_URLS[key], LULU_SURPRISE_TEXT[key] || "");
 }
 
 /* ---------------------------------------------------------------------
@@ -2500,6 +2533,66 @@ function mgToneWeaveJudge() {
   }
 }
 
+/* ---------------------------------------------------------------------
+   STARING CONTEST 😐 — VISION_V1_29 §2b. A big goblin face fills the
+   arena, changing expressions every 0.8s. Don't tap for 5 seconds; tap
+   anything at all before then and the goblin wins instead. Pure timers
+   (setInterval/setTimeout only) — the law holds even in a backgrounded
+   tab. Win: coin rain, +12 ZOL (the one explicit minigame-class currency
+   grant this vision allows outside the reducer). Lose: +0, still a
+   receipt — funny, never punished.
+--------------------------------------------------------------------- */
+var STARE_FACES = ["😐", "😑", "😶", "🙂", "😮", "😦", "🤨"];
+
+function mgStaringTapLose(e) {
+  if (e) e.stopPropagation();
+  mgStaringLose();
+}
+
+function mgStaringCleanup() {
+  var d = mg.data;
+  d.ended = true;
+  clearInterval(d.faceTimer);
+  clearInterval(d.ringTimer);
+  var arena = document.getElementById("mg-arena");
+  if (arena) arena.removeEventListener("pointerdown", mgStaringTapLose);
+}
+
+function mgStaringWin() {
+  if (mg.active !== "staring" || mg.data.ended) return;
+  mgStaringCleanup();
+  luluSurpriseLine("staringWin");
+  endMinigame(true, "You blinked last — which means you win, at doing absolutely nothing.", 12, null);
+}
+
+function mgStaringLose() {
+  if (mg.active !== "staring" || mg.data.ended) return;
+  mgStaringCleanup();
+  luluSurpriseLine("staringLose");
+  endMinigame(false, "You looked away. The goblin will not let this go.", 0, null);
+}
+
+function mgStaringPlay() {
+  var arena = document.getElementById("mg-arena");
+  if (!arena) return;
+  var d = mg.data;
+  d.ended = false;
+  var dur = 5000, start = Date.now();
+  arena.innerHTML =
+    '<div class="mg-stare-ring" id="mg-stare-ring"><div class="mg-stare-face" id="mg-stare-face">😐</div></div>' +
+    '<div class="mg-note">DON’T look away — don’t tap for 5 seconds.</div>';
+  d.faceTimer = setInterval(function () {
+    var f = document.getElementById("mg-stare-face");
+    if (f) f.textContent = pick(STARE_FACES);
+  }, 800);
+  d.ringTimer = setInterval(function () {
+    var ring = document.getElementById("mg-stare-ring");
+    if (ring) ring.style.setProperty("--pct", String(Math.min(100, ((Date.now() - start) / dur) * 100)));
+  }, 100);
+  arena.addEventListener("pointerdown", mgStaringTapLose);
+  mg.timer = setTimeout(mgStaringWin, dur);
+}
+
 function mgOverlay() { return document.getElementById("minigame"); }
 
 function startMinigame(id) {
@@ -3047,13 +3140,19 @@ var MINIGAMES = {
   /* Level 4 · THE SPIRE */
   bubblepop: { title: "COUNCIL BUBBLE POP 🏛️", problem: "Pick the right nudge for each goblin's line.", play: mgBubblePlay },
   inflation: { title: "MUSHROOM INFLATION 🍄", problem: "Tap it smaller before it eats the screen.", play: mgInflationPlay },
-  bell:      { title: "WAKE THE GOBLINS 🔔", problem: "Ring the rhythm: tap · tap · wait · tap.", play: mgBellPlay }
+  bell:      { title: "WAKE THE GOBLINS 🔔", problem: "Ring the rhythm: tap · tap · wait · tap.", play: mgBellPlay },
+  /* VISION_V1_29 §2b — pooled in L1 + L5 */
+  staring: {
+    title: "THE STARING CONTEST 😐",
+    problem: "Don't tap for 5 seconds. Don't even blink. Okay, blink.",
+    play: function () { mgStaringPlay(); }
+  }
 };
 
 /* Levels: each is a themed chapter with its own backdrop + 3 side quests.
    Level 1 is the Warren (current CSS scene); Level 2 uses the glade art. */
 var LEVELS = [
-  { id: 1, name: "THE WARREN", mgs: ["mask", "gerald", "repair", "toneweave"], bg: null,
+  { id: 1, name: "THE WARREN", mgs: ["mask", "gerald", "repair", "toneweave", "staring"], bg: null,
     tint: "" },
   { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
     bg: "bg/level2-glade.jpeg",
@@ -3074,7 +3173,7 @@ var LEVELS = [
   /* VISION_V1_28 §1 — nothing discarded, every art gets its own level.
      L5-8 reuse existing minigame keys (no new mechanics), remote-over-gradient
      pattern identical to L3/L4: a blocked painting simply falls through. */
-  { id: 5, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
+  { id: 5, name: "THE DEEP", mgs: ["ingredients", "memory", "feed", "staring"], bg: null,
     bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
     scene: "linear-gradient(180deg, #070912 0%, #0c1420 48%, #0a1018 100%)",
     tint: "saturate(1.0)" },
@@ -3089,7 +3188,14 @@ var LEVELS = [
   { id: 8, name: "THE CRYSTAL CANOPY", mgs: ["stackhats", "zolrain", "toneweave"], bg: null,
     bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
     scene: "linear-gradient(180deg, #0d1a26 0%, #16283a 48%, #10202e 100%)",
-    tint: "saturate(1.08)" }
+    tint: "saturate(1.08)" },
+  /* VISION_V1_29 §1 — the 9th chapter. A previously-generated, already-paid
+     cozy-village image, unused since Recraft replaced L3/L4. L1-8 above are
+     untouched by this addition. */
+  { id: 9, name: "THE OLD VILLAGE", mgs: ["ingredients", "toneweave", "feed"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131431_9fe64662-32de-4eee-b4cc-f31102c33bfc.png",
+    scene: "linear-gradient(180deg, #12101f 0%, #1c1730 48%, #241d2e 100%)",
+    tint: "saturate(1.05)" }
 ];
 
 function currentLevel() {
@@ -3206,6 +3312,9 @@ function spawnSparkle() {
   sp.addEventListener("pointerdown", function (e) {
     e.stopPropagation();
     sp.remove();
+    /* VISION_V1_29 §2c — rare doorway variant: sometimes it rains matcha
+       instead of a minigame. A gift, not a faucet. */
+    if (Math.random() < 0.1) { spawnMatchaRain(); return; }
     var pool = currentLevel().mgs;
     startMinigame(pool[randi(0, pool.length - 1)]);
   });
@@ -5307,6 +5416,28 @@ function boopBack(id) {
   Sound.sparkle();
 }
 
+/* VISION_V1_29 §2a — THE FAINTING BOOP. ~1-in-18 boops (seeded by the
+   session boop counter, deterministic-ish), a goblin faints from pure
+   joy: rotate, hearts/stars float, googly eyes for 2.5s. No state change
+   beyond the mood already set by doBoop and a receipt — rare, delightful,
+   never punishing. */
+function doFaintBoop(id) {
+  var g = S.goblins[id], el = goblinEls[id];
+  if (!g || !el) return;
+  flashClass(el, "fainting", 2500);
+  var googly = document.createElement("div");
+  googly.className = "g-googly";
+  googly.textContent = "👀"; /* 👀 */
+  el.appendChild(googly);
+  setTimeout(function () { if (googly.parentNode) googly.parentNode.removeChild(googly); }, 2500);
+  dropParticle(g, "💫", true);
+  setTimeout(function () { dropParticle(g, "❤️‍🩹", true); }, 220);
+  showBubble(id, "*faints from joy*", 2600);
+  luluSurpriseLine("faint");
+  pushReplay(g.name, "A goblin fainted from joy", "faint", "a goblin fainted from joy.", "");
+  renderReplayStrip();
+}
+
 function checkWarrenDance() {
   if (boopHistory.length < 3) return false;
   var last3 = boopHistory.slice(-3).map(function (b) { return b.id; });
@@ -5367,6 +5498,14 @@ function doBoop(id) {
 
   if (checkTreeParty()) { saveState(); return; }
   var danced = checkWarrenDance();
+
+  /* VISION_V1_29 §2a — see doFaintBoop; a rare, no-state-change reaction
+     that preempts the ordinary roll below. */
+  if (!danced && S.flags.boops % 18 === 0) {
+    doFaintBoop(id);
+    saveState();
+    return;
+  }
 
   var roll = Math.random();
   if (!danced) {
@@ -5538,6 +5677,7 @@ function onTapTemple() {
   ensureAudio(); resumeAudio();
   Sound.treeHum();
   renderSheetOracle(buildReading());
+  secretTempleSeen = true; maybeFireSecret(); /* VISION_V1_29 §2e */
 }
 
 function renderSheetOracle(reading) {
@@ -6641,6 +6781,134 @@ function matchaCelebrate(g) {
 }
 
 /* ---------------------------------------------------------------------
+   IT'S RAINING MATCHA — VISION_V1_29 §2c. For 4s, 🍵 cups fall from the
+   top of #world at random x; tapping one pops it (bowl sound + spark).
+   Tally at the end pays SAP ONLY (never ZOL) — membrane law. Triggered by
+   a rare roll on the sparkle-doorway, or the debug hook.
+--------------------------------------------------------------------- */
+var matchaRainActive = false, matchaRainCaught = 0, matchaRainCupEls = [];
+var matchaRainSpawnTimer = null, matchaRainEndTimer = null;
+
+function popMatchaRainCup(el) {
+  if (!matchaRainActive) return;
+  var i = matchaRainCupEls.indexOf(el);
+  if (i < 0) return; /* already popped or cleared */
+  matchaRainCupEls.splice(i, 1);
+  matchaRainCaught++;
+  Sound.tibetanBowl(396);
+  var r = el.getBoundingClientRect();
+  var spark = document.createElement("div");
+  spark.className = "cache-spark";
+  spark.textContent = "✨";
+  spark.style.left = r.left + "px"; spark.style.top = r.top + "px";
+  document.body.appendChild(spark);
+  setTimeout(function () { if (spark.parentNode) spark.parentNode.removeChild(spark); }, 2500);
+  if (el.parentNode) el.parentNode.removeChild(el);
+}
+
+function spawnOneMatchaCup() {
+  if (!matchaRainActive) return;
+  var world = document.getElementById("world");
+  if (!world) return;
+  var el = document.createElement("div");
+  el.className = "matcha-rain-cup";
+  el.textContent = "🍵";
+  el.style.left = randi(8, 92) + "%";
+  el.style.top = "-6%";
+  world.appendChild(el);
+  matchaRainCupEls.push(el);
+  el.addEventListener("pointerdown", function (e) { e.stopPropagation(); popMatchaRainCup(el); });
+  requestAnimationFrame(function () { requestAnimationFrame(function () { el.style.top = "104%"; }); });
+  setTimeout(function () {
+    var i = matchaRainCupEls.indexOf(el);
+    if (i >= 0) matchaRainCupEls.splice(i, 1);
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 4200);
+}
+
+function finishMatchaRain() {
+  clearInterval(matchaRainSpawnTimer);
+  matchaRainActive = false;
+  var caught = matchaRainCaught;
+  matchaRainCupEls.slice().forEach(function (el) { if (el.parentNode) el.parentNode.removeChild(el); });
+  matchaRainCupEls = [];
+  var sap = caught >= 5 ? 3 : 1;
+  earn(0, sap); /* sap only — never ZOL, this is a garden-only surprise */
+  luluSurpriseLine("matchaRain");
+  pushReplay("The Sky", "It's Raining Matcha", "matchaRain",
+    "Caught " + caught + " matcha", "the sky rained matcha; I caught " + caught + ".");
+  renderReplayStrip();
+  saveState();
+}
+
+function spawnMatchaRain() {
+  if (matchaRainActive) return;
+  var world = document.getElementById("world");
+  if (!world) return;
+  matchaRainActive = true;
+  matchaRainCaught = 0;
+  matchaRainCupEls = [];
+  spawnOneMatchaCup();
+  matchaRainSpawnTimer = setInterval(spawnOneMatchaCup, 350);
+  clearTimeout(matchaRainEndTimer);
+  matchaRainEndTimer = setTimeout(finishMatchaRain, 4000);
+}
+
+/* ---------------------------------------------------------------------
+   THE DISCO MUSHROOM — VISION_V1_29 §2d. Tap the Akashic Tree 5x within
+   2.5s and the Warren discos for 3s: hue-rotate cycle on #world, a gentle
+   wobble on every goblin, all moods delighted. Zero currency. Ends clean.
+--------------------------------------------------------------------- */
+var treeTapTimes = [];
+var discoActive = false, discoTimer = null;
+
+function triggerDisco() {
+  if (discoActive) return;
+  discoActive = true;
+  var world = document.getElementById("world");
+  if (world) world.classList.add("disco");
+  Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
+  Sound.shamanicBurst(2);
+  Sound.party();
+  luluSurpriseLine("disco");
+  renderGoblins();
+  pushReplay("The Tree", "The Disco Mushroom", "disco", "the disco mushroom woke up.", "");
+  renderReplayStrip();
+  saveState();
+  clearTimeout(discoTimer);
+  discoTimer = setTimeout(function () {
+    if (world) world.classList.remove("disco");
+    discoActive = false;
+  }, 3000);
+}
+
+function checkTreeDisco() {
+  var now = Date.now();
+  treeTapTimes = treeTapTimes.filter(function (t) { return now - t < 2500; });
+  treeTapTimes.push(now);
+  if (treeTapTimes.length >= 5) {
+    treeTapTimes = [];
+    triggerDisco();
+  }
+}
+
+/* ---------------------------------------------------------------------
+   THE SECRET WHISPER — VISION_V1_29 §2e. First time a player opens both
+   the Help overlay AND the Little Temple in one session, Luna whispers
+   once. Session-only trip wires (not saved state) — low-effort flavor.
+--------------------------------------------------------------------- */
+var secretHelpSeen = false, secretTempleSeen = false, secretFired = false;
+function maybeFireSecret() {
+  if (secretFired || !secretHelpSeen || !secretTempleSeen) return;
+  secretFired = true;
+  luluSurpriseLine("secret");
+  pushReplay("Warren", "A secret was found", "secret",
+    "a secret was found: the Help overlay and the Temple, both visited.", "");
+  renderReplayStrip();
+  saveState();
+}
+
+/* ---------------------------------------------------------------------
    🇫🇷 LE TERRIER — traduction française, style Thomas Lelu.
    (Petit manuel du Terrier raté : phrases courtes. Ton pince-sans-rire.
    Une légère déception, assumée avec élégance.)
@@ -7080,7 +7348,10 @@ function wireInput() {
   if (treeZone) {
     treeZone.style.pointerEvents = "auto";
     treeZone.style.cursor = "pointer";
-    treeZone.addEventListener("click", function () { openRiddle(); });
+    treeZone.addEventListener("click", function () {
+      checkTreeDisco(); /* VISION_V1_29 §2d — 5 taps in 2.5s wakes the disco mushroom */
+      openRiddle();
+    });
   }
 
   /* Level chip — cycle to the next chapter (a 🎪 sparkle there brings its 3 quests) */
@@ -7116,6 +7387,7 @@ function wireInput() {
     if (helpOverlay.classList.contains("hidden")) {
       helpOverlay.classList.remove("hidden");
       ensureAudio();
+      secretHelpSeen = true; maybeFireSecret(); /* VISION_V1_29 §2e */
     } else {
       helpOverlay.classList.add("hidden");
     }
@@ -7355,6 +7627,15 @@ window.WARREN_DEBUG = {
   getCouncilPositions: function () { return councilPositions(); },
   startCouncil: function () { return startCouncil(); },
   councilCard: function (id) { return councilIntervene(id); },
+  /* VISION_V1_29 surprise pack */
+  startStaring: function () { return startMinigame("staring"); },
+  spawnMatchaRain: function () { spawnMatchaRain(); },
+  getMatchaRain: function () { return { active: matchaRainActive, caught: matchaRainCaught }; },
+  tapTreeForDisco: function () { for (var i = 0; i < 5; i++) checkTreeDisco(); return discoActive; },
+  getDiscoActive: function () { return discoActive; },
+  fireSurpriseLine: function (k) { luluSurpriseLine(k); return true; },
+  getSurpriseURLs: function () { return LULU_SURPRISE_URLS; },
+  forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
 };
 
