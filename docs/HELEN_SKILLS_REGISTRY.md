@@ -129,6 +129,39 @@ example (cite live data); (3) explain the example and why it matters;
 Feed `FRAME.md` (Helen's colors/fonts/rules) + a song. One prompt → research,
 script, voiceover, motion graphics, captions, render.
 
+## FRAME.md discipline (Day 2 — brand as a motion language)
+
+Every HyperFrames workflow accepts a `FRAME.md`. Do it once:
+1. `DESIGN.md` from the live site — fetch real HTML + CSS, take hex/fonts
+   verbatim (never estimate from a screenshot; report the font that loads).
+   4–6 named colors w/ roles, 2–3 type roles, spacing/radius/shadow, hard
+   rules ("always X, never Y"), cite where each was found. Or deterministic:
+   `npx dembrandt yourbrand.com`.
+2. Extend to `FRAME.md` (hyperframes.dev/design) — same tokens inverted for
+   the camera + a motion language (easing, transition style, pacing).
+3. Drop `FRAME.md` in the project; it rides along with every video.
+Helen needs a HELEN `FRAME.md` (institutional graphite, receipts in mono,
+red=violated invariant, green=observed pass only) — see docs/HELEN_PR_TO_VIDEO.md.
+
+## Full HyperFrames catalog (20 skills, loaded on demand)
+
+Install: `npx skills add heygen-com/hyperframes --full-depth` (keep
+`--full-depth`; the registry blob lags main). Router: **`/hyperframes`** —
+read first; picks a workflow for any "make me a…" request.
+- **Creation:** /product-launch-video · /website-to-video · /faceless-explainer
+  · /pr-to-video · /embedded-captions · /talking-head-recut · /motion-graphics
+  · /music-to-video · /slideshow · /general-video · /remotion-to-hyperframes.
+- **Domain (compose against):** /hyperframes-core · -animation · -keyframes ·
+  -creative · /media-use · -cli · -registry · /figma.
+Engine: HTML + `data-*` timing attrs + seekable adapters (GSAP/CSS/Lottie/
+Three/Anime/WAAPI) → headless Chrome seek → FFmpeg. Deterministic, Apache-2.0,
+no per-render fee. Node 22+ / FFmpeg. Local CLI or AWS-Lambda render.
+
+## HELEN classifications
+- **PR-to-Video → GATEHOUSE / SYNTHESIZER** — full contract in
+  `docs/HELEN_PR_TO_VIDEO.md`. Review Compression ≠ Review Substitution;
+  admission forbidden; binds every render to an immutable PR head SHA.
+
 ## The law over all of them
 
 These skills NARRATE, RESEARCH, and RENDER. They never ADMIT. Every asset
