@@ -468,3 +468,36 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   earlier nano_banana village attempts (~2 credits) are unused/superseded.
 - IPHONE_SAFARI_STATUS for v1.27: untested (awaits the operator's eye on the
   new level art).
+
+## v1.28 update — 2026-07-13 ("The Warren Sings" — CEO Fable vision, Sonnet 5 execution)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · deploy_game
+  {"success":true} · game_id d95bb0da… unchanged · source @ v1.28.zip.
+- VISION: docs/VISION_V1_28.md. EXECUTION: Sonnet 5 subagent (all §1-6),
+  Fable validated (independent full gate run) and shipped.
+- 8 LEVELS, all art kept exactly: Warren · Glade · Village · Workshops ·
+  Deep (restored) · Spire (restored) · Emerald Hollow · Crystal Canopy.
+  Slots 9-10 reserved for the operator's classic scenes (files pending).
+- QUIZ × SOLFEGGIO: topic→frequency map; bija drone on open, harmonyShimmer
+  on correct; Moth cadence 60-100s.
+- MATCHA CRAVING: goblins ask 🍵; deliver = delighted + exactly +1 sap +
+  sprinkle + Luna line; ignore = wistful (lonely bucket). No ZOL, receipts
+  both ways. Gated T29a/T29b.
+- CLICK CONGAS: empty-ground taps cycle conga/djembe/slap voices, 250ms
+  rate limit (T31).
+- LULA— LULU'S REAL VOICE: 10 Luna (ElevenLabs) MP3s wired (greet/boop/
+  quizRight/quizWrong/verdict/compost/matcha/travel/relic/goodnight);
+  shared Audio element, one line at a time, muted-aware; TTS fallback says
+  the same words; catalog docs/LULU_VOICE_LINES.md (T32 seam gate).
+- ESOTERICA NO_CLAIM: Eternal Now temple readings (past=present=future as
+  the log; alchemy-as-attention; hand-as-athanor), organ interval epithets
+  (fifth "the golden agreement" etc.). Footer law unchanged.
+- TESTS: 33/33 (T29a/b, T30 8-level cycle, T31, T32 new).
+- OLD GAME RULING (operator): the 55-user listing "HELEN · Dream of
+  Conquest — Goblin Warren" (marketplace page e490a573-69b6-4ee1-8b8a-
+  2d11b762d408) is KEPT as its own sandbox — NOT overwritten. Standing
+  intent: with new graphics/upgrades it may become a level of this game
+  later, capitalizing on all users and prior R&D. No action taken on it.
+- CREDITS: 10 short Luna TTS clips this slice; images 0 (all reused).
+- IPHONE_SAFARI_STATUS for v1.28: untested (operator's thumb witnesses
+  Luna playback + matcha carry UX on touch).
