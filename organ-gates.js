@@ -28,9 +28,11 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
       silence: D.detectHarmony([])
     };
   });
+  // VISION_V1_28 §6 gave these labels epithets ("perfect fourth — the pillar",
+  // etc.) — match by prefix so the epithet doesn't break the relation check.
   log('O1_pythagorean_detector',
-    o1.fourth === 'perfect fourth' && o1.fourth2 === 'perfect fourth' &&
-    o1.fifth === 'perfect fifth' && o1.octave === 'octave' &&
+    o1.fourth.indexOf('perfect fourth') === 0 && o1.fourth2.indexOf('perfect fourth') === 0 &&
+    o1.fifth.indexOf('perfect fifth') === 0 && o1.octave.indexOf('octave') === 0 &&
     o1.unison === 'unison' && o1.silence === null, JSON.stringify(o1));
 
   // O2: console opens; earned stations enabled, unearned locked

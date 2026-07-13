@@ -10,6 +10,59 @@ var STORAGE_KEY = "goblin_warren_v1_state";
 var STATE_VERSION = 1;
 
 /* ---------------------------------------------------------------------
+   VISION_V1_28 §5 — LULU'S VOICE FILES. Ten hypnotic lines. Fable fills
+   the URLs after generation; until then every key falls back to the
+   existing browser TTS (luluSpeak) with zero behavior change. A single
+   shared Audio element plays one line at a time — pause before replay,
+   never overlap, always respect mute.
+--------------------------------------------------------------------- */
+/* Luna (ElevenLabs via Higgsfield), operator-chosen voice — see
+   docs/LULU_VOICE_LINES.md for the full line catalog + durations. */
+var LULU_VOICE_CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/";
+var LULU_VOICE_URLS = {
+  greet:     LULU_VOICE_CDN + "hf_20260713_142245_58e06e4b-1d21-43e6-9cb2-87c0525e1e46.mp3",
+  boop:      LULU_VOICE_CDN + "hf_20260713_142252_e1563091-a522-491c-8df7-121bc7c5a004.mp3",
+  quizRight: LULU_VOICE_CDN + "hf_20260713_142258_816264eb-3920-48bc-829c-2b0fa41fe9b4.mp3",
+  quizWrong: LULU_VOICE_CDN + "hf_20260713_142303_67759c07-61d5-4b4b-8c8f-b86302144cac.mp3",
+  verdict:   LULU_VOICE_CDN + "hf_20260713_142306_7395670f-2f69-47f8-8500-37a8033c9dda.mp3",
+  compost:   LULU_VOICE_CDN + "hf_20260713_142313_fb7c76f1-88e4-45b5-9515-b82a0f3c6a61.mp3",
+  matcha:    LULU_VOICE_CDN + "hf_20260713_142319_b030e459-990b-4d39-a7b8-0d34a480917a.mp3",
+  travel:    LULU_VOICE_CDN + "hf_20260713_142322_b91079b5-087e-410a-8f4d-c116f1a57783.mp3",
+  relic:     LULU_VOICE_CDN + "hf_20260713_142325_ddc34987-9401-427b-91e9-210f86b65033.mp3",
+  goodnight: LULU_VOICE_CDN + "hf_20260713_142332_dad79502-1677-49be-9b73-2c44542ca12f.mp3"
+};
+/* fallback TTS says the same words the Luna recordings say */
+var LULU_VOICE_TEXT = {
+  greet: "Welcome home, little gardener... the moss remembered your footsteps... we pretended we did not miss you... we did.",
+  boop: "You have booped me... I am now... emotionally reorganized... please hold...",
+  quizRight: "Correct... the Moth is pretending... it always knew... so am I...",
+  quizWrong: "Wrong... and yet... the mushrooms still love you... they told me.",
+  verdict: "Stamp slowly... a choice is a seed... and seeds... do not like to be rushed...",
+  compost: "To the compost... where old ideas dream... of becoming... soup...",
+  matcha: "Ohhh... warm matcha... my tiny soul... is now a quiet... green... pond...",
+  travel: "We are traveling... hold your thoughts gently... like a sleepy snail...",
+  relic: "You found a shiny truth... put it somewhere safe... like your heart... or a jar...",
+  goodnight: "Close your eyes, little Warren... the log will remember everything... it always does... goodnight..."
+};
+var luluVoiceAudioEl = null;
+function luluVoiceLine(key) {
+  if (!key || (S && S.settings && S.settings.muted)) return;
+  var text = LULU_VOICE_TEXT[key] || "";
+  var url = LULU_VOICE_URLS[key];
+  if (!url) { if (text) luluSpeak(text); return; }
+  try {
+    if (!luluVoiceAudioEl) luluVoiceAudioEl = new Audio();
+    luluVoiceAudioEl.pause(); /* one voice at a time, even if it's mid-line */
+    luluVoiceAudioEl.src = url;
+    luluVoiceAudioEl.volume = 0.55;
+    luluVoiceAudioEl.currentTime = 0;
+    luluVoiceAudioEl.onerror = function () { if (text) luluSpeak(text); };
+    var played = luluVoiceAudioEl.play();
+    if (played && played.catch) played.catch(function () { if (text) luluSpeak(text); });
+  } catch (e) { if (text) luluSpeak(text); }
+}
+
+/* ---------------------------------------------------------------------
    WORLD DATA (visual language — unchanged by the state-contract update)
 --------------------------------------------------------------------- */
 
@@ -566,6 +619,24 @@ function noiseBurst(start, dur, gain, centerHz) {
   src.start(ctx.currentTime + start);
 }
 
+/* VISION_V1_28 §4 — CLICK CONGAS. Every tap on bare ground is a hand-drum:
+   the map itself becomes a percussion instrument. Rotates through four
+   voices so a drumroll of taps sounds like a real conga line, not a loop. */
+var CONGA_VOICES = [
+  function () { drumHit(180, 0, 0.16, 0.18, 120); },
+  function () { drumHit(85, 0, 0.3, 0.25, 42); noiseBurst(0, 0.05, 0.15, 2200); }, /* deep hit + slap */
+  function () { noiseBurst(0, 0.09, 0.14, 2400); },
+  function () { drumHit(240, 0, 0.12, 0.14, 190); }
+];
+var congaIdx = 0, lastCongaAt = 0;
+function playConga() {
+  var now = Date.now();
+  if (now - lastCongaAt < 250) return; /* rate-limited so rapid taps stay musical, not mush */
+  lastCongaAt = now;
+  CONGA_VOICES[congaIdx % CONGA_VOICES.length]();
+  congaIdx++;
+}
+
 /* Musical scale frequencies (Do Re Mi Fa Sol La Si Do) */
 var SCALE_DO_RE_MI = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
 /* Solfeggio Sacred Frequencies (Hz) — for psychological engagement */
@@ -580,6 +651,28 @@ var SOLFEGGIO = {
   order: 852,         /* returning to spiritual order, spiritual perspective */
   crown: 963          /* the crown — completes the seven-rung ladder */
 };
+
+/* VISION_V1_28 §2 — every quiz topic rings its own solfeggio station.
+   Deterministic: same topic, same frequency, always. A quiz with no topic
+   at all (the "sleepiest goblin"/zone/object candidates) reads as
+   connection(639) — an unlabeled question is still a small connection.
+   A topic that exists but isn't one of the named eight falls to love(528),
+   the default rung. */
+var QUIZ_TOPIC_SOLFEGGIO = {
+  evidence: SOLFEGGIO.liberation,
+  hallucination: SOLFEGGIO.intuition,
+  training_data: SOLFEGGIO.regeneration,
+  determinism: SOLFEGGIO.order,
+  receipts: SOLFEGGIO.grounding,
+  causation: SOLFEGGIO.change,
+  authority: SOLFEGGIO.crown,
+  repetition: SOLFEGGIO.connection,
+  sources: SOLFEGGIO.intuition
+};
+function quizTopicFreq(topic) {
+  if (!topic) return SOLFEGGIO.connection;
+  return QUIZ_TOPIC_SOLFEGGIO[topic] || SOLFEGGIO.love;
+}
 
 var Sound = {
   bell: function () { tone(880, 0, 0.22, "sine", 0.18); tone(1320, 0.09, 0.25, "sine", 0.12); },
@@ -1711,15 +1804,18 @@ function serpentHeight() {
    Warren. (Effects-on-E etc. remain proposal-grade until E exists.)
 --------------------------------------------------------------------- */
 
+/* VISION_V1_28 §6 — organ harmony labels gain epithets: every named interval
+   maps to a real mechanic (the ratio the Serpent stations actually ring),
+   the epithet is a reading, not a claim. */
 var ORGAN_INTERVALS = [
-  { name: "octave",                     fr: "octave",                   cents: 1200, tol: 40 },
-  { name: "perfect fifth",              fr: "quinte parfaite",          cents: 702,  tol: 35 },
-  { name: "perfect fourth",             fr: "quarte juste",             cents: 498,  tol: 35 },
-  { name: "major sixth",                fr: "sixte majeure",            cents: 884,  tol: 30 },
-  { name: "minor sixth",                fr: "sixte mineure",            cents: 814,  tol: 30 },
-  { name: "major third",                fr: "tierce majeure",           cents: 408,  tol: 30 },
-  { name: "minor third",                fr: "tierce mineure",           cents: 316,  tol: 30 },
-  { name: "tritone — fertile tension",  fr: "triton — tension féconde", cents: 610,  tol: 48 }
+  { name: "octave — the return",             fr: "octave — le retour",              cents: 1200, tol: 40 },
+  { name: "perfect fifth — the golden agreement", fr: "quinte parfaite — l'accord doré", cents: 702,  tol: 35 },
+  { name: "perfect fourth — the pillar",     fr: "quarte juste — le pilier",         cents: 498,  tol: 35 },
+  { name: "major sixth",                     fr: "sixte majeure",                   cents: 884,  tol: 30 },
+  { name: "minor sixth",                     fr: "sixte mineure",                   cents: 814,  tol: 30 },
+  { name: "major third — the smile",         fr: "tierce majeure — le sourire",      cents: 408,  tol: 30 },
+  { name: "minor third",                     fr: "tierce mineure",                  cents: 316,  tol: 30 },
+  { name: "tritone — the fertile tension",   fr: "triton — la tension féconde",      cents: 610,  tol: 48 }
 ];
 
 function detectHarmony(freqs) {
@@ -2033,6 +2129,7 @@ function spawnVerdictScroll() {
 
 function openVerdictCard() {
   if (dvPickedIndex == null) return;
+  luluVoiceLine("verdict");
   var old = document.getElementById("verdict-card");
   if (old) old.remove();
   var d = DV_DILEMMAS[dvPickedIndex];
@@ -2973,7 +3070,26 @@ var LEVELS = [
     /* same weathered village style, workshop/forge district (Recraft V4.1) */
     bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131834_5bdbe42c-db84-42fb-b8dc-1e6a79441348.png",
     scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
-    tint: "saturate(1.02)" }
+    tint: "saturate(1.02)" },
+  /* VISION_V1_28 §1 — nothing discarded, every art gets its own level.
+     L5-8 reuse existing minigame keys (no new mechanics), remote-over-gradient
+     pattern identical to L3/L4: a blocked painting simply falls through. */
+  { id: 5, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085446_bd9a2977-8bcd-4980-9c17-55ffb94752ce.png",
+    scene: "linear-gradient(180deg, #070912 0%, #0c1420 48%, #0a1018 100%)",
+    tint: "saturate(1.0)" },
+  { id: 6, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260712_085449_3f48a705-ffc6-4ce4-b497-458de2146ba9.png",
+    scene: "linear-gradient(180deg, #10122a 0%, #191c38 48%, #14172c 100%)",
+    tint: "saturate(1.04)" },
+  { id: 7, name: "THE EMERALD HOLLOW", mgs: ["mask", "toneweave", "gerald"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130015_1bd48783-3a62-4215-9bae-2d2ef874db0c.png",
+    scene: "linear-gradient(180deg, #0a1810 0%, #122419 48%, #0d1c13 100%)",
+    tint: "saturate(1.06)" },
+  { id: 8, name: "THE CRYSTAL CANOPY", mgs: ["stackhats", "zolrain", "toneweave"], bg: null,
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
+    scene: "linear-gradient(180deg, #0d1a26 0%, #16283a 48%, #10202e 100%)",
+    tint: "saturate(1.08)" }
 ];
 
 function currentLevel() {
@@ -3037,6 +3153,7 @@ var levelTransitionEl = null;
 
 function playLevelTransition(onDone) {
   if (levelTransitionEl) { if (onDone) onDone(); return; } /* already mid-veil: just switch */
+  luluVoiceLine("travel");
   var veil = document.createElement("div");
   veil.id = "level-transition";
   veil.innerHTML =
@@ -3795,6 +3912,7 @@ function resolveProposal(choice) {
     }
     Sound.proposalDenied();
     setTimeout(Sound.gardenHarmony, 300);
+    luluVoiceLine("compost");
   }
 
   earn(2, choice === "compost" ? 2 : 0); // every decision feeds the Garden economy
@@ -3848,6 +3966,7 @@ function bootScriptedArc() {
     if (S.flags.greeted) return;
     S.flags.greeted = true;
     showBubble("lulu", "You're late. Good. We already started without you.", 4200);
+    luluVoiceLine("greet");
     saveState();
   }, 2200);
 
@@ -4199,6 +4318,7 @@ function discoverCollectible(id) {
   if (!c || !collectibleUnlocked(id)) return; /* can't find what hasn't surfaced */
   ensureAudio(); resumeAudio();
   Sound.tibetanBowl(c.tone); /* relics ring bronze — every find is a bowl strike */
+  luluVoiceLine("relic");
   var el = collectibleEls[id];
   if (el) { el.classList.remove("singing"); void el.offsetWidth; el.classList.add("singing"); }
   showBubbleFree(c.lore, clamp(c.x, 8, 74), clamp(c.y - 8, 6, 84));
@@ -4227,6 +4347,7 @@ function wonderCacheFinale() {
   Object.keys(goblinEls).forEach(function (k) { flashClass(goblinEls[k], "dancing", 3600); });
   Object.keys(S.goblins).forEach(function (k) { S.goblins[k].mood = "delighted"; });
   Sound.party();
+  luluVoiceLine("goodnight");
   appBounce();
   if (world) {
     for (var i = 0; i < 16; i++) {
@@ -5238,6 +5359,7 @@ function doBoop(id) {
   g.mood = "giggly";
   flashClass(el, "booped", 600);
   Sound.squeak(id);
+  if (id === "lulu") luluVoiceLine("boop");
 
   if (boopHistory.length && now - boopHistory[boopHistory.length - 1].at > BOOP_WINDOW) boopHistory = [];
   boopHistory.push({ id: id, at: now });
@@ -5361,7 +5483,14 @@ var SKY_LINES = [
   "The snake sheds; the Warren keeps the skin, gently.",
   "A place is also a state of mind. This one, twice.",
   "The week is white and contains all the other colors. So does the compost.",
-  "What returns is not a law. What returns is a friend with a pattern."
+  "What returns is not a law. What returns is a friend with a pattern.",
+  /* VISION_V1_28 §6 — the Eternal Now layer. A parable, held as a parable:
+     every symbol maps to a real mechanic here (the log, a fix, a replay,
+     an admission) — none of it claims the outer world. */
+  "past = present = future — the log holds all three as one scroll",
+  "alchemy is attention: nigredo names the bug, albedo names the fix",
+  "the circle on the cauldron is the replay: what returns, returns changed",
+  "transformation is admitted, never proclaimed — your hand is the athanor"
 ];
 var ORACLE_HOSTS = [
   { icon: "🕯️", name: "The Cave Voice" },
@@ -5781,7 +5910,8 @@ function spawnMoth() {
 function despawnMoth() {
   if (mothEl && mothEl.parentNode) mothEl.parentNode.removeChild(mothEl);
   mothEl = null;
-  scheduleMoth(randi(90000, 150000));
+  /* VISION_V1_28 §2: cadence tightened after a visit — more ZOL interruptions, still polite */
+  scheduleMoth(randi(60000, 100000));
 }
 
 function shuffleOptions(pool, correct) {
@@ -6114,6 +6244,7 @@ function onTapMoth() {
   currentQuiz = buildQuiz();
   clearTimeout(mothDespawnTimer);
   Sound.chirp();
+  Sound.bijaTone(quizTopicFreq(currentQuiz.topic)); /* the question has a key — sound it under the ask */
   renderSheetQuiz();
 }
 
@@ -6152,8 +6283,10 @@ function answerQuiz(option) {
       S.learning.lastQuizLesson = currentQuiz.lesson || null;
     }
     Sound.riddleCorrect(); setTimeout(Sound.bloom, 300);
+    setTimeout(function () { Sound.harmonyShimmer(quizTopicFreq(currentQuiz && currentQuiz.topic)); }, 180);
     /* a streak of 3 earns the didgeridoo — the deep drone marks mastery */
     if (streak >= 3 && streak % 3 === 0) setTimeout(Sound.didgeridoo, 600);
+    if (S.flags.quizRight % 3 === 0) luluVoiceLine("quizRight"); /* every 3rd — never spam */
     if (mothG) { dropParticle(mothG, "✨", true); dropParticle(mothG, "✨"); }
 
     /* Gold rush: coins fly from the quiz sheet to the wallet. */
@@ -6180,6 +6313,7 @@ function answerQuiz(option) {
     flashClass(document.getElementById("sheet-quiz"), "quiz-sneeze", 650);
     if (result) result.textContent = "Achoo! It was: " + currentQuiz.correct +
       (currentQuiz.explain ? " — " + currentQuiz.explain : "");
+    if (S.flags.quizWrong % 3 === 0) luluVoiceLine("quizWrong"); /* every 3rd — never spam, never punitive */
   }
   var btns = document.querySelectorAll("#quiz-buttons .qbtn");
   for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
@@ -6279,6 +6413,7 @@ function renderSheetQuiz() {
 
 function onTapGoblin(id) {
   ensureAudio(); resumeAudio();
+  if (matchaHeld && id === matchaGoblinId) { deliverMatcha(); return; } /* the carried cup finds its goblin */
   doBoop(id);
   if (S.activeProposal || quizOpen) return; // proposal/quiz keeps the sheet
   renderSheetGoblin(id);
@@ -6345,6 +6480,164 @@ function catchGoldfall(e) {
   renderTopbar();
   renderReplayStrip();
   scheduleGoldfall();
+}
+
+/* ---------------------------------------------------------------------
+   MATCHA CRAVING — a small want, a small tending. Every so often a goblin
+   asks for matcha; a cup appears near the Receipt Forge. Carry it to the
+   right goblin within the window and they light up. Ignore it and they're
+   quietly a little lonely for a while — never punished, just noticed.
+   Membrane: moods + exactly 1 magic sap. No ZOL, no world mutation.
+--------------------------------------------------------------------- */
+var matchaGoblinId = null, matchaHeld = false, matchaCupEl = null;
+var matchaTimer = null, matchaExpireTimer = null, matchaMoodTimer = null;
+var MATCHA_ASK_LINES = ["...matcha? for me?", "matcha would be nice. just saying.", "is there... matcha? no rush."];
+var MATCHA_THANKS_LINES = ["MATCHA! for me?! today is GOOD.", "warm cup, warm goblin. thank you.", "you remembered. that's the whole gift."];
+var MATCHA_LONELY_LINES = ["...nobody came. it's fine. (it's not, a little.)", "the cup never came. okay. okay."];
+
+function scheduleMatchaCraving(delay) {
+  clearTimeout(matchaTimer);
+  matchaTimer = setTimeout(spawnMatchaCraving, delay == null ? randi(70000, 120000) : delay);
+}
+
+function spawnMatchaCraving() {
+  if (matchaGoblinId) { scheduleMatchaCraving(randi(70000, 120000)); return; } /* one craving at a time */
+  var ids = Object.keys(S.goblins);
+  if (!ids.length) { scheduleMatchaCraving(randi(70000, 120000)); return; }
+  matchaGoblinId = pick(ids);
+  matchaHeld = false;
+  showBubble(matchaGoblinId, pick(MATCHA_ASK_LINES), 4200);
+  var world = document.getElementById("world");
+  var forge = zoneById("forge");
+  if (world) {
+    var cup = document.createElement("div");
+    cup.className = "matcha-cup";
+    cup.textContent = "🍵";
+    cup.setAttribute("aria-label", "a cup of matcha");
+    cup.style.left = jitter(forge.x, 10) + "%";
+    cup.style.top = (forge.y - 8) + "%";
+    cup.addEventListener("click", function (e) { e.stopPropagation(); onTapMatchaCup(); });
+    world.appendChild(cup);
+    matchaCupEl = cup;
+  }
+  Sound.chirp();
+  /* uncollected too long: the cup itself gives up quietly */
+  clearTimeout(matchaExpireTimer);
+  matchaExpireTimer = setTimeout(expireMatcha, 45000);
+}
+
+function onTapMatchaCup() {
+  if (!matchaGoblinId || matchaHeld) return;
+  ensureAudio(); resumeAudio();
+  matchaHeld = true;
+  if (matchaCupEl && matchaCupEl.parentNode) matchaCupEl.parentNode.removeChild(matchaCupEl);
+  matchaCupEl = null;
+  var app = document.getElementById("app");
+  if (app) app.classList.add("carrying-matcha");
+  showMatchaChip();
+  Sound.sparkle();
+  /* the deliver window starts now — 25s to find the goblin who asked */
+  clearTimeout(matchaExpireTimer);
+  matchaExpireTimer = setTimeout(expireMatcha, 25000);
+}
+
+function hideMatchaChip() {
+  var chip = document.getElementById("matcha-chip");
+  if (chip && chip.parentNode) chip.parentNode.removeChild(chip);
+}
+
+function showMatchaChip() {
+  var app = document.getElementById("app");
+  if (!app || document.getElementById("matcha-chip")) return;
+  var chip = document.createElement("div");
+  chip.id = "matcha-chip";
+  chip.textContent = "🍵 carrying matcha… tap the goblin";
+  app.appendChild(chip);
+}
+
+function deliverMatcha() {
+  if (!matchaGoblinId || !matchaHeld) return false;
+  clearTimeout(matchaExpireTimer);
+  clearTimeout(matchaMoodTimer);
+  var id = matchaGoblinId, g = S.goblins[id];
+  matchaGoblinId = null; matchaHeld = false;
+  var app = document.getElementById("app");
+  if (app) app.classList.remove("carrying-matcha");
+  hideMatchaChip();
+  if (g) {
+    g.mood = "delighted";
+    g.memory = "someone remembered my matcha.";
+    earn(0, 1); /* exactly +1 sap — the only currency this ritual touches */
+    dropParticle(g, "🍵", true);
+    dropParticle(g, "✨", true);
+    matchaCelebrate(g);
+    showBubble(id, pick(MATCHA_THANKS_LINES), 3200);
+  }
+  luluVoiceLine("matcha");
+  pushReplay(g ? g.name : "A goblin", "Matcha delivered", "matcha",
+    "matcha delivered — " + (g ? g.name : "a goblin") + " lit up. +1 sap", "someone remembered my matcha.");
+  renderGoblins();
+  renderReplayStrip();
+  saveState();
+  scheduleMatchaCraving(randi(70000, 120000));
+  return true;
+}
+
+function expireMatcha() {
+  if (!matchaGoblinId) return;
+  var id = matchaGoblinId, g = S.goblins[id];
+  matchaGoblinId = null; matchaHeld = false;
+  if (matchaCupEl && matchaCupEl.parentNode) matchaCupEl.parentNode.removeChild(matchaCupEl);
+  matchaCupEl = null;
+  var app = document.getElementById("app");
+  if (app) app.classList.remove("carrying-matcha");
+  hideMatchaChip();
+  if (g) {
+    g.mood = "wistful"; /* folds to the lonely mood bucket */
+    g.memory = "I waited for matcha. Nobody came.";
+    showBubble(id, pick(MATCHA_LONELY_LINES), 3600);
+  }
+  pushReplay(g ? g.name : "A goblin", "Matcha craving passed", "note",
+    "the matcha craving passed, unanswered.", "I waited. Nobody came.");
+  renderGoblins();
+  renderReplayStrip();
+  saveState();
+  /* the lonely mood is a mood, not a sentence — it lifts on its own */
+  clearTimeout(matchaMoodTimer);
+  matchaMoodTimer = setTimeout(function () {
+    if (g && g.mood === "wistful") { g.mood = "calm"; renderGoblins(); saveState(); }
+  }, 60000);
+  scheduleMatchaCraving(randi(70000, 120000));
+}
+
+/* A small zolCelebrate-style sprinkle — sap, not ZOL, so it flies to the
+   🔮 sap readout in #currency, never the ZOL wallet (that would misreport
+   which currency moved). */
+function matchaCelebrate(g) {
+  var cur = document.getElementById("currency");
+  if (!cur) return;
+  var wr = cur.getBoundingClientRect();
+  var toX = wr.left + wr.width / 2, toY = wr.top + wr.height / 2;
+  var startX = window.innerWidth / 2, startY = window.innerHeight * 0.6;
+  if (g) { startX = window.innerWidth * (g.x / 100); startY = window.innerHeight * (g.y / 100); }
+  for (var i = 0; i < 3; i++) {
+    (function (i) {
+      var c = document.createElement("div");
+      c.className = "zol-coin";
+      c.textContent = "🍵";
+      c.style.left = (startX + (Math.random() - 0.5) * 40) + "px";
+      c.style.top = (startY + (Math.random() - 0.5) * 30) + "px";
+      document.body.appendChild(c);
+      setTimeout(function () {
+        c.style.left = toX + "px";
+        c.style.top = toY + "px";
+        c.style.transform = "scale(0.4) rotate(360deg)";
+        c.style.opacity = "0.2";
+      }, 40 + i * 90);
+      setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 950 + i * 90);
+    })(i);
+  }
+  flashClass(cur, "zol-pop", 700);
 }
 
 /* ---------------------------------------------------------------------
@@ -6451,13 +6744,14 @@ var FR_STRINGS = {
   "🌳 Tree Song — hold stations, hear the ratios": "🌳 Chant de l'Arbre — tenez les stations, écoutez les rapports",
   "silence — also a note": "le silence — une note aussi",
   "unison": "unisson",
-  "perfect fifth": "quinte parfaite",
-  "perfect fourth": "quarte juste",
+  "octave — the return": "octave — le retour",
+  "perfect fifth — the golden agreement": "quinte parfaite — l'accord doré",
+  "perfect fourth — the pillar": "quarte juste — le pilier",
   "major sixth": "sixte majeure",
   "minor sixth": "sixte mineure",
-  "major third": "tierce majeure",
+  "major third — the smile": "tierce majeure — le sourire",
   "minor third": "tierce mineure",
-  "tritone — fertile tension": "triton — tension féconde",
+  "tritone — the fertile tension": "triton — la tension féconde",
   "wandering — the comma smiles": "errance — le comma sourit",
 
   /* --- les questions de gobelins (éthique) --- */
@@ -6812,7 +7106,7 @@ function wireInput() {
     toggleProposalInspector();
   });
   document.getElementById("world").addEventListener("click", function (e) {
-    if (e.target.id === "world") { ensureAudio(); resumeAudio(); }
+    if (e.target.id === "world") { ensureAudio(); resumeAudio(); playConga(); }
   });
 
   /* Help overlay controls */
@@ -6969,6 +7263,11 @@ window.WARREN_DEBUG = {
   setLevel: function (n) { return setLevel(n); },
   getLevels: function () { return LEVELS; },
   currentLevel: function () { return currentLevel(); },
+  /* click congas (VISION_V1_28 §4) */
+  getCongaIdx: function () { return congaIdx; },
+  /* Lulu voice seam (VISION_V1_28 §5) */
+  getLuluVoiceURLs: function () { return LULU_VOICE_URLS; },
+  fireLuluVoiceLine: function (k) { luluVoiceLine(k); return true; },
   mgResolve: function (win, reward) { endMinigame(!!win, "debug", reward || 0, null); },
   getEchoes: function () { return S.echoes; },
   setEcho: function (k, v) { S.echoes[k] = v; saveState(); return S.echoes; },
@@ -7014,6 +7313,12 @@ window.WARREN_DEBUG = {
   spawnGoldfall: function () { spawnGoldfall(); },
   catchGoldfall: function () { catchGoldfall(); },
   goldfallActive: function () { return !!goldfallEl; },
+  /* matcha craving (VISION_V1_28 §3) */
+  spawnMatchaCraving: function () { spawnMatchaCraving(); },
+  pickUpMatcha: function () { onTapMatchaCup(); },
+  deliverMatcha: function () { if (matchaGoblinId && !matchaHeld) onTapMatchaCup(); return deliverMatcha(); },
+  expireMatcha: function () { expireMatcha(); },
+  getMatcha: function () { return { active: !!matchaGoblinId, goblinId: matchaGoblinId, held: matchaHeld }; },
   /* healing sound layers */
   shamanicBurst: function (i) { Sound.shamanicBurst(i); },
   didgeridoo: function () { Sound.didgeridoo(); },
@@ -7133,6 +7438,9 @@ function boot() {
 
   /* the sky sheds a coin now and then — first one comes a little sooner */
   scheduleGoldfall(randi(25000, 55000));
+
+  /* a goblin wants matcha, eventually — a small want, a small tending */
+  scheduleMatchaCraving(randi(70000, 120000));
 
   /* one wanderer, once — it appears only while the Warren has no kin */
   if (!S.adopted) {

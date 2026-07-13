@@ -1569,6 +1569,47 @@ html, body {
   75%     { margin-top: -5px; margin-left: -4px; }
 }
 
+/* ---------- MATCHA CRAVING (VISION_V1_28 §3) ---------- */
+.matcha-cup {
+  position: absolute;
+  font-size: 22px;
+  z-index: 30;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  padding: 12px; /* generous tap area */
+  filter: drop-shadow(0 0 8px #9be8c5);
+  animation: matchabob 2.2s ease-in-out infinite;
+}
+@keyframes matchabob {
+  0%,100% { margin-top: 0; }
+  50%     { margin-top: -5px; }
+}
+#matcha-chip {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 950;
+  background: rgba(20, 30, 24, 0.92);
+  border: 1px solid rgba(155, 232, 197, 0.5);
+  color: #9be8c5;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: matchachipin 0.25s ease;
+}
+@keyframes matchachipin {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+#app.carrying-matcha #world { cursor: pointer; }
+/* the sap sprinkle rides the same coin-float mechanics as ZOL, on #currency instead of the wallet */
+#currency.zol-pop { animation: zolpop 0.9s ease-out; }
+
 #quiz-head {
   display: flex;
   align-items: center;
