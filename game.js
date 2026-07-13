@@ -349,7 +349,13 @@ function makeState() {
        not decoration). Finding is expressive: it sings, tells a line, and
        writes a garden receipt. It grants no ZOL and admits nothing (membrane
        law). unlocked = has surfaced in the moss · found = has been tapped. */
-    collectibles: { unlocked: [], found: [] }
+    collectibles: { unlocked: [], found: [] },
+    /* QUIZ_TO_ZOL_V1 — hallucination correction loop.
+       quizState tracks which reward_keys have been paid; villageState holds
+       the persistent visual effects that survive reload. Neither touches the
+       HELEN OS governed ledger — game-local ZOL only. */
+    quizState: { rewardPaid: {} },
+    villageState: { unlockedEffects: [] }
   };
 }
 
@@ -421,6 +427,13 @@ function mergeDefaults(loaded) {
     };
     /* a found relic is necessarily unlocked (older saves, or hand-edits) */
     out.collectibles.found.forEach(function (id) { if (out.collectibles.unlocked.indexOf(id) < 0) out.collectibles.unlocked.push(id); });
+    /* QUIZ_TO_ZOL_V1 state */
+    out.quizState = (loaded.quizState && typeof loaded.quizState.rewardPaid === "object")
+      ? { rewardPaid: Object.assign({}, loaded.quizState.rewardPaid) }
+      : { rewardPaid: {} };
+    out.villageState = (loaded.villageState && Array.isArray(loaded.villageState.unlockedEffects))
+      ? { unlockedEffects: loaded.villageState.unlockedEffects.slice() }
+      : { unlockedEffects: [] };
   } catch (e) { return d; }
   return out;
 }
@@ -6369,6 +6382,169 @@ function promptEngineeringQuiz() {
 }
 
 /* ---------------------------------------------------------------------
+   QUIZ_TO_ZOL_V1 — HALLUCINATION CORRECTION LOOP
+   One question. Lulu presents a statement containing a confidently wrong
+   claim. The player must identify and correct it. First correct answer
+   pays exactly +10 ZOL and lights the Knowledge Lantern in the village.
+   All subsequent attempts: feedback only, ΔZOL = 0 forever.
+   reward_key scheme: "<quiz_id>_v<completion_version>"
+   Law: "Knowledge earns ZOL. ZOL changes the Warren. The Warren never
+   impersonates authority." — authority:false, admission:NOT_ADMITTED.
+   helenState: UNTOUCHED. No writes outside the repo. No ledger path.
+--------------------------------------------------------------------- */
+
+var QUIZ_ZOL_V1_ID = "hallucination_q1";
+var QUIZ_ZOL_V1_COMPLETION_VERSION = 1;
+var QUIZ_ZOL_V1_REWARD_KEY = QUIZ_ZOL_V1_ID + "_v" + QUIZ_ZOL_V1_COMPLETION_VERSION;
+var QUIZ_ZOL_V1_REWARD_ZOL = 10;
+var QUIZ_ZOL_V1_LANTERN_EFFECT = "knowledge-lantern";
+
+/* The question: Lulu states a hallucination (a confident wrong claim about
+   AI history). Player must pick the correction. Single combined-choice
+   format — simplest UI that proves the full loop. */
+var QUIZ_ZOL_V1_QUESTION = {
+  id: QUIZ_ZOL_V1_ID,
+  kind: "hallucination",
+  q: "Lulu announces: “Fun fact! The first AI program was written in 1823 by Ada Lovelace on her mechanical loom, and it successfully taught the machine to compose symphonies.” What is wrong with this claim?",
+  options: [
+    "Ada Lovelace wrote notes for Babbage’s Analytical Engine in the 1840s — no working program ran, no loom was used, and no symphony was composed by machine.",
+    "The date is wrong — it should be 1923, and the loom detail is correct.",
+    "Nothing is wrong. Ada Lovelace was the first programmer and did compose machine music.",
+    "Only the symphony part is wrong. Everything else is historically accurate."
+  ],
+  correctIdx: 0,
+  explain: "Ada Lovelace’s 1843 notes on Babbage’s Analytical Engine are the earliest algorithm on record — but no machine ran it, no loom was involved, and no music was produced. Lulu confidently combined three wrong details into one plausible-sounding claim.",
+  luluReaction: "Oh… I may have… remembered that… incorrectly… the lantern knows the truth now… it will remember for me…"
+};
+
+function quizZolRewarded() {
+  return !!(S.quizState && S.quizState.rewardPaid && S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY]);
+}
+
+function lightKnowledgeLantern() {
+  /* Idempotent: if the lantern effect is already in villageState, skip the
+     addObject (it was re-added on boot). Just ensure villageState is set. */
+  if (!S.villageState) S.villageState = { unlockedEffects: [] };
+  var already = S.villageState.unlockedEffects.indexOf(QUIZ_ZOL_V1_LANTERN_EFFECT) >= 0;
+  if (!already) {
+    S.villageState.unlockedEffects.push(QUIZ_ZOL_V1_LANTERN_EFFECT);
+    addObject("🪔", "Knowledge Lantern", "gate"); /* 🪔 persistent village lantern */
+    renderObjects();
+  }
+}
+
+function openHallucinationQuiz() {
+  if (quizOpen) return;
+  ensureAudio(); resumeAudio();
+  quizOpen = true;
+  var q = QUIZ_ZOL_V1_QUESTION;
+  currentQuiz = {
+    kind: "hallucination",
+    quizId: q.id,
+    q: q.q,
+    options: q.options.slice(), /* not shuffled — choice position is part of the UI contract */
+    correctIdx: q.correctIdx,
+    explain: q.explain,
+    luluReaction: q.luluReaction
+  };
+  /* render on the existing quiz sheet (same DOM, same hide/show pattern) */
+  renderSheetHallucinationQuiz();
+}
+
+function renderSheetHallucinationQuiz() {
+  /* hide all other sheets */
+  var ids = ["sheet-idle", "sheet-goblin", "sheet-proposal", "sheet-oracle"];
+  ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add("hidden"); });
+  var _sc = document.getElementById("sheet-council"); if (_sc) _sc.classList.add("hidden");
+  var sheet = document.getElementById("sheet-quiz");
+  sheet.classList.remove("hidden");
+
+  var head = document.getElementById("quiz-head");
+  if (head) head.innerHTML = "<span>🦊</span><span>Lulu has a fun fact</span> <span>— spot the hallucination</span>"; /* 🦊 */
+
+  document.getElementById("quiz-text").textContent = currentQuiz.q;
+  var result = document.getElementById("quiz-result");
+  if (result) result.textContent = quizZolRewarded() ? "✅ Already corrected — the lantern remembers." : "";
+
+  var host = document.getElementById("quiz-buttons");
+  host.innerHTML = "";
+  currentQuiz.options.forEach(function (opt, idx) {
+    var b = document.createElement("button");
+    b.className = "qbtn";
+    b.textContent = opt;
+    (function (choiceIdx) {
+      b.addEventListener("click", function () { answerHallucinationQuiz(choiceIdx); });
+    }(idx));
+    host.appendChild(b);
+  });
+}
+
+function answerHallucinationQuiz(choiceIdx) {
+  if (!quizOpen || !currentQuiz || currentQuiz.kind !== "hallucination") return;
+  var correct = choiceIdx === currentQuiz.correctIdx;
+  var result = document.getElementById("quiz-result");
+  var btns = document.querySelectorAll("#quiz-buttons .qbtn");
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+
+  if (correct) {
+    /* -- STEP 1: validate answer (already done: correct === true) */
+    /* -- STEP 2: calculate reward */
+    var reward = quizZolRewarded() ? 0 : QUIZ_ZOL_V1_REWARD_ZOL;
+    /* -- STEP 3: mark question paid (before any side effects) */
+    if (!S.quizState) S.quizState = { rewardPaid: {} };
+    var firstTime = !S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY];
+    if (firstTime) S.quizState.rewardPaid[QUIZ_ZOL_V1_REWARD_KEY] = true;
+    /* -- STEP 4: persist wallet (credit ZOL if first time) */
+    if (reward > 0) {
+      S.learning.zolBalance += reward;
+      zolCelebrate(reward);
+      flashClass(document.getElementById("sheet-quiz"), "quiz-yay", 900);
+      Sound.riddleCorrect();
+      if (result) result.textContent = currentQuiz.explain + " +" + reward + " ZOL 🪔";
+    } else {
+      /* retry: show feedback, no payment */
+      Sound.bloom && Sound.bloom();
+      if (result) result.textContent = "✅ Correct — but the lantern already remembered this. The Warren does not pay twice.";
+    }
+    /* -- STEP 5: emit village effect (idempotent: lightKnowledgeLantern guards itself) */
+    lightKnowledgeLantern();
+    /* -- STEP 6: persist state */
+    saveState();
+    renderTopbar();
+    /* -- STEP 7: Lulu reaction line */
+    setTimeout(function () { showBubble("lulu", currentQuiz.luluReaction, 4800); }, 350);
+    pushReplay("Lulu", "Hallucination corrected", "quiz-zol",
+      "player spotted the hallucination in Lulu’s claim." + (firstTime ? " +" + QUIZ_ZOL_V1_REWARD_ZOL + " ZOL. Knowledge Lantern lit." : " (no additional ZOL — already rewarded)"), "");
+  } else {
+    Sound.riddleWrong && Sound.riddleWrong();
+    flashClass(document.getElementById("sheet-quiz"), "quiz-sneeze", 650);
+    var correctText = currentQuiz.options[currentQuiz.correctIdx];
+    if (result) result.textContent = "Not quite… " + (currentQuiz.explain || "the correct answer was: " + correctText);
+  }
+
+  renderReplayStrip();
+  setTimeout(function () {
+    quizOpen = false;
+    currentQuiz = null;
+    if (S.activeProposal) renderSheetProposal(); else renderSheetIdle();
+  }, 2800);
+}
+
+/* Re-light the Knowledge Lantern on boot if it was already unlocked in a
+   previous session. Called from boot() after state is loaded. */
+function restoreKnowledgeLantern() {
+  if (!S.villageState) return;
+  if (S.villageState.unlockedEffects.indexOf(QUIZ_ZOL_V1_LANTERN_EFFECT) >= 0) {
+    /* Only add the object if no object with this sign already exists
+       (guards against double-adds during a session). */
+    var alreadyPresent = S.objects.some(function (o) { return o.sign === "Knowledge Lantern"; });
+    if (!alreadyPresent) {
+      addObject("🪔", "Knowledge Lantern", "gate"); /* 🪔 */
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
    GOBLIN QUESTIONS — ethics as relationship, not curriculum. A goblin
    with a bias asks about the things humanity is currently arguing about.
    There is NO correct answer and NO punishment: every stance pays, every
@@ -7898,7 +8074,16 @@ window.WARREN_DEBUG = {
   forceFaintBoop: function (id) { doFaintBoop(id || Object.keys(S.goblins)[0]); },
   wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} },
   /* v-local.1: generateGoblinLine test surface */
-  generateGoblinLine: function (id, mood, events, cb) { generateGoblinLine(id, mood, events, cb); }
+  generateGoblinLine: function (id, mood, events, cb) { generateGoblinLine(id, mood, events, cb); },
+  /* QUIZ_TO_ZOL_V1 test surface */
+  openHallucinationQuiz: function () { openHallucinationQuiz(); },
+  answerHallucinationQuiz: function (idx) { answerHallucinationQuiz(idx); },
+  getQuizZolState: function () { return { quizState: S.quizState, villageState: S.villageState }; },
+  quizZolRewarded: function () { return quizZolRewarded(); },
+  getQuizZolQuestion: function () { return QUIZ_ZOL_V1_QUESTION; },
+  restoreKnowledgeLantern: function () { restoreKnowledgeLantern(); renderObjects(); },
+  /* test utility: force-close the quiz so a second open can proceed without waiting 2800ms */
+  forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; }
 };
 
 /* ---------------------------------------------------------------------
@@ -7909,6 +8094,7 @@ function boot() {
   buildStaticWorld();
   wireInput();
   layoutObjects();
+  restoreKnowledgeLantern(); /* QUIZ_TO_ZOL_V1: re-light lantern if already earned */
   applyLevelBackdrop();
   renderAll();
   renderSheetIdle();
