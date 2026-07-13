@@ -2961,20 +2961,19 @@ var LEVELS = [
   { id: 2, name: "THE GLADE", mgs: ["stackhats", "nomush", "zolrain"],
     bg: "bg/level2-glade.jpeg",
     tint: "saturate(1.05)" },
-  { id: 3, name: "THE DEEP", mgs: ["ingredients", "memory", "feed"], bg: null,
-    /* the OLD level-1 hero scene re-introduced here by operator order —
-       regenerated more vivid, less red, more green (same storybook style
-       as the glade). Layered OVER the gradient; offline, the gradient
-       carries. */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130015_1bd48783-3a62-4215-9bae-2d2ef874db0c.png",
-    scene: "linear-gradient(180deg, #0a0a1e 0%, #16112a 45%, #241a2e 100%)",
-    tint: "saturate(1.1)" },
-  { id: 4, name: "THE SPIRE", mgs: ["bubblepop", "inflation", "bell"], bg: null,
-    /* freshly generated to match L2+L3's painterly style — vivid greens
-       and violet crystal, no red */
-    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_130018_0a11dbfd-6b6f-4ea0-a8a3-a4b8a8b2e6ee.png",
-    scene: "linear-gradient(180deg, #1a1140 0%, #2c2154 55%, #3a2a63 100%)",
-    tint: "saturate(1.08)" }
+  { id: 3, name: "THE VILLAGE", mgs: ["ingredients", "memory", "feed"], bg: null,
+    /* operator-directed style: the weathered DETAILED goblin-village look
+       (campfire, cottages, watchtower, mushroom house, mine) — gritty,
+       moody, mature concept art (Recraft V4.1, not nano_banana, which the
+       operator found too cute). Remote-over-gradient, offline fallthrough. */
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131830_da27def8-b3ca-4b38-87d1-c5709d8bc6e5.png",
+    scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
+    tint: "saturate(1.02)" },
+  { id: 4, name: "THE WORKSHOPS", mgs: ["bubblepop", "inflation", "bell"], bg: null,
+    /* same weathered village style, workshop/forge district (Recraft V4.1) */
+    bgRemote: "https://d8j0ntlcm91z4.cloudfront.net/user_2wU5kU3oaVS8fuAOpu5gO44KSqx/hf_20260713_131834_5bdbe42c-db84-42fb-b8dc-1e6a79441348.png",
+    scene: "linear-gradient(180deg, #0d1220 0%, #161c2a 48%, #1c2130 100%)",
+    tint: "saturate(1.02)" }
 ];
 
 function currentLevel() {
