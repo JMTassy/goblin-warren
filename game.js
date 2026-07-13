@@ -5915,6 +5915,31 @@ var SKY_LINES = [
   "the circle on the cauldron is the replay: what returns, returns changed",
   "transformation is admitted, never proclaimed — your hand is the athanor"
 ];
+/* THE GOBLIN ALMANAC — classic haikus/kōans/aphorisms bent to goblin voice
+   (docs/GOBLIN_ALMANAC.md). A reading is sometimes a sky-line, sometimes one
+   of these. NO_CLAIM garden lore: a verse changes the mood, never the ledger.
+   Several echo the Warren's real laws (resonance ⊬ evidence · the Lantern). */
+var GOBLIN_ALMANAC = [
+  "Old bog, still and green — a goblin cannonballs in. Plip. Nobody claps.",
+  "Mushroom after rain: yesterday there was nothing. Today, a small hat.",
+  "Snail on the cold stone — slowly, slowly, it arrives. So does the receipt.",
+  "Lantern in the fog: it lit nothing but itself. Still, we all showed up.",
+  "First frost on the moss — the goblins argue whose fault. It was nobody's.",
+  "The Tree does not speak. It writes everything down, though. Mind what you boop.",
+  "I boop, therefore I am booped.",
+  "Before the receipt: chop mushrooms, carry water. After the receipt: chop mushrooms, carry water.",
+  "A warren of nine chambers begins with a single riddle.",
+  "Know thy goblin. It prefers the forge. It will not garden. Stop asking.",
+  "To boop, or not to boop. (There is no 'not'.)",
+  "The early goblin catches the bug. The late goblin names it Gerald and builds it an apartment.",
+  "You cannot boop the same goblin twice — the first boop already changed it.",
+  "Do not summon a boss to explain what a blocked pipe already explains.",
+  "A myth may gather the idiots. Only the repair grows the mushroom.",
+  "Beauty is not evidence — but it is very good at getting a meeting.",
+  "The loudest mask has the least to say. Laugh; it shrinks.",
+  "Nothing becomes true by being repeated. It only becomes familiar.",
+  "A denied idea is not deleted. It is composted, and grows back wiser."
+];
 var ORACLE_HOSTS = [
   { icon: "🕯️", name: "The Cave Voice" },
   { icon: "🦋", name: "The Memory Moth" },
@@ -5952,7 +5977,9 @@ function buildReading() {
   var choiceSym = r && CHOICE_SYMBOLS[r.choice] ? CHOICE_SYMBOLS[r.choice] : "a small thing, noticed";
   var garden = "Under the " + cur.word + " current of " + cur.planet + ", this reads as " +
     choiceSym + " — filed with " + (ZONE_SYMBOLS[zoneId] || "the moss") + ".";
-  var sky = pick(SKY_LINES);
+  /* ~40% of readings, a goblin recites from the Almanac instead of the sky
+     line — same NO_CLAIM register, a lighter voice. */
+  var sky = (Math.random() < 0.4) ? pick(GOBLIN_ALMANAC) : pick(SKY_LINES);
   var rec = recurrenceNote();
   return { host: host, color: cur.color, ground: ground, garden: garden, sky: sky + (rec ? " " + rec : "") };
 }
