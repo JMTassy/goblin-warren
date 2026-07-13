@@ -1644,9 +1644,45 @@ function luluBuildPrompt(msg) {
     "Player says: " + msg + "\nLulu:";
 }
 
+/* v-local.1 / G13: remote calls are OFF by default. The Anthropic path below
+   runs only when the operator explicitly sets warren_remote_experimental="true"
+   in sessionStorage IN ADDITION to providing a key. Default runtime is
+   local-first: Lulu live chat routes to local Ollama (Gemma), then templates. */
+function luluRemoteEnabled() {
+  try { return sessionStorage.getItem("warren_remote_experimental") === "true"; } catch (e) { return false; }
+}
+
+function luluLocalReply(msg, done) {
+  var fallback = function () { done(luluOfflineReply(msg), false); };
+  try {
+    var didRespond = false;
+    var timer = setTimeout(function () {
+      if (!didRespond) { didRespond = true; fallback(); }
+    }, 4000);
+    fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: luluBuildPrompt(msg), stream: false })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("ollama http " + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (didRespond) return;
+      didRespond = true; clearTimeout(timer);
+      var txt = ((j && j.response) || "").replace(/[{}\[\]]/g, "").slice(0, 240).trim();
+      if (txt) done(txt, true); else fallback();
+    }).catch(function () {
+      if (didRespond) return;
+      didRespond = true; clearTimeout(timer);
+      fallback();
+    });
+  } catch (e) { fallback(); }
+}
+
 function luluLiveReply(msg, done) {
   var key = luluApiKey();
-  if (!key) { done(luluOfflineReply(msg), false); return; }
+  /* local-first: remote requires BOTH a key AND the explicit experimental switch */
+  if (!key || !luluRemoteEnabled()) { luluLocalReply(msg, done); return; }
   var body = { model: "claude-haiku-4-5-20251001", max_tokens: 120,
     messages: [{ role: "user", content: luluBuildPrompt(msg) }] };
   var ctrl = null;

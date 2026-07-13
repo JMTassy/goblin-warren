@@ -232,6 +232,38 @@ gate("G12_docs_catalog_intact_and_augmented",
   "historical CDN URLs preserved=" + docsPreserveUrl + " local paths added=" + docsHasLocalPaths);
 
 /* -----------------------------------------------------------------------
+   G13: NO REMOTE RUNTIME CALLS BY DEFAULT — every non-localhost network
+   call in code must be unreachable unless the operator explicitly enables
+   warren_remote_experimental. Operator ruling 2026-07-13.
+----------------------------------------------------------------------- */
+/* Scope: the CANONICAL runtime = index.html + everything it loads.
+   v2.html / v3.html are standalone legacy experimental pages, never loaded
+   by the canonical entry — they are the "explicit non-local experimental
+   surface" the ruling permits. G13 asserts that isolation holds. */
+var codeFilesG13 = ["game.js", "logic.js", "index.html", "style.css"];
+var remoteViolations = [];
+codeFilesG13.forEach(function (f) {
+  var src = "";
+  try { src = fs.readFileSync(path.join(REPO, f), "utf8"); } catch (e) { return; }
+  var re = /https?:\/\/(?!localhost|127\.0\.0\.1)[a-z0-9.-]+/gi, m;
+  while ((m = re.exec(src)) !== null) remoteViolations.push(f + ": " + m[0]);
+});
+var indexSrcG13 = fs.readFileSync(path.join(REPO, "index.html"), "utf8");
+var canonicalIsolated = indexSrcG13.indexOf("v2.html") === -1 && indexSrcG13.indexOf("v3.html") === -1;
+/* the single allowed remote host is api.anthropic.com, and only because the
+   code guards it behind luluRemoteEnabled() (explicit experimental switch) */
+var gameSrcG13 = fs.readFileSync(path.join(REPO, "game.js"), "utf8");
+var onlyAnthropic = remoteViolations.every(function (v) { return v.indexOf("api.anthropic.com") !== -1; });
+var guardPresent = gameSrcG13.indexOf("luluRemoteEnabled()") !== -1 &&
+  /if\s*\(!key\s*\|\|\s*!luluRemoteEnabled\(\)\)\s*\{\s*luluLocalReply/.test(gameSrcG13);
+var defaultIsFalse = /warren_remote_experimental"\)\s*===\s*"true"/.test(gameSrcG13);
+gate("G13_no_remote_runtime_calls_by_default",
+  onlyAnthropic && guardPresent && defaultIsFalse && canonicalIsolated,
+  "remote refs=" + remoteViolations.length + " (all anthropic=" + onlyAnthropic +
+  ") guarded=" + guardPresent + " default-off=" + defaultIsFalse +
+  " v2/v3 isolated=" + canonicalIsolated);
+
+/* -----------------------------------------------------------------------
    Summary
 ----------------------------------------------------------------------- */
 console.log("");
