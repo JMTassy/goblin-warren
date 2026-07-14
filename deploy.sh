@@ -33,7 +33,9 @@ ZIP="deploy/goblin-warren-v${V}.zip"
 FILES=(index.html style.css game.js logic.js manifest.json assets)
 for f in "${FILES[@]}"; do [ -e "$f" ] || { echo "FATAL: missing $f"; exit 1; }; done
 zip -qr "$ZIP" "${FILES[@]}"
-unzip -l "$ZIP" | grep -q 'logic.js' || { echo "FATAL: logic.js missing from bundle"; exit 1; }
+# pipe-free presence check: `unzip -l | grep -q` trips `set -o pipefail`
+# (grep -q exits early → unzip SIGPIPE → pipe reports failure though present).
+case "$(unzip -l "$ZIP")" in *logic.js*) ;; *) echo "FATAL: logic.js missing from bundle"; exit 1;; esac
 LOCAL=$(stat -c%s "$ZIP")
 echo "built $ZIP (${LOCAL} bytes)"
 
