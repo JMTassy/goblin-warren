@@ -97,6 +97,34 @@ function luluSurpriseLine(key) {
 }
 
 /* ---------------------------------------------------------------------
+   VISION_V1_33 §4 — THE PROLOGUE'S VOICE. Three lines, same seam shape
+   as LULU_VOICE_URLS: empty strings until Fable fills them post-
+   generation. NOTE: unlike the local Lulu/SFX seams above, these are new
+   and should be filled as full CDN https URLs (not local paths) — the
+   dual-source/localize pass covers them later. TTS fallback (luluSpeak)
+   covers every gap in the meantime, so the Prologue is always fully
+   playable offline.
+--------------------------------------------------------------------- */
+/* Local paths — same pipeline as every other Luna line (LULU_VOICE_CDN =
+   "assets/audio/"). The 3 files land when the laptop downloads them (CDN
+   sources recorded in docs/LULU_VOICE_LINES.md); until then the path 404s
+   and luluPrologueLine falls through to browser TTS. No CDN in code. */
+var LULU_PROLOGUE_URLS = {
+  greet: "assets/audio/hf_20260713_235654_prologue_greet.mp3",
+  boop:  "assets/audio/hf_20260713_235657_prologue_boop.mp3",
+  seed:  "assets/audio/hf_20260713_235703_prologue_seed.mp3"
+};
+var LULU_PROLOGUE_TEXT = {
+  greet: "Oh... it is you... you came... I did not want to hope... sit with me a moment... tonight the Warren is very small... just you... and me... and the Tree that remembers.",
+  boop: "There... you noticed me... that is the whole magic... to be noticed... is to become real... now... shall I call a friend? Slowly. We do everything slowly here.",
+  seed: "Here. One seed. It is yours now. In this garden... what you tend... becomes real. Not because you wished it... because you tended it. Begin."
+};
+function luluPrologueLine(key) {
+  if (!key) return;
+  playLuluAudioLine(LULU_PROLOGUE_URLS[key], LULU_PROLOGUE_TEXT[key] || "");
+}
+
+/* ---------------------------------------------------------------------
    WORLD DATA (visual language — unchanged by the state-contract update)
 --------------------------------------------------------------------- */
 
@@ -321,7 +349,12 @@ function makeState() {
     objects: [],
     replay: [],
     flags: { greeted: false, firstSignalSeen: false, firstProposalResolved: false, secondEventReferencedFirst: false, geraldFate: null,
-             boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0, serpentTapped: false, organPlayed: false },
+             boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0, serpentTapped: false, organPlayed: false,
+             /* VISION_V1_33 §1 — first-run-only Prologue gate; false only on
+                a genuinely fresh boot (no save at all). mergeDefaults() and
+                the loadState() belt-and-suspenders below grandfather any
+                pre-existing save to true. */
+             prologueSeen: false },
     /* VISION_V1_30 §1 — levels are earned doors, not a free carousel.
        levelsUnlocked holds every chapter id the player has paid the toll
        for; L1 is always free (default [1]). */
@@ -409,6 +442,12 @@ function mergeDefaults(loaded) {
     out.objects = Array.isArray(loaded.objects) ? loaded.objects : [];
     out.replay = Array.isArray(loaded.replay) ? loaded.replay : [];
     out.flags = Object.assign({}, d.flags, loaded.flags || {});
+    /* VISION_V1_33 §1 — grandfather law: reaching mergeDefaults means an
+       older/malformed save already existed — this is not a fresh player,
+       so skip the Prologue, unless the save explicitly recorded false
+       (the "watch it again" replayPrologue() debug affordance). */
+    out.flags.prologueSeen = (loaded.flags && typeof loaded.flags.prologueSeen === "boolean")
+      ? loaded.flags.prologueSeen : true;
     out.settings = Object.assign({}, d.settings, loaded.settings || {});
     out.learning = Object.assign({}, d.learning, loaded.learning || {});
     out.territories = Object.assign({}, d.territories, loaded.territories || {});
@@ -458,6 +497,14 @@ var isFreshBoot = loaded.fresh;
    Wonder Cache never reads undefined. */
 if (!S.collectibles || !Array.isArray(S.collectibles.found)) S.collectibles = { unlocked: [], found: [] };
 if (!Array.isArray(S.collectibles.unlocked)) S.collectibles.unlocked = S.collectibles.found.slice();
+/* VISION_V1_33 §1 — grandfather: a save that passed validAndComplete
+   whole (no mergeDefaults call) can still predate this flag, since
+   validAndComplete never required it. Only a genuinely fresh boot
+   (isFreshBoot) keeps makeState()'s prologueSeen=false. */
+if (!isFreshBoot) {
+  if (!S.flags) S.flags = {};
+  if (typeof S.flags.prologueSeen !== "boolean") S.flags.prologueSeen = true;
+}
 
 function saveState() {
   S.lastSavedAt = Date.now();
@@ -4531,6 +4578,8 @@ function renderObjects() {
         node.addEventListener("click", function (e) {
           e.stopPropagation();
           ensureAudio(); resumeAudio();
+          /* VISION_V1_33 §2 beat 4 — tapping the seed advances the Prologue early */
+          if (prologueActive && prologueStep === 3 && obj.id === prologueSeedObjId) tapPrologueSeed();
           if (obj.emoji === "🍄") Sound.shamanicBurst();
           else Sound.tibetanBowl(bowlFreqFor(obj.id));
           node.classList.remove("singing");
@@ -7055,6 +7104,9 @@ function renderSheetQuiz() {
 
 function onTapGoblin(id) {
   ensureAudio(); resumeAudio();
+  /* VISION_V1_33 §2 beat 2 — the taming beat: while the Prologue is
+     waiting on Lulu's first tap, route to her instead of a normal boop. */
+  if (prologueActive && id === "lulu" && prologueStep === 1) { tapLuluPrologue(); return; }
   if (matchaHeld && id === matchaGoblinId) { deliverMatcha(); return; } /* the carried cup finds its goblin */
   doBoop(id);
   if (S.activeProposal || quizOpen) return; // proposal/quiz keeps the sheet
@@ -7788,6 +7840,14 @@ function wireInput() {
   document.getElementById("card-close").addEventListener("click", function () { renderSheetIdle(); });
   document.getElementById("oracle-close").addEventListener("click", closeOracle);
 
+  /* VISION_V1_33 §2/§5 — the Prologue is always skippable, never traps */
+  var prologueSkip = document.getElementById("prologue-skip");
+  if (prologueSkip) prologueSkip.addEventListener("click", function (e) {
+    e.stopPropagation();
+    ensureAudio(); resumeAudio();
+    skipPrologue();
+  });
+
   /* The Warren as instrument: any touch, anywhere, rings a Solfeggio tone.
      Random tapping tunes itself — every frequency belongs to the same
      sacred set, so exploration sounds like slow hypnotic music. */
@@ -8057,6 +8117,202 @@ function generateGoblinLine(goblinId, mood, recentEvents, callback) {
 window._generateGoblinLine = generateGoblinLine;
 
 /* ---------------------------------------------------------------------
+   VISION_V1_33 — THE PETIT PRINCE PROLOGUE. First-run-only choreography:
+   the map starts nearly empty at dusk and blooms as the player tames it.
+   Reuses existing render/spawn functions; the Prologue only controls
+   VISIBILITY and ORDER — no new world data, no reducer touch, no ZOL
+   spend, no admission (membrane law; asserted end-to-end by G4 in the
+   standalone prologue-gates.js). Returning players (prologueSeen===true)
+   skip this whole module; boot() renders the full map exactly as today.
+   Restraint is the wow: gentle fades, no strobe, always skippable, never
+   traps (every gate has a fallback timer).
+--------------------------------------------------------------------- */
+var prologueActive = false;
+var prologueStep = 0;          // 0 idle · 1 wait-tap-lulu · 2 boop done · 3 wait-tap-seed · 4 crew reveal · 5 world+chips reveal · 6 done
+var prologueGoblinsShown = 1;  // Lulu counts as already-shown
+var prologueChipsShown = 0;
+var prologueTimers = [];
+var prologueSeedObjId = null;
+var PROLOGUE_CHIPS = ["signal-indicator", "riddle-chip", "level-chip", "currency", "zol-wallet"];
+
+function prologueSetTimeout(fn, ms) {
+  var t = setTimeout(fn, ms);
+  prologueTimers.push(t);
+  return t;
+}
+function prologueClearTimers() {
+  prologueTimers.forEach(function (t) { clearTimeout(t); });
+  prologueTimers = [];
+}
+function prologueReveal(el) { if (el) el.classList.add("prologue-shown", "prologue-reveal"); }
+
+function startPrologue() {
+  if (S.flags.prologueSeen) return; // returning players never enter here (§3)
+  prologueActive = true;
+  prologueStep = 1;
+  prologueGoblinsShown = 1;
+  prologueChipsShown = 0;
+  var app = document.getElementById("app");
+  if (app) app.classList.add("prologue-active");
+  var skip = document.getElementById("prologue-skip");
+  if (skip) skip.classList.remove("hidden");
+  prologueReveal(document.getElementById("zone-tree"));
+  prologueReveal(goblinEls.lulu);
+  prologueSetTimeout(function () {
+    showBubble("lulu", "Oh... it is you... you came...", 4200);
+    luluPrologueLine("greet");
+  }, 400);
+  /* fallback: nobody has to tap for the taming beat to still happen */
+  prologueSetTimeout(function () { if (prologueStep === 1) tapLuluPrologue(); }, 8000);
+}
+
+function tapLuluPrologue() {
+  if (!prologueActive || prologueStep !== 1) return;
+  prologueStep = 2;
+  var g = S.goblins.lulu, el = goblinEls.lulu;
+  if (g) g.mood = "delighted";
+  flashClass(el, "booped", 600); // the same wobble as doBoop's taming click
+  showBubble("lulu", "There... you noticed me...", 3600);
+  luluPrologueLine("boop");
+  renderGoblins();
+  prologueSetTimeout(prologueBloomSeed, 900); // "after the boop" — automatic
+}
+
+function prologueBloomSeed() {
+  if (!prologueActive) return;
+  prologueStep = 3;
+  addObject("🌰", "A Seed, Yours", "tree");
+  renderObjects();
+  var obj = S.objects[S.objects.length - 1];
+  prologueSeedObjId = obj ? obj.id : null;
+  prologueReveal(objectEls[prologueSeedObjId]);
+  showBubble("lulu", "Here. One seed. It is yours now.", 4200);
+  luluPrologueLine("seed");
+  if (window.Sound && Sound.bloom) Sound.bloom();
+  saveState();
+  /* fallback: the crew arrives on their own if the seed goes untapped */
+  prologueSetTimeout(function () { if (prologueStep === 3) prologueRevealCrew(); }, 6000);
+}
+
+function tapPrologueSeed() {
+  if (!prologueActive || prologueStep !== 3) return;
+  prologueRevealCrew();
+}
+
+function prologueRevealCrew() {
+  if (!prologueActive || prologueStep !== 3) return;
+  prologueStep = 4;
+  var rest = GOBLIN_DEFS.filter(function (d) { return d.id !== "lulu"; });
+  rest.forEach(function (d, i) {
+    prologueSetTimeout(function () {
+      prologueReveal(goblinEls[d.id]);
+      prologueGoblinsShown++;
+      if (i === 0) showBubble("lulu", "Lulu brought a friend.", 2800);
+      renderGoblins();
+    }, i * 1200);
+  });
+  prologueSetTimeout(prologueRevealWorld, rest.length * 1200 + 900);
+}
+
+function prologueRevealWorld() {
+  if (!prologueActive) return;
+  prologueStep = 5;
+  var zonesToShow = ZONES.filter(function (z) { return z.id !== "tree"; });
+  zonesToShow.forEach(function (z, i) {
+    prologueSetTimeout(function () { prologueReveal(document.getElementById("zone-" + z.id)); }, i * 500);
+  });
+  var afterZones = zonesToShow.length * 500 + 600;
+  PROLOGUE_CHIPS.forEach(function (id, i) {
+    prologueSetTimeout(function () {
+      prologueReveal(document.getElementById(id));
+      prologueChipsShown++;
+    }, afterZones + i * 500);
+  });
+  prologueSetTimeout(finishPrologue, afterZones + PROLOGUE_CHIPS.length * 500 + 700);
+}
+
+function finishPrologue() {
+  if (prologueStep === 6) return;
+  prologueClearTimers();
+  prologueActive = false;
+  prologueStep = 6;
+  var app = document.getElementById("app");
+  if (app) app.classList.remove("prologue-active");
+  var skip = document.getElementById("prologue-skip");
+  if (skip) skip.classList.add("hidden");
+  S.flags.prologueSeen = true;
+  /* the Prologue already greeted — hand off without double-firing bootScriptedArc's
+     own greeting; its bug-escape/first-proposal beats still proceed from here. */
+  S.flags.greeted = true;
+  saveState();
+  scheduleMoth(randi(8000, 16000)); // the Moth comes to look at the seed
+  bootScriptedArc();
+
+  /* the rest of the ordinary ambient loop, deferred by boot() until now so
+     the first act stayed uncluttered — same calls, same odds, just later. */
+  scheduleRaam(randi(50000, 90000));
+  scheduleSparkle();
+  setTimeout(function () {
+    if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
+  }, 12000);
+  scheduleGoldfall(randi(25000, 55000));
+  scheduleMatchaCraving(randi(70000, 120000));
+  if (!S.adopted) wandererTimer = setTimeout(spawnWanderer, randi(50000, 110000));
+  pickDailyVerdict(utcDateStr(), DV_DILEMMAS.length, function (idx) {
+    dvPickedIndex = idx;
+    if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
+  });
+}
+
+/* a skip is a snap, not a scene: reveal everything at once, no fades */
+function skipPrologue() {
+  if (!prologueActive) return;
+  prologueClearTimers();
+  GOBLIN_DEFS.forEach(function (d) { prologueReveal(goblinEls[d.id]); });
+  ZONES.forEach(function (z) { prologueReveal(document.getElementById("zone-" + z.id)); });
+  PROLOGUE_CHIPS.forEach(function (id) { prologueReveal(document.getElementById(id)); });
+  if (!prologueSeedObjId) {
+    addObject("🌰", "A Seed, Yours", "tree");
+    renderObjects();
+    var obj = S.objects[S.objects.length - 1];
+    if (obj) prologueReveal(objectEls[obj.id]);
+  }
+  renderGoblins();
+  finishPrologue();
+}
+
+/* ---- VISION_V1_33 §6 — debug/test hooks for prologue-gates.js ---- */
+function setPrologueSeen(v) { S.flags.prologueSeen = !!v; saveState(); return S.flags.prologueSeen; }
+function replayPrologue() {
+  prologueClearTimers();
+  prologueActive = false; prologueStep = 0; prologueGoblinsShown = 1; prologueChipsShown = 0; prologueSeedObjId = null;
+  var app = document.getElementById("app");
+  if (app) app.classList.remove("prologue-active");
+  Object.keys(goblinEls).forEach(function (id) { goblinEls[id].classList.remove("prologue-shown", "prologue-reveal"); });
+  document.querySelectorAll(".zone, .wobject").forEach(function (el) { el.classList.remove("prologue-shown", "prologue-reveal"); });
+  PROLOGUE_CHIPS.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.remove("prologue-shown", "prologue-reveal");
+  });
+  S.flags.prologueSeen = false;
+  saveState();
+  startPrologue();
+  return true;
+}
+function advancePrologue() {
+  if (!prologueActive) return false;
+  if (prologueStep === 1) tapLuluPrologue();
+  else if (prologueStep === 3) tapPrologueSeed();
+  return true;
+}
+function getPrologueState() {
+  var seedEl = prologueSeedObjId ? objectEls[prologueSeedObjId] : null;
+  return { active: prologueActive, seen: !!S.flags.prologueSeen, step: prologueStep,
+    goblinsShown: prologueGoblinsShown, chipsShown: prologueChipsShown,
+    seedObjId: prologueSeedObjId, seedShown: !!(seedEl && seedEl.classList.contains("prologue-shown")) };
+}
+
+/* ---------------------------------------------------------------------
    DEBUG HOOK — used only by the verification harness, not shown in UI
 --------------------------------------------------------------------- */
 
@@ -8261,7 +8517,15 @@ window.WARREN_DEBUG = {
   getQuizZolQuestion: function () { return QUIZ_ZOL_V1_QUESTION; },
   restoreKnowledgeLantern: function () { restoreKnowledgeLantern(); renderObjects(); },
   /* test utility: force-close the quiz so a second open can proceed without waiting 2800ms */
-  forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; }
+  forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; },
+  /* VISION_V1_33 §6 — the Prologue gate surface */
+  setPrologueSeen: function (v) { return setPrologueSeen(v); },
+  replayPrologue: function () { return replayPrologue(); },
+  tapLuluPrologue: function () { return tapLuluPrologue(); },
+  advancePrologue: function () { return advancePrologue(); },
+  skipPrologue: function () { return skipPrologue(); },
+  getPrologueState: function () { return getPrologueState(); },
+  getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
 };
 
 /* ---------------------------------------------------------------------
@@ -8282,17 +8546,30 @@ function boot() {
     ensureTink();
     scheduleCrown(randi(30000, 90000));
   }
-  scheduleRaam(randi(50000, 90000));
-  if ((S.progress.raamDefeats || 0) >= 1) scheduleSeren(randi(120000, 200000));
-  /* FIRST-MINUTE PACING: the opening arc is choreographed so the first 60s
-     always offers something — 12s Lulu's boop hint · ~20s the Moth's first
-     riddle · ~35s the circus sparkle · ~55s Raâm crashes in. Later spawns
-     relax to the old unhurried cadence. */
-  scheduleMoth(randi(16000, 26000));
-  scheduleSparkle();
-  setTimeout(function () {
-    if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
-  }, 12000);
+  /* VISION_V1_33 §2/§3 — a brand-new player (fresh save, prologueSeen
+     still false) gets the Petit Prince Prologue instead of the usual
+     opening flourish below; a returning player (prologueSeen true — the
+     overwhelmingly common case, including every existing save via the
+     mergeDefaults/loadState grandfather) gets EXACTLY today's boot,
+     zero behavior change (§3). The Prologue only reorders/defers these
+     ambient spawns so the first act stays uncluttered — restraint is the
+     wow — then hands every one of them to the normal ambient loop from
+     finishPrologue() once it completes (or is skipped). */
+  var runPrologue = isFreshBoot && !S.flags.prologueSeen;
+
+  if (!runPrologue) {
+    scheduleRaam(randi(50000, 90000));
+    if ((S.progress.raamDefeats || 0) >= 1) scheduleSeren(randi(120000, 200000));
+    /* FIRST-MINUTE PACING: the opening arc is choreographed so the first 60s
+       always offers something — 12s Lulu's boop hint · ~20s the Moth's first
+       riddle · ~35s the circus sparkle · ~55s Raâm crashes in. Later spawns
+       relax to the old unhurried cadence. */
+    scheduleMoth(randi(16000, 26000));
+    scheduleSparkle();
+    setTimeout(function () {
+      if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
+    }, 12000);
+  }
 
   /* Gerald quest unlock gate: after 7s, unlock when player interacts */
   if (S.learning.geraldQuest.stage === "LOCKED") {
@@ -8332,7 +8609,11 @@ function boot() {
     setTimeout(renderCouncil, 1500);
   }
 
-  if (isFreshBoot) {
+  if (runPrologue) {
+    S.startedAt = Date.now();
+    saveState();
+    startPrologue(); // bootScriptedArc + the ambient loop below hand off from finishPrologue()
+  } else if (isFreshBoot) {
     S.startedAt = Date.now();
     saveState();
     bootScriptedArc();
@@ -8343,23 +8624,28 @@ function boot() {
   /* le Terrier parle la langue qu'on lui a demandée, même après un rechargement */
   applyLang();
 
-  /* the sky sheds a coin now and then — first one comes a little sooner */
-  scheduleGoldfall(randi(25000, 55000));
+  if (!runPrologue) {
+    /* the sky sheds a coin now and then — first one comes a little sooner */
+    scheduleGoldfall(randi(25000, 55000));
 
-  /* a goblin wants matcha, eventually — a small want, a small tending */
-  scheduleMatchaCraving(randi(70000, 120000));
+    /* a goblin wants matcha, eventually — a small want, a small tending */
+    scheduleMatchaCraving(randi(70000, 120000));
 
-  /* one wanderer, once — it appears only while the Warren has no kin */
-  if (!S.adopted) {
-    wandererTimer = setTimeout(spawnWanderer, randi(50000, 110000));
+    /* one wanderer, once — it appears only while the Warren has no kin */
+    if (!S.adopted) {
+      wandererTimer = setTimeout(spawnWanderer, randi(50000, 110000));
+    }
+
+    /* today's verdict: resolve the deterministic pick, then drop the scroll
+       (only if today is unstamped — the scroll waits, it never nags) */
+    pickDailyVerdict(utcDateStr(), DV_DILEMMAS.length, function (idx) {
+      dvPickedIndex = idx;
+      if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
+    });
   }
-
-  /* today's verdict: resolve the deterministic pick, then drop the scroll
-     (only if today is unstamped — the scroll waits, it never nags) */
-  pickDailyVerdict(utcDateStr(), DV_DILEMMAS.length, function (idx) {
-    dvPickedIndex = idx;
-    if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
-  });
+  /* runPrologue === true: every spawn above is deferred to finishPrologue(),
+     which fires the exact same calls once the Prologue ends (naturally or
+     via skip) — nothing is lost, it only waits its turn. */
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

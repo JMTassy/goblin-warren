@@ -35,3 +35,15 @@ Local prefix (v-local.1): `assets/audio/` (relative to repo root)
 | disco | "Oh no... you woke the disco mushroom... now we must all... vibrate... politely..." | `hf_20260713_162135_91bc26bb-2db1-41c3-ab6e-5598af66bd1e.mp3` | `assets/audio/hf_20260713_162135_disco.mp3` | 9.1s |
 | secret | "You found a secret... I will pretend to be surprised... oh... wow... a secret..." | `hf_20260713_162145_8f36e64c-18d0-4d94-a984-c08f28d06bf9.mp3` | `assets/audio/hf_20260713_162145_secret.mp3` | 8.6s |
 | staringLose | (TTS-only fallback for now) "You looked away... the goblin is victorious... it will not stop bragging..." | — | — (TTS only) | — |
+
+## Petit Prince Prologue (v1.33) — LULU_PROLOGUE_URLS (first-run only)
+
+Luna/ElevenLabs, ~15s each. **Laptop: download these to the local paths** so
+the Prologue voice plays offline like every other line (no CDN in code; TTS
+fallback until then).
+
+| key | line | CDN source | local path | dur |
+|---|---|---|---|---|
+| greet | "Oh... it is you... you came... sit with me a moment... just you... and me... and the Tree that remembers." | `hf_20260713_235654_b09373bb-e500-41c3-b2f5-e36ca89fc222.mp3` | `assets/audio/hf_20260713_235654_prologue_greet.mp3` | 15.7s |
+| boop | "There... you noticed me... that is the whole magic... to be noticed... is to become real..." | `hf_20260713_235657_fce96b88-aa42-40cc-87e1-d256792f5bf6.mp3` | `assets/audio/hf_20260713_235657_prologue_boop.mp3` | 15.8s |
+| seed | "Here. One seed. It is yours now... what you tend... becomes real... because you tended it. Begin." | `hf_20260713_235703_f7cbbae9-ed14-455d-9ba5-53cdee10034f.mp3` | `assets/audio/hf_20260713_235703_prologue_seed.mp3` | 15.2s |

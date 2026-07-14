@@ -3122,3 +3122,56 @@ html, body {
   font-style: italic;
   text-align: right;
 }
+
+/* -------------------------------------------------------------------
+   VISION_V1_33 — THE PETIT PRINCE PROLOGUE. The wow is restraint: a
+   dusk vignette, one goblin, one object, noticed slowly. Gentle fades
+   only — no snap, no strobe. Everything not yet revealed simply isn't
+   there; each reveal fades+rises in, once, and stays.
+------------------------------------------------------------------- */
+
+/* dusk vignette over the world — dims the scene without hiding it */
+#app.prologue-active #world::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 30%, rgba(10,7,20,0) 0%, rgba(8,5,18,0.62) 78%);
+  opacity: 0.4;
+  transition: opacity 1.4s ease;
+}
+
+/* everything not yet tamed stays out of the scene entirely */
+#app.prologue-active .goblin:not(.prologue-shown),
+#app.prologue-active .zone:not(.prologue-shown),
+#app.prologue-active .wobject:not(.prologue-shown) { display: none; }
+#app.prologue-active #signal-indicator:not(.prologue-shown),
+#app.prologue-active #riddle-chip:not(.prologue-shown),
+#app.prologue-active #level-chip:not(.prologue-shown),
+#app.prologue-active #currency:not(.prologue-shown),
+#app.prologue-active #zol-wallet:not(.prologue-shown) { display: none; }
+
+/* a slow settle for whatever just bloomed — 1.2s fade+rise, once */
+@keyframes prologueReveal {
+  0%   { opacity: 0; transform: translateY(8px); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  60%  { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.28)); }
+  100% { opacity: 1; transform: translateY(0); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+}
+.prologue-reveal { animation: prologueReveal 1.2s ease; }
+
+#prologue-skip {
+  position: absolute;
+  right: calc(10px + var(--safe-right));
+  bottom: calc(10px + var(--safe-bottom));
+  z-index: 60;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--ink-dim);
+  background: rgba(12,10,23,0.45);
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+}
+#prologue-skip:active { opacity: 0.9; }

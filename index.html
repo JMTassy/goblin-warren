@@ -33,6 +33,10 @@
     <!-- zones + goblins + objects injected by game.js -->
   </main>
 
+  <!-- VISION_V1_33 §5/§6 — the Prologue is always skippable, never traps.
+       Shown only while #app carries .prologue-active (see style.css). -->
+  <button id="prologue-skip" class="hidden" aria-label="skip the prologue">tap to skip →</button>
+
   <div id="splash" aria-hidden="true">
     <!-- teaser: a background layer under the title. muted+playsinline so it
          autoplays on mobile; if it can't load, it stays transparent and the
