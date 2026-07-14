@@ -3175,3 +3175,53 @@ html, body {
   transition: opacity 0.3s ease;
 }
 #prologue-skip:active { opacity: 0.9; }
+
+/* -------------------------------------------------------------------
+   VISION_PROGRESSION — THE CRIB (Rungs 1-3). A true zero-menu Level 1:
+   while #app carries .crib-active the top bar and bottom sheet are gone
+   entirely, so the only thing on screen is one goblin, the tree, and the
+   one thing to touch. The bars return at graduation (class removed).
+------------------------------------------------------------------- */
+#app.crib-active #topbar,
+#app.crib-active #bottombar { display: none; }
+/* world furniture the crib hasn't introduced yet — the Little Temple, the
+   sap-serpent, and the Wonder-Cache relics — stays out of the scene until
+   graduation, so Rung 1 is truly one goblin + one tree. (The .prologue-active
+   rule already hides every un-revealed .goblin/.zone/.wobject.) */
+#app.crib-active #temple,
+#app.crib-active .serpent,
+#app.crib-active .collectible { display: none; }
+/* keep the dusk vignette deeper during the crib for the "quiet dusk" feel */
+#app.crib-active #world::before { opacity: 0.6; }
+
+/* the one subtle pulsing point of interaction — "👁 = notice" (glyph-free:
+   a gentle breathing glow, not an icon). Rides on Lulu, then on the seed,
+   then on the mystery — never more than one at a time. */
+@keyframes cribCue {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255,246,210,0.25)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 12px rgba(255,246,210,0.75)); transform: scale(1.06); }
+}
+.crib-cue { animation: cribCue 1.8s ease-in-out infinite; }
+
+/* the offered seed arcs toward Lulu before it blooms */
+@keyframes cribOfferFly {
+  0%   { transform: translate(0,0) scale(1); }
+  60%  { transform: translate(-14px,-10px) scale(1.15); }
+  100% { transform: translate(0,0) scale(0.9); opacity: 0.85; }
+}
+.crib-offer-fly { animation: cribOfferFly 1s ease-in-out; }
+
+/* the mystery behind the tree — two dim eyes, low and to the side, peeking */
+#crib-mystery {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  transform: translate(-140%, 0);
+  z-index: 6;
+  font-size: 20px;
+  opacity: 0.65;
+  filter: grayscale(0.4) brightness(0.7);
+  cursor: pointer;
+  user-select: none;
+}
+#crib-mystery.hidden { display: none; }

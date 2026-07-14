@@ -11,6 +11,10 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   const t0 = Date.now();
   await page.goto(URL);
   await page.waitForTimeout(1500);
+  // graduate the onboarding crib so the council card in the bottom sheet is
+  // reachable — the Council is a post-onboarding system (no-op if already past).
+  await page.evaluate(() => window.WARREN_DEBUG.skipPrologue());
+  await page.waitForTimeout(200);
 
   // Prereq: resolve Gerald T5a so the hearing has context
   await page.evaluate(() => {

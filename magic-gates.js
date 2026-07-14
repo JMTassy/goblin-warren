@@ -6,6 +6,10 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   const page = await (await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
   await page.goto('file:///home/user/goblin-warren/index.html');
   await page.waitForTimeout(1300);
+  // graduate the onboarding crib so the full UI (topbar chips, sheet) is
+  // present — riddles are a post-onboarding system (no-op if already past it).
+  await page.evaluate(() => window.WARREN_DEBUG.skipPrologue());
+  await page.waitForTimeout(200);
 
   // Q1: riddle chip is visible in the topbar
   const q1 = await page.evaluate(() => {

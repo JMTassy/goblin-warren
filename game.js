@@ -357,8 +357,15 @@ function makeState() {
              prologueSeen: false },
     /* VISION_V1_30 §1 — levels are earned doors, not a free carousel.
        levelsUnlocked holds every chapter id the player has paid the toll
-       for; L1 is always free (default [1]). */
-    progress: { level: 1, levelsUnlocked: [1], glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0 },
+       for; L1 is always free (default [1]).
+       VISION_PROGRESSION §1 — the Bonding Ladder. `rung` (1..12) is the
+       reveal curriculum: a fresh player starts at 1 (one goblin, nothing
+       else) and the full Warren is Rung 12. `onboarding` is the crib's
+       completed-moments memory. A returning save is grandfathered to
+       rung 12 / onboarding-complete at load, so established players get
+       EXACTLY today's Warren (see the loadState belt below). */
+    progress: { level: 1, levelsUnlocked: [1], glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0,
+                rung: 1, onboarding: { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 } },
     settings: { muted: false },
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
@@ -505,6 +512,24 @@ if (!isFreshBoot) {
   if (!S.flags) S.flags = {};
   if (typeof S.flags.prologueSeen !== "boolean") S.flags.prologueSeen = true;
 }
+/* VISION_PROGRESSION §1 — the Bonding Ladder grandfather. Runs on EVERY
+   boot, after prologueSeen is settled above, so it covers both the
+   mergeDefaults path AND the validAndComplete-whole path (which skips
+   mergeDefaults and so never picked up the new progress fields).
+   `prologueSeen === true` is the single source of truth for "established
+   player": such a save jumps straight to rung 12 with onboarding complete,
+   guaranteeing byte-for-byte today's boot. Only a genuinely fresh crib
+   (prologueSeen false) starts the ladder at Rung 1. Any partially-saved
+   crib keeps whatever rung/onboarding it saved. */
+if (!S.progress) S.progress = {};
+var _graduated = !!(S.flags && S.flags.prologueSeen);
+if (typeof S.progress.rung !== "number") S.progress.rung = _graduated ? 12 : 1;
+if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
+  S.progress.onboarding = _graduated
+    ? { woke: true, offered: true, mystery: true, seedObjId: null, bloomObjId: null, visits: 99 }
+    : { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
+}
+if (_graduated && S.progress.rung < 12) S.progress.rung = 12;
 
 function saveState() {
   S.lastSavedAt = Date.now();
@@ -4578,8 +4603,8 @@ function renderObjects() {
         node.addEventListener("click", function (e) {
           e.stopPropagation();
           ensureAudio(); resumeAudio();
-          /* VISION_V1_33 §2 beat 4 — tapping the seed advances the Prologue early */
-          if (prologueActive && prologueStep === 3 && obj.id === prologueSeedObjId) tapPrologueSeed();
+          /* VISION_PROGRESSION Rung 2 — tapping the seed offers it to Lulu */
+          if (prologueActive && prologueStep === 2 && obj.id === prologueSeedObjId) tapPrologueSeed();
           if (obj.emoji === "🍄") Sound.shamanicBurst();
           else Sound.tibetanBowl(bowlFreqFor(obj.id));
           node.classList.remove("singing");
@@ -8117,23 +8142,45 @@ function generateGoblinLine(goblinId, mood, recentEvents, callback) {
 window._generateGoblinLine = generateGoblinLine;
 
 /* ---------------------------------------------------------------------
-   VISION_V1_33 — THE PETIT PRINCE PROLOGUE. First-run-only choreography:
-   the map starts nearly empty at dusk and blooms as the player tames it.
-   Reuses existing render/spawn functions; the Prologue only controls
-   VISIBILITY and ORDER — no new world data, no reducer touch, no ZOL
-   spend, no admission (membrane law; asserted end-to-end by G4 in the
-   standalone prologue-gates.js). Returning players (prologueSeen===true)
-   skip this whole module; boot() renders the full map exactly as today.
-   Restraint is the wow: gentle fades, no strobe, always skippable, never
-   traps (every gate has a fallback timer).
+   VISION_PROGRESSION — THE CRIB (Rungs 1-3 of the Bonding Ladder).
+   Evolves the v1.33 Petit Prince Prologue from a ~30s one-session flourish
+   that DUMPED the whole Warren at its end, into a multi-session bonding
+   arc that reveals nothing above one goblin until a relationship is earned:
+
+     Rung 1 (NOTICE)  — dusk, Lulu asleep under the tree, one pulsing cue.
+                        Tap → she wakes, notices YOU. Reward: a seed appears.
+     Rung 2 (GESTURE) — offer the seed (tap it). She reacts; it blooms into a
+                        persistent flower. A mystery stirs behind the tree.
+                        The session rests here — "come back tomorrow."
+     Rung 3 (MEMORY)  — on a later visit she remembers: the flower waited.
+                        Then, and only then, the wider Warren opens (graduate).
+
+   Membrane law unchanged: this controls VISIBILITY and ORDER only — no new
+   world data, no reducer touch, no ZOL spend, no admission. `#app` keeps the
+   `.prologue-active` class (hiding every un-revealed goblin/zone/chip) for
+   the crib's whole multi-session duration, plus `.crib-active` to hide the
+   top/bottom bars for a true zero-menu Rung 1. Established players
+   (prologueSeen===true, grandfathered at load) never enter here — boot()
+   renders the full Warren exactly as before. Always skippable, never traps
+   (every beat has a fallback timer; skip graduates immediately).
+   The function names startPrologue/finishPrologue/etc. are kept so the
+   existing WARREN_DEBUG/test surface keeps working.
 --------------------------------------------------------------------- */
 var prologueActive = false;
-var prologueStep = 0;          // 0 idle · 1 wait-tap-lulu · 2 boop done · 3 wait-tap-seed · 4 crew reveal · 5 world+chips reveal · 6 done
+var prologueStep = 0;          // 0 idle · 1 NOTICE(wait tap Lulu) · 2 GESTURE(seed offered pending) · 3 MEMORY(return) · 6 graduated
 var prologueGoblinsShown = 1;  // Lulu counts as already-shown
 var prologueChipsShown = 0;
 var prologueTimers = [];
 var prologueSeedObjId = null;
+var prologueBloomObjId = null;
 var PROLOGUE_CHIPS = ["signal-indicator", "riddle-chip", "level-chip", "currency", "zol-wallet"];
+
+function cribOb() {
+  if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
+    S.progress.onboarding = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
+  }
+  return S.progress.onboarding;
+}
 
 function prologueSetTimeout(fn, ms) {
   var t = setTimeout(fn, ms);
@@ -8145,111 +8192,225 @@ function prologueClearTimers() {
   prologueTimers = [];
 }
 function prologueReveal(el) { if (el) el.classList.add("prologue-shown", "prologue-reveal"); }
+function cribCue(el, on) { if (el) el.classList[on ? "add" : "remove"]("crib-cue"); }
 
-function startPrologue() {
-  if (S.flags.prologueSeen) return; // returning players never enter here (§3)
+/* the crib always shows Lulu + the tree; everything else is earned */
+function cribShowStage() {
   prologueActive = true;
-  prologueStep = 1;
-  prologueGoblinsShown = 1;
-  prologueChipsShown = 0;
   var app = document.getElementById("app");
-  if (app) app.classList.add("prologue-active");
+  if (app) { app.classList.add("prologue-active", "crib-active"); }
   var skip = document.getElementById("prologue-skip");
   if (skip) skip.classList.remove("hidden");
   prologueReveal(document.getElementById("zone-tree"));
   prologueReveal(goblinEls.lulu);
-  prologueSetTimeout(function () {
-    showBubble("lulu", "Oh... it is you... you came...", 4200);
-    luluPrologueLine("greet");
-  }, 400);
-  /* fallback: nobody has to tap for the taming beat to still happen */
-  prologueSetTimeout(function () { if (prologueStep === 1) tapLuluPrologue(); }, 8000);
 }
 
-function tapLuluPrologue() {
+/* entry from boot() — the crib picks up at whichever rung the save left off */
+function startPrologue() {
+  if (S.flags.prologueSeen) return;            // established players never enter (grandfathered)
+  var o = cribOb();
+  cribShowStage();
+  if (o.offered) { cribReturnMemory(); }       // Rung 3 — came back after the bloom
+  else if (o.woke) { cribResumeGesture(); }    // Rung 2 — woke last time, seed still un-offered
+  else { cribNotice(); }                       // Rung 1 — fresh
+}
+
+/* ---- Rung 1 — NOTICE ---- */
+function cribNotice() {
+  prologueStep = 1;
+  S.progress.rung = 1;
+  cribCue(goblinEls.lulu, true);               // the one subtle pulsing point of interaction
+  prologueSetTimeout(function () {
+    showBubble("lulu", "Oh... you found me...", 4200);
+    luluPrologueLine("greet");
+  }, 500);
+  /* fallback: the beat still happens if nobody taps */
+  prologueSetTimeout(function () { if (prologueStep === 1) cribWake(); }, 9000);
+}
+
+function tapLuluPrologue() {                    // routed from onTapGoblin('lulu')
+  if (!prologueActive) return;
+  if (prologueStep === 1) cribWake();
+}
+
+function cribWake() {
   if (!prologueActive || prologueStep !== 1) return;
   prologueStep = 2;
-  var g = S.goblins.lulu, el = goblinEls.lulu;
+  var o = cribOb();
+  o.woke = true;
+  S.progress.rung = 2;
+  cribCue(goblinEls.lulu, false);
+  var g = S.goblins.lulu;
   if (g) g.mood = "delighted";
-  flashClass(el, "booped", 600); // the same wobble as doBoop's taming click
-  showBubble("lulu", "There... you noticed me...", 3600);
+  flashClass(goblinEls.lulu, "booped", 600);   // the same wobble as doBoop's taming click
+  showBubble("lulu", "You noticed me. Most tap the tree first.", 3800);
   luluPrologueLine("boop");
   renderGoblins();
-  prologueSetTimeout(prologueBloomSeed, 900); // "after the boop" — automatic
+  if (window.Sound && Sound.bloom) Sound.bloom();
+  prologueSetTimeout(cribSpawnSeed, 1200);     // reward: a seed appears
+  saveState();
 }
 
-function prologueBloomSeed() {
+/* ---- Rung 2 — GESTURE (offer the seed) ---- */
+function cribSpawnSeed() {
   if (!prologueActive) return;
-  prologueStep = 3;
+  var o = cribOb();
   addObject("🌰", "A Seed, Yours", "tree");
-  renderObjects();
   var obj = S.objects[S.objects.length - 1];
   prologueSeedObjId = obj ? obj.id : null;
+  o.seedObjId = prologueSeedObjId;
+  renderObjects();
   prologueReveal(objectEls[prologueSeedObjId]);
-  showBubble("lulu", "Here. One seed. It is yours now.", 4200);
+  cribCue(objectEls[prologueSeedObjId], true);
+  showBubble("lulu", "Here... one seed. Offer it to me?", 4600);
   luluPrologueLine("seed");
-  if (window.Sound && Sound.bloom) Sound.bloom();
   saveState();
-  /* fallback: the crew arrives on their own if the seed goes untapped */
-  prologueSetTimeout(function () { if (prologueStep === 3) prologueRevealCrew(); }, 6000);
+  /* fallback: she accepts it on her own if the seed goes un-offered */
+  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed(); }, 13000);
 }
 
-function tapPrologueSeed() {
-  if (!prologueActive || prologueStep !== 3) return;
-  prologueRevealCrew();
+/* returning mid-crib: woke last session, seed never offered — restore the seed */
+function cribResumeGesture() {
+  prologueStep = 2;
+  S.progress.rung = 2;
+  var o = cribOb();
+  /* the seed persisted in S.objects; find it (fallback: respawn one) */
+  var seed = null;
+  for (var i = 0; i < S.objects.length; i++) {
+    if (S.objects[i].id === o.seedObjId || S.objects[i].emoji === "🌰") { seed = S.objects[i]; break; }
+  }
+  if (!seed) { cribSpawnSeed(); return; }
+  prologueSeedObjId = seed.id;
+  renderObjects();
+  prologueReveal(objectEls[prologueSeedObjId]);
+  cribCue(objectEls[prologueSeedObjId], true);
+  prologueSetTimeout(function () {
+    showBubble("lulu", "You came back... the seed is still here. Offer it?", 4600);
+    luluPrologueLine("greet");
+  }, 500);
+  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed(); }, 13000);
 }
 
-function prologueRevealCrew() {
-  if (!prologueActive || prologueStep !== 3) return;
-  prologueStep = 4;
-  var rest = GOBLIN_DEFS.filter(function (d) { return d.id !== "lulu"; });
-  rest.forEach(function (d, i) {
-    prologueSetTimeout(function () {
-      prologueReveal(goblinEls[d.id]);
-      prologueGoblinsShown++;
-      if (i === 0) showBubble("lulu", "Lulu brought a friend.", 2800);
-      renderGoblins();
-    }, i * 1200);
-  });
-  prologueSetTimeout(prologueRevealWorld, rest.length * 1200 + 900);
+function tapPrologueSeed() {                    // routed from the object tap handler
+  if (!prologueActive || prologueStep !== 2) return;
+  cribOfferSeed();
 }
 
-function prologueRevealWorld() {
+function cribOfferSeed() {
+  if (!prologueActive || prologueStep !== 2) return;
+  var o = cribOb();
+  if (o.offered) return;
+  o.offered = true;
+  var seedEl = prologueSeedObjId ? objectEls[prologueSeedObjId] : null;
+  cribCue(seedEl, false);
+  if (seedEl) seedEl.classList.add("crib-offer-fly");   // the seed flies to Lulu
+  showBubble("lulu", "You gave it to me? ...watch.", 3400);
+  saveState();
+  prologueSetTimeout(function () {
+    /* transform the SAME object 🌰 → 🌸 (continuity: it is the very seed you
+       gave, kept across sessions — no remove/add, no reducer touch) */
+    var seed = null;
+    for (var i = 0; i < S.objects.length; i++) { if (S.objects[i].id === prologueSeedObjId) { seed = S.objects[i]; break; } }
+    if (seed) {
+      seed.emoji = "🌸"; seed.sign = "Our First Bloom";
+      prologueBloomObjId = seed.id;
+      o.bloomObjId = seed.id;
+      var el = objectEls[seed.id];
+      if (el) {
+        el.classList.remove("crib-offer-fly");
+        var em = el.querySelector(".wobj-emoji"); if (em) em.textContent = "🌸";
+        var sg = el.querySelector(".wobj-sign"); if (sg) sg.textContent = "Our First Bloom";
+        el.classList.remove("prologue-reveal"); void el.offsetWidth; el.classList.add("prologue-reveal");
+      }
+    }
+    if (window.Sound && Sound.bloom) Sound.bloom();
+    showBubble("lulu", "A flower. We made it. We can make another... tomorrow.", 5200);
+    luluPrologueLine("relic");
+    saveState();
+    prologueSetTimeout(cribMystery, 3400);
+  }, 1000);
+}
+
+/* the future promise — the session's gentle closer, no further reveal */
+function cribMystery() {
   if (!prologueActive) return;
-  prologueStep = 5;
-  var zonesToShow = ZONES.filter(function (z) { return z.id !== "tree"; });
-  zonesToShow.forEach(function (z, i) {
-    prologueSetTimeout(function () { prologueReveal(document.getElementById("zone-" + z.id)); }, i * 500);
-  });
-  var afterZones = zonesToShow.length * 500 + 600;
-  PROLOGUE_CHIPS.forEach(function (id, i) {
-    prologueSetTimeout(function () {
-      prologueReveal(document.getElementById(id));
-      prologueChipsShown++;
-    }, afterZones + i * 500);
-  });
-  prologueSetTimeout(finishPrologue, afterZones + PROLOGUE_CHIPS.length * 500 + 700);
+  var o = cribOb();
+  o.mystery = true;
+  var sh = document.getElementById("crib-mystery");
+  if (sh) {
+    sh.classList.remove("hidden");
+    sh.classList.add("prologue-shown", "prologue-reveal", "crib-cue");
+    if (!sh._cribWired) { sh._cribWired = true; sh.addEventListener("click", function (e) { e.stopPropagation(); tapCribMystery(); }); }
+  }
+  showBubble("lulu", "...did you see that? Behind the tree. Come back and we'll look.", 5200);
+  saveState();
 }
 
-function finishPrologue() {
+function tapCribMystery() {
+  var sh = document.getElementById("crib-mystery");
+  if (sh) flashClass(sh, "booped", 600);
+  showBubble("lulu", "Not yet... it only comes out when you return.", 4200);
+}
+
+/* ---- Rung 3 — MEMORY (a later visit) → then graduate to the full Warren ---- */
+function cribReturnMemory() {
+  prologueStep = 3;
+  S.progress.rung = 3;
+  var o = cribOb();
+  o.visits = (o.visits || 0) + 1;
+  /* the bloom persisted in S.objects; make sure it shows */
+  for (var i = 0; i < S.objects.length; i++) {
+    if (S.objects[i].id === o.bloomObjId || S.objects[i].emoji === "🌸") {
+      prologueBloomObjId = S.objects[i].id;
+      renderObjects();
+      prologueReveal(objectEls[S.objects[i].id]);
+      break;
+    }
+  }
+  saveState();
+  prologueSetTimeout(function () {
+    showBubble("lulu", "You came back... I kept our flower. It waited for you.", 5000);
+    luluPrologueLine("greet");
+  }, 700);
+  prologueSetTimeout(function () {
+    showBubble("lulu", "...there is more to show you now. Come — meet the others.", 4200);
+    prologueSetTimeout(graduateCrib, 2600);
+  }, 5400);
+  /* fallback: graduate even if the beats are interrupted */
+  prologueSetTimeout(function () { if (prologueStep === 3) graduateCrib(); }, 14000);
+}
+
+/* GRADUATION — the wider Warren opens for the first time. This is the old
+   finishPrologue behaviour, now reached ONLY after the bonding arc: reveal
+   the crew, the zones, the chips, restore the bars, and hand off to the
+   ordinary ambient loop deferred by boot(). Sets rung 12 / prologueSeen. */
+function graduateCrib() {
   if (prologueStep === 6) return;
   prologueClearTimers();
-  prologueActive = false;
   prologueStep = 6;
+  prologueActive = false;
+  /* reveal everything, gently */
+  GOBLIN_DEFS.forEach(function (d) { prologueReveal(goblinEls[d.id]); prologueGoblinsShown++; });
+  ZONES.forEach(function (z) { prologueReveal(document.getElementById("zone-" + z.id)); });
+  PROLOGUE_CHIPS.forEach(function (id) { prologueReveal(document.getElementById(id)); prologueChipsShown++; });
   var app = document.getElementById("app");
-  if (app) app.classList.remove("prologue-active");
+  if (app) app.classList.remove("prologue-active", "crib-active");
   var skip = document.getElementById("prologue-skip");
   if (skip) skip.classList.add("hidden");
+  var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
   S.flags.prologueSeen = true;
-  /* the Prologue already greeted — hand off without double-firing bootScriptedArc's
-     own greeting; its bug-escape/first-proposal beats still proceed from here. */
-  S.flags.greeted = true;
+  S.flags.greeted = true;              // the crib already greeted; don't double-fire
+  S.progress.rung = 12;
+  var o = cribOb();
+  o.woke = true; o.offered = true; o.mystery = true;
   saveState();
-  scheduleMoth(randi(8000, 16000)); // the Moth comes to look at the seed
+  renderGoblins();
+  /* the ambient goblin ticks, deferred by boot() until the crib graduated */
+  GOBLIN_DEFS.forEach(function (d, i) { scheduleGoblinTick(d.id, 1600 + i * 700); });
+  if (S.progress.spireUnlocked) { ensureTink(); scheduleCrown(randi(30000, 90000)); }
+  scheduleMoth(randi(8000, 16000));    // the Moth comes to look at the bloom
   bootScriptedArc();
-
-  /* the rest of the ordinary ambient loop, deferred by boot() until now so
-     the first act stayed uncluttered — same calls, same odds, just later. */
+  /* the ordinary ambient loop, deferred by boot() until now */
   scheduleRaam(randi(50000, 90000));
   scheduleSparkle();
   setTimeout(function () {
@@ -8263,53 +8424,61 @@ function finishPrologue() {
     if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
   });
 }
+/* finishPrologue kept as an alias so any old caller still graduates cleanly */
+function finishPrologue() { graduateCrib(); }
 
-/* a skip is a snap, not a scene: reveal everything at once, no fades */
+/* a skip is a snap: graduate immediately, revealing the whole Warren now */
 function skipPrologue() {
   if (!prologueActive) return;
-  prologueClearTimers();
-  GOBLIN_DEFS.forEach(function (d) { prologueReveal(goblinEls[d.id]); });
-  ZONES.forEach(function (z) { prologueReveal(document.getElementById("zone-" + z.id)); });
-  PROLOGUE_CHIPS.forEach(function (id) { prologueReveal(document.getElementById(id)); });
-  if (!prologueSeedObjId) {
-    addObject("🌰", "A Seed, Yours", "tree");
-    renderObjects();
-    var obj = S.objects[S.objects.length - 1];
-    if (obj) prologueReveal(objectEls[obj.id]);
+  /* make sure a bloom (or at least the seed) exists so nothing looks empty */
+  var o = cribOb();
+  if (!o.offered && !prologueBloomObjId) {
+    if (!prologueSeedObjId) { addObject("🌰", "A Seed, Yours", "tree"); var obj = S.objects[S.objects.length - 1]; prologueSeedObjId = obj ? obj.id : null; }
   }
-  renderGoblins();
-  finishPrologue();
+  renderObjects();
+  graduateCrib();
 }
 
-/* ---- VISION_V1_33 §6 — debug/test hooks for prologue-gates.js ---- */
+/* ---- debug/test hooks (kept stable for the harness) ---- */
 function setPrologueSeen(v) { S.flags.prologueSeen = !!v; saveState(); return S.flags.prologueSeen; }
-function replayPrologue() {
+function resetCrib() {
   prologueClearTimers();
-  prologueActive = false; prologueStep = 0; prologueGoblinsShown = 1; prologueChipsShown = 0; prologueSeedObjId = null;
+  prologueActive = false; prologueStep = 0; prologueGoblinsShown = 1; prologueChipsShown = 0;
+  prologueSeedObjId = null; prologueBloomObjId = null;
   var app = document.getElementById("app");
-  if (app) app.classList.remove("prologue-active");
-  Object.keys(goblinEls).forEach(function (id) { goblinEls[id].classList.remove("prologue-shown", "prologue-reveal"); });
-  document.querySelectorAll(".zone, .wobject").forEach(function (el) { el.classList.remove("prologue-shown", "prologue-reveal"); });
-  PROLOGUE_CHIPS.forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.classList.remove("prologue-shown", "prologue-reveal");
-  });
+  if (app) app.classList.remove("prologue-active", "crib-active");
+  Object.keys(goblinEls).forEach(function (id) { goblinEls[id].classList.remove("prologue-shown", "prologue-reveal", "crib-cue"); });
+  document.querySelectorAll(".zone, .wobject").forEach(function (el) { el.classList.remove("prologue-shown", "prologue-reveal", "crib-cue"); });
+  PROLOGUE_CHIPS.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.remove("prologue-shown", "prologue-reveal"); });
+  var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
+  /* wipe the crib's world objects so a replay starts truly empty */
+  S.objects = S.objects.filter(function (ob) { return ob.emoji !== "🌰" && ob.emoji !== "🌸"; });
   S.flags.prologueSeen = false;
+  S.progress.rung = 1;
+  S.progress.onboarding = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
   saveState();
+}
+function replayPrologue() {
+  resetCrib();
+  renderObjects();
   startPrologue();
   return true;
 }
 function advancePrologue() {
   if (!prologueActive) return false;
-  if (prologueStep === 1) tapLuluPrologue();
-  else if (prologueStep === 3) tapPrologueSeed();
+  if (prologueStep === 1) cribWake();
+  else if (prologueStep === 2) cribOfferSeed();
+  else if (prologueStep === 3) graduateCrib();
   return true;
 }
 function getPrologueState() {
   var seedEl = prologueSeedObjId ? objectEls[prologueSeedObjId] : null;
+  var o = cribOb();
   return { active: prologueActive, seen: !!S.flags.prologueSeen, step: prologueStep,
+    rung: S.progress.rung, onboarding: { woke: !!o.woke, offered: !!o.offered, mystery: !!o.mystery, visits: o.visits || 0 },
     goblinsShown: prologueGoblinsShown, chipsShown: prologueChipsShown,
-    seedObjId: prologueSeedObjId, seedShown: !!(seedEl && seedEl.classList.contains("prologue-shown")) };
+    seedObjId: prologueSeedObjId, bloomObjId: prologueBloomObjId,
+    seedShown: !!(seedEl && seedEl.classList.contains("prologue-shown")) };
 }
 
 /* ---------------------------------------------------------------------
@@ -8518,13 +8687,16 @@ window.WARREN_DEBUG = {
   restoreKnowledgeLantern: function () { restoreKnowledgeLantern(); renderObjects(); },
   /* test utility: force-close the quiz so a second open can proceed without waiting 2800ms */
   forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; },
-  /* VISION_V1_33 §6 — the Prologue gate surface */
+  /* VISION_V1_33 §6 / VISION_PROGRESSION — the crib gate surface */
   setPrologueSeen: function (v) { return setPrologueSeen(v); },
   replayPrologue: function () { return replayPrologue(); },
+  resetCrib: function () { return resetCrib(); },
   tapLuluPrologue: function () { return tapLuluPrologue(); },
   advancePrologue: function () { return advancePrologue(); },
   skipPrologue: function () { return skipPrologue(); },
   getPrologueState: function () { return getPrologueState(); },
+  getCribState: function () { return getPrologueState(); },
+  getRung: function () { return S.progress.rung; },
   getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
 };
 
@@ -8541,23 +8713,29 @@ function boot() {
   renderAll();
   renderSheetIdle();
 
-  GOBLIN_DEFS.forEach(function (d, i) { scheduleGoblinTick(d.id, 1400 + i * 700); });
-  if (S.progress.spireUnlocked) {
-    ensureTink();
-    scheduleCrown(randi(30000, 90000));
+  /* ambient goblin ticks reference systems the crib hasn't introduced yet
+     ("I found something near the Garden Plot") — they'd shatter the one-being
+     illusion. Suppressed during the crib; graduateCrib() starts them. */
+  if (S.flags.prologueSeen) {           // graduated players only; the crib defers ticks
+    GOBLIN_DEFS.forEach(function (d, i) { scheduleGoblinTick(d.id, 1400 + i * 700); });
+    if (S.progress.spireUnlocked) {
+      ensureTink();
+      scheduleCrown(randi(30000, 90000));
+    }
   }
-  /* VISION_V1_33 §2/§3 — a brand-new player (fresh save, prologueSeen
-     still false) gets the Petit Prince Prologue instead of the usual
-     opening flourish below; a returning player (prologueSeen true — the
-     overwhelmingly common case, including every existing save via the
-     mergeDefaults/loadState grandfather) gets EXACTLY today's boot,
-     zero behavior change (§3). The Prologue only reorders/defers these
-     ambient spawns so the first act stays uncluttered — restraint is the
-     wow — then hands every one of them to the normal ambient loop from
-     finishPrologue() once it completes (or is skipped). */
-  var runPrologue = isFreshBoot && !S.flags.prologueSeen;
+  /* VISION_PROGRESSION §1 — the crib runs whenever the player has not yet
+     graduated the Bonding Ladder (prologueSeen false). Unlike the old
+     one-session Prologue this is NOT gated on isFreshBoot: a player who woke
+     Lulu and offered the seed, then left, is `!isFreshBoot` but must re-enter
+     the crib on return for the MEMORY beat (Rung 3) before graduating.
+     Established players (prologueSeen true — every existing save, via the
+     load grandfather) get EXACTLY today's boot, zero behaviour change: the
+     crib is skipped and the full ambient loop runs now. During the crib the
+     ambient spawns and the returning-player reunion rituals are deferred to
+     graduateCrib(), so the first acts stay uncluttered. */
+  var runCrib = !S.flags.prologueSeen;
 
-  if (!runPrologue) {
+  if (!runCrib) {
     scheduleRaam(randi(50000, 90000));
     if ((S.progress.raamDefeats || 0) >= 1) scheduleSeren(randi(120000, 200000));
     /* FIRST-MINUTE PACING: the opening arc is choreographed so the first 60s
@@ -8589,12 +8767,13 @@ function boot() {
        (clock read here, in the boot zone — never inside the compost fold),
        then un-tended memories compost into soil. */
     var foldedBuckets = warrenAbsenceTicks(away);
-    /* gone an hour or more → the place greets you in its current humor */
-    if (foldedBuckets >= 2) {
+    /* gone an hour or more → the place greets you in its current humor.
+       Suppressed during the crib — the crib runs its own memory beat. */
+    if (foldedBuckets >= 2 && !runCrib) {
       setTimeout(function () { applyWarrenHumor(foldedBuckets); }, 2600);
     }
   }
-  if (!isFreshBoot && away > 120000) {
+  if (!isFreshBoot && away > 120000 && !runCrib) {
     setTimeout(function () { luluReunion(away); }, 1200);
   }
   saveState();
@@ -8609,10 +8788,10 @@ function boot() {
     setTimeout(renderCouncil, 1500);
   }
 
-  if (runPrologue) {
-    S.startedAt = Date.now();
+  if (runCrib) {
+    if (isFreshBoot) S.startedAt = Date.now();
     saveState();
-    startPrologue(); // bootScriptedArc + the ambient loop below hand off from finishPrologue()
+    startPrologue(); // bootScriptedArc + the ambient loop hand off from graduateCrib()
   } else if (isFreshBoot) {
     S.startedAt = Date.now();
     saveState();
@@ -8624,7 +8803,7 @@ function boot() {
   /* le Terrier parle la langue qu'on lui a demandée, même après un rechargement */
   applyLang();
 
-  if (!runPrologue) {
+  if (!runCrib) {
     /* the sky sheds a coin now and then — first one comes a little sooner */
     scheduleGoldfall(randi(25000, 55000));
 
@@ -8643,9 +8822,9 @@ function boot() {
       if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
     });
   }
-  /* runPrologue === true: every spawn above is deferred to finishPrologue(),
-     which fires the exact same calls once the Prologue ends (naturally or
-     via skip) — nothing is lost, it only waits its turn. */
+  /* runCrib === true: every spawn above is deferred to graduateCrib(),
+     which fires the exact same calls once the crib graduates (naturally on
+     the Rung 3 return, or via skip) — nothing is lost, it only waits. */
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
