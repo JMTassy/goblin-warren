@@ -116,9 +116,10 @@ Operator-authorized *preview-only* deploy for a real iPhone/Safari witness pass.
 A **new, separate game** — production `forest-frost-277` (game_id d95bb0da…) is
 untouched, and `publish_game` was **not** called.
 
-- PREVIEW_URL: https://honest-leaf-372.higgsfield.gg/
+- PREVIEW_URL: https://honest-leaf-372.higgsfield.gg/ (stable — updated in place)
 - PREVIEW_GAME_ID: bae2b538-52d6-4cc1-879d-f1af1fdec275 · slug honest-leaf-372 · mode rules
-- SOURCE: raw @ `88e8f0d` `deploy/goblin-warren-crib-preview.zip` · sha256 `e000cc1e16e38a06f29cbc6600ff27e39f17cd397cbcb6cb071910a705586a4c` (38,873,667 bytes)
+- SOURCE v1: raw `deploy/goblin-warren-crib-preview.zip` · sha256 `e000cc1e…` (first witness → 4/10)
+- SOURCE v2 (refined, live): raw `deploy/goblin-warren-crib-preview-v2.zip` · sha256 `5a1c7bb8928fc10cb853392cd32ad995ff536dac93091cd5f65f8ea89425f601` (38,875,345 bytes) — same game_id, updated in place, same URL.
 - CREDITS: 0 (thumbnail/favicon reused from existing key-art; deploy_game logs no charge).
 - Egress from this seat blocks `*.higgsfield.gg` (403) — **serving is UNWITNESSED here.**
   The witness is the operator's thumb: does Lulu feel alive in the first 30s?
