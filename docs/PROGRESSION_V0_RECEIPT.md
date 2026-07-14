@@ -119,7 +119,8 @@ untouched, and `publish_game` was **not** called.
 - PREVIEW_URL: https://honest-leaf-372.higgsfield.gg/ (stable — updated in place)
 - PREVIEW_GAME_ID: bae2b538-52d6-4cc1-879d-f1af1fdec275 · slug honest-leaf-372 · mode rules
 - SOURCE v1: raw `deploy/goblin-warren-crib-preview.zip` · sha256 `e000cc1e…` (first witness → 4/10)
-- SOURCE v2 (refined, live): raw `deploy/goblin-warren-crib-preview-v2.zip` · sha256 `5a1c7bb8928fc10cb853392cd32ad995ff536dac93091cd5f65f8ea89425f601` (38,875,345 bytes) — same game_id, updated in place, same URL.
+- SOURCE v2 (refined crib): raw `deploy/goblin-warren-crib-preview-v2.zip` · sha256 `5a1c7bb8…` (crib "make Lulu alive" pass).
+- SOURCE v3 (live): raw `deploy/goblin-warren-crib-preview-v3.zip` · sha256 `96edfe4906c0d6c9e78efff01e8210294efe012fac03bc4cbfc7847f843b95cd` (38,879,217 bytes) — folds QUIZ_TO_ZOL_V2 (commit 5592e3e) for the full-path witness: crib → graduate → quiz → ZOL → world response → reload. Same game_id, updated in place, same URL. Reachability proven headlessly via real touch events (no debug shortcuts).
 - CREDITS: 0 (thumbnail/favicon reused from existing key-art; deploy_game logs no charge).
 - Egress from this seat blocks `*.higgsfield.gg` (403) — **serving is UNWITNESSED here.**
   The witness is the operator's thumb: does Lulu feel alive in the first 30s?
