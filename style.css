@@ -3290,3 +3290,16 @@ html, body {
   animation: cribCue 2.4s ease-in-out infinite;
 }
 #crib-mystery.hidden { display: none; }
+
+/* -------------------------------------------------------------------
+   QUIZ_TO_ZOL_V2 — the reward landing in the world. When a correct
+   answer lights/pulses a village effect (lantern, mushroom, mended
+   beam) the object flares briefly so the player SEES knowledge change
+   the Warren, not just a number tick. (ZOL ⊬ authority — pure cosmetics.)
+------------------------------------------------------------------- */
+@keyframes quizEffectPulse {
+  0%   { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,236,170,0)); }
+  30%  { transform: scale(1.5); filter: drop-shadow(0 0 16px rgba(255,236,170,0.95)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,236,170,0)); }
+}
+.wobject.quiz-effect-pulse .wobj-emoji { animation: quizEffectPulse 1.1s ease-out; }

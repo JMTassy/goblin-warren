@@ -350,6 +350,7 @@ function makeState() {
     replay: [],
     flags: { greeted: false, firstSignalSeen: false, firstProposalResolved: false, secondEventReferencedFirst: false, geraldFate: null,
              boops: 0, treePartySeen: false, quizRight: 0, quizWrong: 0, serpentTapped: false, organPlayed: false,
+             quizZolMet: false,   /* QUIZ_TO_ZOL_V2: has Lulu offered her first fun fact (graduated only) */
              /* VISION_V1_33 §1 — first-run-only Prologue gate; false only on
                 a genuinely fresh boot (no save at all). mergeDefaults() and
                 the loadState() belt-and-suspenders below grandfather any
@@ -394,7 +395,7 @@ function makeState() {
        quizState tracks which reward_keys have been paid; villageState holds
        the persistent visual effects that survive reload. Neither touches the
        HELEN OS governed ledger — game-local ZOL only. */
-    quizState: { rewardPaid: {} },
+    quizState: { rewardPaid: {}, streak: 0, bestStreak: 0 },
     villageState: { unlockedEffects: [] }
   };
 }
@@ -475,8 +476,9 @@ function mergeDefaults(loaded) {
     out.collectibles.found.forEach(function (id) { if (out.collectibles.unlocked.indexOf(id) < 0) out.collectibles.unlocked.push(id); });
     /* QUIZ_TO_ZOL_V1 state */
     out.quizState = (loaded.quizState && typeof loaded.quizState.rewardPaid === "object")
-      ? { rewardPaid: Object.assign({}, loaded.quizState.rewardPaid) }
-      : { rewardPaid: {} };
+      ? { rewardPaid: Object.assign({}, loaded.quizState.rewardPaid),
+          streak: loaded.quizState.streak || 0, bestStreak: loaded.quizState.bestStreak || 0 }
+      : { rewardPaid: {}, streak: 0, bestStreak: 0 };
     out.villageState = (loaded.villageState && Array.isArray(loaded.villageState.unlockedEffects))
       ? { unlockedEffects: loaded.villageState.unlockedEffects.slice() }
       : { unlockedEffects: [] };
@@ -4605,6 +4607,8 @@ function renderObjects() {
           ensureAudio(); resumeAudio();
           /* VISION_PROGRESSION Rung 2 — tapping the seed offers it to Lulu */
           if (prologueActive && prologueStep === 2 && obj.id === prologueSeedObjId) tapPrologueSeed();
+          /* QUIZ_TO_ZOL_V2 — the lit Knowledge Lantern is the repeat door to Lulu's fun facts */
+          if (obj.sign === "Knowledge Lantern" && quizZolAvailable()) { openQuizZol(); return; }
           if (obj.emoji === "🍄") Sound.shamanicBurst();
           else Sound.tibetanBowl(bowlFreqFor(obj.id));
           node.classList.remove("singing");
@@ -6786,6 +6790,211 @@ function restoreKnowledgeLantern() {
       addObject("🪔", "Knowledge Lantern", "gate"); /* 🪔 */
     }
   }
+  restoreQuizVillage();
+}
+
+/* =====================================================================
+   QUIZ_TO_ZOL_V2 — "knowledge builds the village".
+   authority=false · canon=false · ledger_effect=none.
+   Extends V1 (the single hallucination loop) with the part V1 lacked:
+   a small bank across 3 topics, a base+streak ZOL formula, and — the
+   real point — TIERED, VARIABLE, VISIBLE village effects, so every
+   correct answer leaves a trace in a place the player cares about.
+   Law: ZOL earned ⊢ world responds · ZOL ⊬ receipt ⊬ admission ⊬ kernel.
+   Same truth-source as V1: quizState.rewardPaid[key] (never pays twice)
+   and villageState.unlockedEffects (idempotent, persisted). No HELEN
+   ledger path, ever. Gated to the graduated Warren — never in the crib.
+   ===================================================================== */
+var QUIZ_ZOL_BANK = [
+  /* q1 shares V1's reward key exactly ("hallucination_q1_v1") — one truth,
+     so answering via the V1 path or here can never double-pay. */
+  { id: "hallucination_q1", topic: "hallucinations", difficulty: 1, effect: "knowledge-lantern", base: 10,
+    q: "Lulu says: “The first AI program was written in 1823 by Ada Lovelace on her loom, and it composed symphonies.” What's wrong?",
+    options: [
+      "Her 1840s notes on Babbage's Analytical Engine are the earliest algorithm — but no machine ran it, no loom, no music.",
+      "Only the date is wrong; it should be 1923.",
+      "Nothing — she did compose machine music.",
+      "Only the symphony part is wrong."
+    ], correctIdx: 0,
+    explain: "Three confident wrong details stitched into one plausible claim — the signature of a hallucination." },
+
+  { id: "prompting_q1", topic: "prompting", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "Which prompt gives the clearest, testable constraint?",
+    options: [
+      "Make it better.",
+      "Rewrite this in 80 words for a beginner.",
+      "Write something good about this.",
+      "Improve the text a lot."
+    ], correctIdx: 1,
+    explain: "A constraint you can check (80 words, for a beginner) makes the expected output testable. 'Better' can't be verified." },
+
+  { id: "agents_q1", topic: "agents", difficulty: 1, effect: "mended-beam", base: 10,
+    q: "An agent must answer a question about a PDF you gave it. What should it do FIRST?",
+    options: [
+      "Guess the answer from memory to be fast.",
+      "Read the PDF (use its tool) before answering.",
+      "Ask you to summarise the PDF for it.",
+      "Refuse — PDFs are unsafe."
+    ], correctIdx: 1,
+    explain: "Tool first, claim second. An agent grounds its answer in the source it was given before it speaks." },
+
+  { id: "hallucination_q2", topic: "hallucinations", difficulty: 2, effect: "learned-mushroom", base: 10,
+    q: "A model states a court case with a name, citation, and quote. It sounds perfect. What's the safe move?",
+    options: [
+      "Trust it — the citation proves it's real.",
+      "Verify the citation in a real database before relying on it.",
+      "Assume it's wrong and ignore it.",
+      "Ask the model if it's sure."
+    ], correctIdx: 1,
+    explain: "Fabricated citations look flawless. Grounding — checking the source exists — is the only real test. 'Are you sure?' just invites more confident fiction." }
+];
+
+var QUIZ_ZOL_REACTIONS = {
+  correct: [
+    "Nice shiny. That answer has edges.",
+    "Oh! That was clever.",
+    "Clean bite. The mushrooms noticed.",
+    "Yes... the lantern agrees with you."
+  ],
+  wrong: [
+    "Almost. Good compost — look at the constraint.",
+    "I nearly believed that too. Try again."
+  ],
+  streak: [
+    "Three clean bites! The Warren remembers.",
+    "A streak... the soil is humming."
+  ]
+};
+
+var QUIZ_ZOL_RETRY = 6;     /* reduced reward on a later try */
+var QUIZ_ZOL_STREAK_EVERY = 3, QUIZ_ZOL_STREAK_BONUS = 5;
+var quizZolTries = {};      /* per-session try counter, keyed by qid (not persisted) */
+
+function quizZolKey(qid) { return qid + "_v1"; }
+function quizZolDef(qid) { for (var i = 0; i < QUIZ_ZOL_BANK.length; i++) if (QUIZ_ZOL_BANK[i].id === qid) return QUIZ_ZOL_BANK[i]; return null; }
+function quizZolIsPaid(qid) { return !!(S.quizState && S.quizState.rewardPaid && S.quizState.rewardPaid[quizZolKey(qid)]); }
+function quizZolNextUnanswered() { for (var i = 0; i < QUIZ_ZOL_BANK.length; i++) if (!quizZolIsPaid(QUIZ_ZOL_BANK[i].id)) return QUIZ_ZOL_BANK[i].id; return null; }
+function quizZolHasUnanswered() { return quizZolNextUnanswered() !== null; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+/* the tiered, VISIBLE village effect — the heart of the bead. Each effect
+   is idempotent (persisted once in villageState) but always re-pulses so the
+   player SEES the reward land in the world, not just a number tick. */
+function quizVillageEffect(effect) {
+  if (!S.villageState) S.villageState = { unlockedEffects: [] };
+  var isNew = S.villageState.unlockedEffects.indexOf(effect) < 0;
+  if (isNew) {
+    S.villageState.unlockedEffects.push(effect);
+    if (effect === "knowledge-lantern") addObject("🪔", "Knowledge Lantern", "gate");
+    else if (effect === "learned-mushroom") addObject("🍄", "Learned Mushroom", "garden");
+    else if (effect === "mended-beam") { if (goblinEls.nib) flashClass(goblinEls.nib, "booped", 800); addObject("🪵", "Mended Beam", "forge"); }
+    renderObjects();
+  }
+  quizPulseEffect(effect);
+  return isNew;
+}
+function quizPulseEffect(effect) {
+  var sign = effect === "knowledge-lantern" ? "Knowledge Lantern"
+           : effect === "learned-mushroom" ? "Learned Mushroom"
+           : effect === "mended-beam" ? "Mended Beam" : null;
+  if (!sign) return;
+  var obj = null;
+  for (var i = 0; i < S.objects.length; i++) if (S.objects[i].sign === sign) { obj = S.objects[i]; break; }
+  var el = obj && objectEls[obj.id];
+  if (el) { el.classList.remove("quiz-effect-pulse"); void el.offsetWidth; el.classList.add("quiz-effect-pulse"); }
+}
+/* re-add every earned village effect on boot (persistence across reload) */
+function restoreQuizVillage() {
+  if (!S.villageState || !Array.isArray(S.villageState.unlockedEffects)) return;
+  var map = { "learned-mushroom": ["🍄", "Learned Mushroom", "garden"], "mended-beam": ["🪵", "Mended Beam", "forge"] };
+  S.villageState.unlockedEffects.forEach(function (effect) {
+    var spec = map[effect]; if (!spec) return; /* lantern handled by restoreKnowledgeLantern */
+    var present = S.objects.some(function (o) { return o.sign === spec[1]; });
+    if (!present) addObject(spec[0], spec[1], spec[2]);
+  });
+}
+
+/* ---- entry: only in the graduated Warren, never the crib ---- */
+function quizZolAvailable() {
+  return !!(S.flags && S.flags.prologueSeen) && !prologueActive && !quizOpen && !S.activeProposal;
+}
+function openQuizZol(qid) {
+  if (quizOpen) return false;
+  var def = quizZolDef(qid || quizZolNextUnanswered() || QUIZ_ZOL_BANK[0].id);
+  if (!def) return false;
+  ensureAudio(); resumeAudio();
+  quizOpen = true;
+  currentQuiz = { kind: "quizzol", quizId: def.id, def: def, q: def.q, options: def.options.slice(),
+    correctIdx: def.correctIdx, explain: def.explain };
+  renderSheetQuizZol();
+  return true;
+}
+function renderSheetQuizZol() {
+  ["sheet-idle", "sheet-goblin", "sheet-proposal", "sheet-oracle", "sheet-council"].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.classList.add("hidden");
+  });
+  var sheet = document.getElementById("sheet-quiz"); sheet.classList.remove("hidden");
+  var head = document.getElementById("quiz-head");
+  var topic = currentQuiz.def.topic;
+  if (head) head.innerHTML = "<span>🦊</span><span>Lulu's fun fact</span> <span>· " + topic + "</span>";
+  document.getElementById("quiz-text").textContent = currentQuiz.q;
+  var result = document.getElementById("quiz-result");
+  if (result) result.textContent = quizZolIsPaid(currentQuiz.quizId) ? "🪔 Already learned — the Warren keeps this one." : "";
+  var host = document.getElementById("quiz-buttons"); host.innerHTML = "";
+  currentQuiz.options.forEach(function (opt, idx) {
+    var b = document.createElement("button"); b.className = "qbtn"; b.textContent = opt;
+    (function (choiceIdx) { b.addEventListener("click", function () { answerQuizZol(choiceIdx); }); }(idx));
+    host.appendChild(b);
+  });
+}
+function answerQuizZol(choiceIdx) {
+  if (!quizOpen || !currentQuiz || currentQuiz.kind !== "quizzol") return;
+  var qid = currentQuiz.quizId, def = currentQuiz.def;
+  var correct = choiceIdx === currentQuiz.correctIdx;
+  var result = document.getElementById("quiz-result");
+  var btns = document.querySelectorAll("#quiz-buttons .qbtn");
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+  if (!S.quizState) S.quizState = { rewardPaid: {}, streak: 0, bestStreak: 0 };
+  quizZolTries[qid] = (quizZolTries[qid] || 0) + 1;   /* every attempt counts (wrong-then-right = a retry) */
+
+  if (correct) {
+    var firstTry = quizZolTries[qid] === 1;
+    var alreadyPaid = quizZolIsPaid(qid);
+    /* B — base reward, once per question, ever (never pays twice) */
+    var base = alreadyPaid ? 0 : (firstTry ? def.base : QUIZ_ZOL_RETRY);
+    /* S — streak bonus (first-try correct answers in a row); wrong resets it */
+    var streakBonus = 0;
+    if (!alreadyPaid && firstTry) {
+      S.quizState.streak = (S.quizState.streak || 0) + 1;
+      if (S.quizState.streak > (S.quizState.bestStreak || 0)) S.quizState.bestStreak = S.quizState.streak;
+      if (S.quizState.streak % QUIZ_ZOL_STREAK_EVERY === 0) streakBonus = QUIZ_ZOL_STREAK_BONUS;
+    }
+    var reward = base + streakBonus;                 /* ZOL = B + S; never negative */
+    if (!alreadyPaid) S.quizState.rewardPaid[quizZolKey(qid)] = true;
+    if (reward > 0) { S.learning.zolBalance += reward; zolCelebrate(reward); Sound.riddleCorrect && Sound.riddleCorrect(); }
+    flashClass(document.getElementById("sheet-quiz"), "quiz-yay", 900);
+    /* the reward becomes VISIBLE in the world */
+    var isNewEffect = quizVillageEffect(def.effect);
+    if (result) {
+      result.textContent = def.explain + (reward > 0 ? "  +" + reward + " ZOL" + (streakBonus ? " (🔥 streak +" + streakBonus + ")" : "") : "  (already learned — no ZOL twice)");
+    }
+    var line = streakBonus ? pick(QUIZ_ZOL_REACTIONS.streak) : pick(QUIZ_ZOL_REACTIONS.correct);
+    setTimeout(function () { showBubble("lulu", line, 4600); }, 350);
+    saveState(); renderTopbar();
+    pushReplay("Lulu", "Fun fact learned", "quiz-zol",
+      "answered '" + def.topic + "' correctly." + (reward > 0 ? " +" + reward + " ZOL. " + (isNewEffect ? "world responded (" + def.effect + ")." : "") : " (no ZOL — already learned)"), "");
+  } else {
+    S.quizState.streak = 0;                           /* wrong breaks the streak; never subtracts ZOL */
+    Sound.riddleWrong && Sound.riddleWrong();
+    flashClass(document.getElementById("sheet-quiz"), "quiz-sneeze", 650);
+    if (result) result.textContent = "Not quite… " + def.explain;
+    setTimeout(function () { showBubble("lulu", pick(QUIZ_ZOL_REACTIONS.wrong), 4200); }, 350);
+    /* re-enable the buttons for a retry (reduced reward, never a penalty) */
+    setTimeout(function () { for (var j = 0; j < btns.length; j++) btns[j].disabled = false; }, 900);
+    saveState();
+  }
+  renderReplayStrip();
+  if (correct) setTimeout(function () { quizOpen = false; currentQuiz = null; if (S.activeProposal) renderSheetProposal(); else renderSheetIdle(); }, 3000);
 }
 
 /* ---------------------------------------------------------------------
@@ -7135,6 +7344,13 @@ function onTapGoblin(id) {
      waiting on Lulu's first tap, route to her instead of a normal boop. */
   if (prologueActive && id === "lulu" && prologueStep === 1) { tapLuluPrologue(); return; }
   if (matchaHeld && id === matchaGoblinId) { deliverMatcha(); return; } /* the carried cup finds its goblin */
+  /* QUIZ_TO_ZOL_V2 — once, in the graduated Warren, Lulu offers her first fun
+     fact (discovery). After that the lit Knowledge Lantern is the repeat door. */
+  if (id === "lulu" && !S.flags.quizZolMet && quizZolAvailable() && quizZolHasUnanswered()) {
+    S.flags.quizZolMet = true; saveState();
+    showBubble("lulu", "Ooh — I learned a thing. Want to check it?", 2600, true);
+    if (openQuizZol()) return;
+  }
   doBoop(id);
   if (S.activeProposal || quizOpen) return; // proposal/quiz keeps the sheet
   renderSheetGoblin(id);
@@ -8744,6 +8960,15 @@ window.WARREN_DEBUG = {
   getQuizZolState: function () { return { quizState: S.quizState, villageState: S.villageState }; },
   quizZolRewarded: function () { return quizZolRewarded(); },
   getQuizZolQuestion: function () { return QUIZ_ZOL_V1_QUESTION; },
+  /* QUIZ_TO_ZOL_V2 test surface */
+  openQuizZol: function (qid) { return openQuizZol(qid); },
+  answerQuizZol: function (idx) { return answerQuizZol(idx); },
+  quizZolBank: function () { return QUIZ_ZOL_BANK.map(function (q) { return { id: q.id, topic: q.topic, correctIdx: q.correctIdx, effect: q.effect, base: q.base }; }); },
+  getQuizZolV2: function () { return { zol: S.learning.zolBalance, streak: S.quizState.streak, bestStreak: S.quizState.bestStreak,
+    rewardPaid: Object.assign({}, S.quizState.rewardPaid), effects: S.villageState.unlockedEffects.slice(),
+    villageObjects: S.objects.filter(function (o) { return ["Knowledge Lantern", "Learned Mushroom", "Mended Beam"].indexOf(o.sign) >= 0; }).map(function (o) { return o.sign; }),
+    replayKinds: S.replay.map(function (r) { return r.choice; }) }; },
+  quizZolResetTries: function () { quizZolTries = {}; },
   restoreKnowledgeLantern: function () { restoreKnowledgeLantern(); renderObjects(); },
   /* test utility: force-close the quiz so a second open can proceed without waiting 2800ms */
   forceCloseQuiz: function () { quizOpen = false; currentQuiz = null; },
