@@ -14,12 +14,14 @@ node selftest.js index.html   # the entire test suite: 29 assertions, exit 1 on 
 
 There is no build, lint, or package.json. To play, open `index.html` in a browser (needs network once for the Three.js CDN). There is no way to run a single assertion — the selftest is one sequential script that walks the full game loop; run it whole.
 
+`selftest.js`'s default filename argument (`akashic-conquest.html`, a leftover from an earlier lineage name) does not exist in this repo — always pass `index.html` explicitly as shown above, or the run fails immediately with "reducer markers not found".
+
 ## Architecture: the reducer seam
 
 `index.html` is split in two by comment markers, and everything depends on that split:
 
 - **Pure reducer zone** — between `/* ===== REDUCER-BEGIN` and `/* ===== REDUCER-END` markers. All game logic (`makeState`, `startGame`, `answerQuestion`, `buyTerritory`, `createProposal`, `checkProposalWithHAL`, `councilReview`, `admitProposal`, `denyProposal`, `holdProposal`, `checkWin`, `auraWeather`) plus the data consts (`QUESTIONS`, `PERSONAS`, `TERRITORY_DEFS`). **No DOM, no THREE, no browser APIs** may appear here — `selftest.js` extracts this zone with a regex on the markers and runs it headlessly under Node via indirect eval.
-- **Render + UI zone** — everything after `REDUCER-END`: Three.js scene, HUD, and the `ui*` glue functions. Every UI action routes through a reducer function; the UI never mutates state `S` directly.
+- **Render + UI zone** — everything after `REDUCER-END`: Three.js scene, HUD, and the `ui*` glue functions. Every UI action routes through a reducer function; the UI never mutates state `S` directly. Input dispatch is a flat map to these glue functions: click a mound → `selectNode`; keys `Q`/`B`/`P`/`A`/`D`/`H`/`R` → `uiQCM`/`uiBuy`/`uiPropose`/`uiAdmit`/`uiDeny`/`uiHold`/`uiRestart`. When adding a new player action, add both a reducer function (pure, in-zone) and a thin `ui*` wrapper that calls it — never inline reducer logic into a `ui*` function.
 
 Consequences:
 - Do not rename, move, or reformat the `REDUCER-BEGIN`/`REDUCER-END` marker comments — the selftest's regex match is the extraction mechanism.
