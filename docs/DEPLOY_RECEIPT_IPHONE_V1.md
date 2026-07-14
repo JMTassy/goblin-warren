@@ -583,3 +583,32 @@ swarm green). Signed: IA Production · Dream of Conquest — Goblin Warren ·
   through the v2-proven seam — 0 credits by design).
 - CREDITS: 0 this slice.
 - IPHONE_SAFARI_STATUS for v1.31: untested.
+
+## v1.33 — 2026-07-14 (dual-source resolved as SINGLE-source local bundle · GO DEPLOY by JM)
+
+- SAME PLAY_URL: https://forest-frost-277.higgsfield.gg/ · game_id
+  d95bb0da… unchanged · deploy_game {"success":true, mode:"rules"}.
+- ARCHITECTURE (the wall, re-derived): the merged offline lineage hardcodes
+  LOCAL asset paths with a "no CDN in code" invariant (verify.js G2). Cloud
+  deploy needs the assets served → the elegant answer is NOT dual-source
+  (two URL sets = duplicated truth) but SINGLE-source: bundle the local
+  assets/ tree into the deploy. No CDN reintroduced; the same local files
+  serve offline AND cloud.
+- THE SIZE WALL + honest fix: referenced assets were 93MB (2K PNGs + raw
+  MP4) — wrong for web regardless of pipeline. Optimized images with Pillow
+  (bg→1440px, art→640px, LANCZOS, optimized PNG, paths unchanged): 70MB→13MB.
+  assets/ 95MB→38MB. Videos kept (graceful-degrade by design; no ffmpeg in
+  seat to re-encode). Bundle: 38,870,097 bytes.
+- SOURCE: deploy/goblin-warren-v1.33.zip (code + assets/, zip -r).
+  bundle sha256: 70d6e68ba67134e82fbed88451021157b6b8d429a73b11bdd7035ca6938b8007
+  assets-manifest sha256 (post-opt): d9b7ce25569def6669d45049bc7d14f9b4dc91c0b5f32283b22fa3d2f991c2d7
+- FIXED deploy.sh en route: bundle assets/ (zip -r), -e presence guard for
+  the directory, and a pipe-free logic.js check (set -o pipefail + grep -q's
+  early exit was SIGPIPE-ing unzip into a false "missing" FATAL).
+- WHAT WENT LIVE (all previously branch-only): Petit Prince Prologue,
+  Goblin Almanac, SFX seam, difficulty curve, 9 levels, matcha, disco,
+  staring contest, + the laptop's Gemma goblin-lines & QUIZ_TO_ZOL loop.
+- GATES before deploy: static verify.js 13/13 · prologue-gates.js 9/9 ·
+  offline invariant intact (0 cloudfront refs in game.js/index.html/style.css).
+- NOT DONE: on-device iPhone witness; the reframe listing text (still 1
+  "publish it" away); the one-gesture-consumption unification (proposed).
