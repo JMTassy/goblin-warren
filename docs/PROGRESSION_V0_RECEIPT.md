@@ -85,6 +85,31 @@ the mystery behind the tree).
 4. **Gesture quality** (quick-tap vs slow-hold changing Lulu's reaction) is not
    yet implemented — the offer is a single tap for reliability.
 
+## Refinement pass — "make Lulu a being" (after the 4/10 witness) — 2026-07-14
+
+Operator witnessed the first crib on iPhone/Safari and scored it **4/10** — not
+alive. Diagnosis (operator-confirmed, all four): background too busy · Lulu too
+small/far · doesn't react to me · voice weak. Refined against exactly those,
+membrane and gates unchanged:
+
+- **Its own quiet-dusk world.** The crib no longer dims the Level-12 art — it
+  paints a bespoke backdrop (low moon, deep-violet night) and shows the tree as
+  one soft silhouette. `#app.crib-active #world` overrides the map art.
+- **Lulu is a being you meet.** Centred and enlarged (1.85×); she **sleeps**
+  (closed eyes, slow breath, z-z-z) until your touch **stirs then wakes** her
+  (a warm flash), so the "magic moment" is staged, not instant.
+- **She reads how you act.** First touch stirs her (recognition beat before the
+  wake); the seed reads **quick-tap vs held-offer** and she reacts differently
+  ("you surprised me" vs "so gently, I felt that").
+- **Her real voice.** Crib beats now play the **bundled Luna mp3s**
+  (`LULU_VOICE_URLS` — greet/relic/matcha/goodnight, all local, real hypnotic
+  voice) instead of robotic TTS; `showBubble(..., noSpeak)` stops the double
+  voice; a Tibetan-bowl note sings on the bloom. TTS remains the final fallback.
+
+Still `progression-gates.js` 10/10 · `verify.js` 13/13 · membrane untouched.
+Shots: `docs/shots/v2-rung1-sleeping.png`, `v2-rung1-awake.png`,
+`v2-rung2-seed.png`, `v2-rung2-bloom.png`.
+
 ## Preview witness deploy (NOT production) — 2026-07-14
 
 Operator-authorized *preview-only* deploy for a real iPhone/Safari witness pass.

@@ -3177,51 +3177,116 @@ html, body {
 #prologue-skip:active { opacity: 0.9; }
 
 /* -------------------------------------------------------------------
-   VISION_PROGRESSION — THE CRIB (Rungs 1-3). A true zero-menu Level 1:
-   while #app carries .crib-active the top bar and bottom sheet are gone
-   entirely, so the only thing on screen is one goblin, the tree, and the
-   one thing to touch. The bars return at graduation (class removed).
+   VISION_PROGRESSION — THE CRIB (Rungs 1-3). Not just a hidden UI — its
+   OWN quiet dusk world. Zero menus, one calm backdrop, one tree in
+   silhouette, and Lulu large and centred: a being you meet up close, not
+   a sprite at the edge of a busy map. Everything returns at graduation.
 ------------------------------------------------------------------- */
 #app.crib-active #topbar,
 #app.crib-active #bottombar { display: none; }
-/* world furniture the crib hasn't introduced yet — the Little Temple, the
-   sap-serpent, and the Wonder-Cache relics — stays out of the scene until
-   graduation, so Rung 1 is truly one goblin + one tree. (The .prologue-active
-   rule already hides every un-revealed .goblin/.zone/.wobject.) */
 #app.crib-active #temple,
 #app.crib-active .serpent,
 #app.crib-active .collectible { display: none; }
-/* keep the dusk vignette deeper during the crib for the "quiet dusk" feel */
-#app.crib-active #world::before { opacity: 0.6; }
 
-/* the one subtle pulsing point of interaction — "👁 = notice" (glyph-free:
-   a gentle breathing glow, not an icon). Rides on Lulu, then on the seed,
-   then on the mystery — never more than one at a time. */
-@keyframes cribCue {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(255,246,210,0.25)); transform: scale(1); }
-  50%      { filter: drop-shadow(0 0 12px rgba(255,246,210,0.75)); transform: scale(1.06); }
+/* a bespoke quiet-dusk backdrop — a low moon over a deep violet night,
+   REPLACING the busy Level-12 art (which merely dimmed still read as a
+   crowded world). Overrides applyLevelBackdrop's inline image via !important. */
+#app.crib-active #world {
+  background-image:
+    radial-gradient(circle at 50% 12%, rgba(255,247,224,0.6) 0, rgba(255,247,224,0.14) 2.3%, transparent 6.5%),
+    radial-gradient(135% 95% at 50% 6%, #2c2347 0%, #1a1230 44%, #090613 100%) !important;
+  background-size: cover !important;
+  background-position: center !important;
 }
-.crib-cue { animation: cribCue 1.8s ease-in-out infinite; }
+#app.crib-active #world::before { opacity: 0.7; }
+
+/* the tree becomes a large, soft silhouette behind Lulu — presence, not a
+   labelled map-node; its ring/label/lock all fall away in the crib. */
+#app.crib-active #zone-tree {
+  transform: translate(-50%, -50%) scale(3) !important;
+  opacity: 0.4 !important;
+  filter: brightness(0.7);
+  z-index: 2;
+}
+#app.crib-active #zone-tree .zone-label,
+#app.crib-active #zone-tree .zone-ring,
+#app.crib-active #zone-tree .zone-lock { display: none !important; }
+
+/* Lulu, centred and close — the being you are meeting. Moderate scale so the
+   attached speech bubble stays legible; the transition is killed so she
+   simply IS centred rather than sliding in from her map slot. */
+#app.crib-active #goblin-lulu {
+  left: 50% !important;
+  top: 60% !important;
+  transform: translate(-50%, -100%) scale(1.85) !important;
+  transition: none !important;
+  z-index: 25;
+}
+/* her map-task caption ("exploring") is crib clutter — the crib is about who
+   she is, not what job she holds. Her name stays; the task goes. */
+#app.crib-active #goblin-lulu .g-task { display: none !important; }
+
+/* she sleeps until noticed — eyes closed to soft lines, a slow breath */
+#app.crib-active #goblin-lulu.crib-sleeping .g-body::before,
+#app.crib-active #goblin-lulu.crib-sleeping .g-body::after {
+  height: 1.5px; width: 5px; border-radius: 2px; top: 10px;
+}
+@keyframes cribBreath {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(0.6px) scaleY(0.965); }
+}
+#app.crib-active #goblin-lulu.crib-sleeping .g-body { animation: cribBreath 3.4s ease-in-out infinite; }
+#app.crib-active #goblin-lulu.crib-sleeping::after {
+  content: "z  z  z";
+  position: absolute;
+  top: -14px; left: 60%;
+  font-size: 7px; letter-spacing: 1px;
+  color: rgba(255,247,224,0.6);
+  animation: cribBreath 3.4s ease-in-out infinite;
+}
+/* the wake: a soft stretch + a warm flash */
+@keyframes cribWake {
+  0%   { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,247,224,0)); }
+  40%  { transform: scale(1.14) translateY(-2px); filter: drop-shadow(0 0 12px rgba(255,247,224,0.8)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,247,224,0)); }
+}
+#app.crib-active #goblin-lulu.crib-waking .g-body { animation: cribWake 0.9s ease-out; }
+
+/* the one subtle pulsing point of interaction — a gentle breathing glow,
+   never an icon. Rides Lulu (asleep), then the seed, then the mystery. */
+@keyframes cribCue {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255,246,210,0.3)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 13px rgba(255,246,210,0.85)); transform: scale(1.08); }
+}
+.crib-cue { animation: cribCue 1.7s ease-in-out infinite; }
 
 /* the offered seed arcs toward Lulu before it blooms */
 @keyframes cribOfferFly {
   0%   { transform: translate(0,0) scale(1); }
-  60%  { transform: translate(-14px,-10px) scale(1.15); }
-  100% { transform: translate(0,0) scale(0.9); opacity: 0.85; }
+  60%  { transform: translate(0,-16px) scale(1.2); }
+  100% { transform: translate(0,-4px) scale(0.9); opacity: 0.9; }
 }
 .crib-offer-fly { animation: cribOfferFly 1s ease-in-out; }
 
-/* the mystery behind the tree — two dim eyes, low and to the side, peeking */
+/* a soft bloom pop when the flower opens */
+@keyframes cribBloomPop {
+  0%   { transform: scale(0.2); opacity: 0; }
+  55%  { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.crib-bloom-pop { animation: cribBloomPop 0.85s cubic-bezier(.2,1.3,.4,1); }
+
+/* the mystery behind the tree — two dim eyes, peeking, low and to the side */
 #crib-mystery {
   position: absolute;
-  left: 50%;
-  top: 20%;
-  transform: translate(-140%, 0);
+  left: 34%;
+  top: 30%;
   z-index: 6;
-  font-size: 20px;
-  opacity: 0.65;
-  filter: grayscale(0.4) brightness(0.7);
+  font-size: 22px;
+  opacity: 0.7;
+  filter: grayscale(0.35) brightness(0.72);
   cursor: pointer;
   user-select: none;
+  animation: cribCue 2.4s ease-in-out infinite;
 }
 #crib-mystery.hidden { display: none; }

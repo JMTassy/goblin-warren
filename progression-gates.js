@@ -63,9 +63,10 @@ const vises = `function (id) { const el = document.getElementById(id); return !!
     g1.st.active && !g1.st.seen && g1.st.step === 1 && g1.st.rung === 1,
     JSON.stringify(g1));
 
-  // ---- Rung 1 → wake: tap Lulu, she notices you, seed appears, rung 2 -----
+  // ---- Rung 1 → wake: tap Lulu, she stirs, wakes, greets, then the seed
+  // appears (staged pacing: stir ~0.85s, greet, seed at ~4s after wake) -----
   await page.evaluate(() => window.WARREN_DEBUG.tapLuluPrologue());
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(5600);
   const g2 = await page.evaluate(() => {
     const st = window.WARREN_DEBUG.getCribState();
     return { step: st.step, rung: st.rung, woke: st.onboarding.woke, seedShown: st.seedShown,
@@ -161,7 +162,7 @@ const vises = `function (id) { const el = document.getElementById(id); return !!
   await page.waitForTimeout(1000);
   const before = await page.evaluate((SNAP) => eval(SNAP), SNAP);
   await page.evaluate(() => window.WARREN_DEBUG.tapLuluPrologue());
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(5600);   // stir → wake → greet → seed
   await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // offer
   await page.waitForTimeout(1400);
   await page.reload();               // return

@@ -4841,8 +4841,10 @@ function luluSpeak(text) {
   } catch (e) { /* voice is a gift, not a dependency */ }
 }
 
-function showBubble(goblinId, text, duration) {
-  if (goblinId === "lulu") luluSpeak(text);
+function showBubble(goblinId, text, duration, noSpeak) {
+  /* noSpeak lets a caller supply its own real voice line (e.g. the crib plays
+     a bundled Luna mp3) instead of the default browser TTS — avoids two mouths. */
+  if (goblinId === "lulu" && !noSpeak) luluSpeak(text);
   var host = goblinEls[goblinId];
   if (!host) return;
   if (text.length > 90) text = text.slice(0, 89) + "…";
@@ -8194,6 +8196,25 @@ function prologueClearTimers() {
 function prologueReveal(el) { if (el) el.classList.add("prologue-shown", "prologue-reveal"); }
 function cribCue(el, on) { if (el) el.classList[on ? "add" : "remove"]("crib-cue"); }
 
+/* the crib speaks with Lulu's REAL bundled voice (Luna mp3s), not browser TTS.
+   Short bubble carries the gist; the hypnotic mp3 carries the soul. voiceKey
+   is a LULU_VOICE_URLS key (local, real voice; TTS only if the mp3 truly 404s);
+   pass null for a silent beat (a stir, a whisper). */
+function cribSay(bubble, voiceKey, dur) {
+  showBubble("lulu", bubble, dur || 4200, true);   // noSpeak: no default TTS
+  if (voiceKey) luluVoiceLine(voiceKey);
+}
+function cribSleep(on) {
+  var el = goblinEls.lulu;
+  if (!el) return;
+  if (on) { el.classList.add("crib-sleeping"); }
+  else {
+    el.classList.remove("crib-sleeping");
+    el.classList.add("crib-waking");
+    setTimeout(function () { el.classList.remove("crib-waking"); }, 1000);
+  }
+}
+
 /* the crib always shows Lulu + the tree; everything else is earned */
 function cribShowStage() {
   prologueActive = true;
@@ -8215,22 +8236,30 @@ function startPrologue() {
   else { cribNotice(); }                       // Rung 1 — fresh
 }
 
-/* ---- Rung 1 — NOTICE ---- */
+/* ---- Rung 1 — NOTICE ---- Scene 1: she sleeps under the tree, breathing.
+   No greeting yet — the quiet IS the anticipation. A soft pulse says "touch". */
+var cribStirs = 0;
 function cribNotice() {
   prologueStep = 1;
   S.progress.rung = 1;
+  cribStirs = 0;
+  cribSleep(true);                             // eyes closed, slow breath, z z z
   cribCue(goblinEls.lulu, true);               // the one subtle pulsing point of interaction
-  prologueSetTimeout(function () {
-    showBubble("lulu", "Oh... you found me...", 4200);
-    luluPrologueLine("greet");
-  }, 500);
-  /* fallback: the beat still happens if nobody taps */
-  prologueSetTimeout(function () { if (prologueStep === 1) cribWake(); }, 9000);
+  /* fallback: she wakes on her own if nobody taps for a while */
+  prologueSetTimeout(function () { if (prologueStep === 1) cribWake(); }, 11000);
 }
 
 function tapLuluPrologue() {                    // routed from onTapGoblin('lulu')
   if (!prologueActive) return;
-  if (prologueStep === 1) cribWake();
+  if (prologueStep === 1) {
+    /* first touch stirs her awake — a beat of recognition, then the wake */
+    cribStirs++;
+    flashClass(goblinEls.lulu, "booped", 500);
+    if (window.Sound && Sound.treeHum) Sound.treeHum();
+    cribSay("...mm...?", null, 1600);          // silent stir
+    prologueClearTimers();
+    prologueSetTimeout(cribWake, 850);
+  }
 }
 
 function cribWake() {
@@ -8240,14 +8269,17 @@ function cribWake() {
   o.woke = true;
   S.progress.rung = 2;
   cribCue(goblinEls.lulu, false);
+  cribSleep(false);                            // eyes open, a warm wake-flash
   var g = S.goblins.lulu;
   if (g) g.mood = "delighted";
-  flashClass(goblinEls.lulu, "booped", 600);   // the same wobble as doBoop's taming click
-  showBubble("lulu", "You noticed me. Most tap the tree first.", 3800);
-  luluPrologueLine("boop");
   renderGoblins();
   if (window.Sound && Sound.bloom) Sound.bloom();
-  prologueSetTimeout(cribSpawnSeed, 1200);     // reward: a seed appears
+  /* Scene 2 → 3: recognition, then her real voice (a bundled Luna line) */
+  cribSay("Oh... you found me...", null, 3000);
+  prologueSetTimeout(function () {
+    cribSay("...the moss remembered your footsteps.", "greet", 5000);
+  }, 2100);
+  prologueSetTimeout(cribSpawnSeed, 4000);     // reward: a seed appears, just after she greets
   saveState();
 }
 
@@ -8262,11 +8294,32 @@ function cribSpawnSeed() {
   renderObjects();
   prologueReveal(objectEls[prologueSeedObjId]);
   cribCue(objectEls[prologueSeedObjId], true);
-  showBubble("lulu", "Here... one seed. Offer it to me?", 4600);
-  luluPrologueLine("seed");
+  cribWireSeedGesture(objectEls[prologueSeedObjId]);
+  cribSay("Here... one seed. It is yours.", "relic", 4600);
   saveState();
   /* fallback: she accepts it on her own if the seed goes un-offered */
-  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed(); }, 13000);
+  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed("wait"); }, 15000);
+}
+
+/* the seed reads HOW you give it — a quick tap vs a held offer — so the
+   gesture feels like it reaches her, not just a button press. */
+function cribWireSeedGesture(el) {
+  if (!el || el._cribGestureWired) return;
+  el._cribGestureWired = true;
+  var downAt = 0;
+  el.addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    downAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : 0;
+  });
+  var release = function (e) {
+    if (!downAt) return;
+    var held = ((typeof performance !== "undefined" && performance.now) ? performance.now() : 0) - downAt;
+    downAt = 0;
+    if (e) e.stopPropagation();
+    cribOfferSeed(held >= 320 ? "held" : "quick");
+  };
+  el.addEventListener("pointerup", release);
+  el.addEventListener("pointerleave", function (e) { if (downAt) release(e); });
 }
 
 /* returning mid-crib: woke last session, seed never offered — restore the seed */
@@ -8281,30 +8334,35 @@ function cribResumeGesture() {
   }
   if (!seed) { cribSpawnSeed(); return; }
   prologueSeedObjId = seed.id;
+  cribSleep(false);
   renderObjects();
   prologueReveal(objectEls[prologueSeedObjId]);
   cribCue(objectEls[prologueSeedObjId], true);
+  cribWireSeedGesture(objectEls[prologueSeedObjId]);
   prologueSetTimeout(function () {
-    showBubble("lulu", "You came back... the seed is still here. Offer it?", 4600);
-    luluPrologueLine("greet");
+    cribSay("You came back... the seed is still here.", "greet", 4800);
   }, 500);
-  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed(); }, 13000);
+  prologueSetTimeout(function () { if (prologueStep === 2 && !cribOb().offered) cribOfferSeed("wait"); }, 15000);
 }
 
-function tapPrologueSeed() {                    // routed from the object tap handler
+function tapPrologueSeed() {                    // routed from the object tap handler (click)
   if (!prologueActive || prologueStep !== 2) return;
-  cribOfferSeed();
+  cribOfferSeed("tap");
 }
 
-function cribOfferSeed() {
+function cribOfferSeed(quality) {
   if (!prologueActive || prologueStep !== 2) return;
   var o = cribOb();
   if (o.offered) return;
   o.offered = true;
   var seedEl = prologueSeedObjId ? objectEls[prologueSeedObjId] : null;
   cribCue(seedEl, false);
-  if (seedEl) seedEl.classList.add("crib-offer-fly");   // the seed flies to Lulu
-  showBubble("lulu", "You gave it to me? ...watch.", 3400);
+  if (seedEl) seedEl.classList.add("crib-offer-fly");   // the seed arcs to Lulu
+  /* she reads HOW you gave it — the reaction is yours, not generic */
+  var line = quality === "quick" ? "Oh! ...you surprised me."
+           : quality === "held"  ? "...so gently. I felt that."
+           : "You gave it to me?";
+  cribSay(line, null, 3200);                            // her own quick reaction, no voice
   saveState();
   prologueSetTimeout(function () {
     /* transform the SAME object 🌰 → 🌸 (continuity: it is the very seed you
@@ -8320,14 +8378,15 @@ function cribOfferSeed() {
         el.classList.remove("crib-offer-fly");
         var em = el.querySelector(".wobj-emoji"); if (em) em.textContent = "🌸";
         var sg = el.querySelector(".wobj-sign"); if (sg) sg.textContent = "Our First Bloom";
-        el.classList.remove("prologue-reveal"); void el.offsetWidth; el.classList.add("prologue-reveal");
+        el.classList.remove("prologue-reveal", "crib-bloom-pop"); void el.offsetWidth;
+        el.classList.add("prologue-reveal", "crib-bloom-pop");   // a soft bloom pop
       }
     }
     if (window.Sound && Sound.bloom) Sound.bloom();
-    showBubble("lulu", "A flower. We made it. We can make another... tomorrow.", 5200);
-    luluPrologueLine("relic");
+    if (window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(528);   // the bloom sings
+    cribSay("A flower. We made it.", "matcha", 5200);
     saveState();
-    prologueSetTimeout(cribMystery, 3400);
+    prologueSetTimeout(cribMystery, 3600);
   }, 1000);
 }
 
@@ -8342,14 +8401,14 @@ function cribMystery() {
     sh.classList.add("prologue-shown", "prologue-reveal", "crib-cue");
     if (!sh._cribWired) { sh._cribWired = true; sh.addEventListener("click", function (e) { e.stopPropagation(); tapCribMystery(); }); }
   }
-  showBubble("lulu", "...did you see that? Behind the tree. Come back and we'll look.", 5200);
+  cribSay("...did you see that? Behind the tree.", "goodnight", 5200);
   saveState();
 }
 
 function tapCribMystery() {
   var sh = document.getElementById("crib-mystery");
   if (sh) flashClass(sh, "booped", 600);
-  showBubble("lulu", "Not yet... it only comes out when you return.", 4200);
+  cribSay("Not yet... come back, and we'll look.", null, 4200);
 }
 
 /* ---- Rung 3 — MEMORY (a later visit) → then graduate to the full Warren ---- */
@@ -8358,6 +8417,7 @@ function cribReturnMemory() {
   S.progress.rung = 3;
   var o = cribOb();
   o.visits = (o.visits || 0) + 1;
+  cribSleep(false);
   /* the bloom persisted in S.objects; make sure it shows */
   for (var i = 0; i < S.objects.length; i++) {
     if (S.objects[i].id === o.bloomObjId || S.objects[i].emoji === "🌸") {
@@ -8369,11 +8429,10 @@ function cribReturnMemory() {
   }
   saveState();
   prologueSetTimeout(function () {
-    showBubble("lulu", "You came back... I kept our flower. It waited for you.", 5000);
-    luluPrologueLine("greet");
+    cribSay("You came back... I kept our flower.", "greet", 5000);
   }, 700);
   prologueSetTimeout(function () {
-    showBubble("lulu", "...there is more to show you now. Come — meet the others.", 4200);
+    cribSay("...there is more to show you now.", null, 4200);
     prologueSetTimeout(graduateCrib, 2600);
   }, 5400);
   /* fallback: graduate even if the beats are interrupted */
@@ -8395,6 +8454,7 @@ function graduateCrib() {
   PROLOGUE_CHIPS.forEach(function (id) { prologueReveal(document.getElementById(id)); prologueChipsShown++; });
   var app = document.getElementById("app");
   if (app) app.classList.remove("prologue-active", "crib-active");
+  if (goblinEls.lulu) goblinEls.lulu.classList.remove("crib-sleeping", "crib-waking", "crib-cue");
   var skip = document.getElementById("prologue-skip");
   if (skip) skip.classList.add("hidden");
   var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
@@ -8447,7 +8507,7 @@ function resetCrib() {
   prologueSeedObjId = null; prologueBloomObjId = null;
   var app = document.getElementById("app");
   if (app) app.classList.remove("prologue-active", "crib-active");
-  Object.keys(goblinEls).forEach(function (id) { goblinEls[id].classList.remove("prologue-shown", "prologue-reveal", "crib-cue"); });
+  Object.keys(goblinEls).forEach(function (id) { goblinEls[id].classList.remove("prologue-shown", "prologue-reveal", "crib-cue", "crib-sleeping", "crib-waking"); });
   document.querySelectorAll(".zone, .wobject").forEach(function (el) { el.classList.remove("prologue-shown", "prologue-reveal", "crib-cue"); });
   PROLOGUE_CHIPS.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.remove("prologue-shown", "prologue-reveal"); });
   var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
