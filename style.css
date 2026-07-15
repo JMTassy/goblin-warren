@@ -3291,6 +3291,25 @@ html, body {
 }
 #crib-mystery.hidden { display: none; }
 
+/* the "step X of 3" cue — legible progress, not a HUD */
+#crib-progress {
+  position: absolute;
+  left: 50%;
+  bottom: calc(56px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  gap: 9px;
+}
+#crib-progress.hidden { display: none; }
+.crib-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.22);
+  transition: background 0.4s ease;
+}
+.crib-dot.done { background: rgba(255,246,210,0.9); }
+
 /* -------------------------------------------------------------------
    QUIZ_TO_ZOL_V2 — the reward landing in the world. When a correct
    answer lights/pulses a village effect (lantern, mushroom, mended

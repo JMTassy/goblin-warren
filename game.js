@@ -8438,8 +8438,26 @@ function cribShowStage() {
   if (app) { app.classList.add("prologue-active", "crib-active"); }
   var skip = document.getElementById("prologue-skip");
   if (skip) skip.classList.remove("hidden");
+  var prog = document.getElementById("crib-progress");
+  if (prog) prog.classList.remove("hidden");
   prologueReveal(document.getElementById("zone-tree"));
   prologueReveal(goblinEls.lulu);
+}
+
+/* VISION_PROGRESSION §1 fix (operator witness 2026-07-14) — a legible
+   "step X of 3" cue. Three small dots; filled = completed, pulsing =
+   current. This is the direct answer to "I do not see the step by step
+   progression" — the crib had zero visible sense of forward motion. */
+function renderCribProgress() {
+  var wrap = document.getElementById("crib-progress");
+  if (!wrap) return;
+  var rung = (S.progress && S.progress.rung) || 1;
+  for (var i = 1; i <= 3; i++) {
+    var dot = wrap.children[i - 1];
+    if (!dot) continue;
+    dot.classList.toggle("done", rung > i);
+    dot.classList.toggle("crib-cue", rung === i);
+  }
 }
 
 /* entry from boot() — the crib picks up at whichever rung the save left off */
@@ -8459,6 +8477,7 @@ function cribNotice() {
   prologueStep = 1;
   S.progress.rung = 1;
   cribStirs = 0;
+  renderCribProgress();
   cribSleep(true);                             // eyes closed, slow breath, z z z
   cribCue(goblinEls.lulu, true);               // the one subtle pulsing point of interaction
   /* fallback: she wakes on her own if nobody taps for a while */
@@ -8484,6 +8503,7 @@ function cribWake() {
   var o = cribOb();
   o.woke = true;
   S.progress.rung = 2;
+  renderCribProgress();
   cribCue(goblinEls.lulu, false);
   cribSleep(false);                            // eyes open, a warm wake-flash
   var g = S.goblins.lulu;
@@ -8542,6 +8562,7 @@ function cribWireSeedGesture(el) {
 function cribResumeGesture() {
   prologueStep = 2;
   S.progress.rung = 2;
+  renderCribProgress();
   var o = cribOb();
   /* the seed persisted in S.objects; find it (fallback: respawn one) */
   var seed = null;
@@ -8606,7 +8627,16 @@ function cribOfferSeed(quality) {
   }, 1000);
 }
 
-/* the future promise — the session's gentle closer, no further reveal */
+/* the future promise — but NOT a dead end. A curious tap right here is the
+   player's peak-interest moment; the old build said "not yet, come back"
+   and then required an actual page reload to progress, which is exactly
+   where a real first-session player got bored and left (operator witness,
+   2026-07-14: "I first love it then get bored because I do not see the
+   step by step progression"). Tapping the mystery now IS the next step —
+   an in-session "the day turns" beat (reusing the Rung-1 sleep/wake visual
+   language, no new assets) that leads straight into Rung 3 and graduation.
+   A fallback timer still fires it on its own so a player who never taps
+   isn't stuck either (never traps, same law as every other crib beat). */
 function cribMystery() {
   if (!prologueActive) return;
   var o = cribOb();
@@ -8617,20 +8647,33 @@ function cribMystery() {
     sh.classList.add("prologue-shown", "prologue-reveal", "crib-cue");
     if (!sh._cribWired) { sh._cribWired = true; sh.addEventListener("click", function (e) { e.stopPropagation(); tapCribMystery(); }); }
   }
-  cribSay("...did you see that? Behind the tree.", "goodnight", 5200);
+  cribSay("...did you see that? Behind the tree. Look closer?", "goodnight", 5200);
   saveState();
+  /* nobody has to tap for the arc to still complete */
+  prologueSetTimeout(function () { if (prologueStep === 2 && prologueActive) cribNightfall(); }, 20000);
 }
 
 function tapCribMystery() {
+  if (!prologueActive || prologueStep !== 2 || !cribOb().mystery) return;
   var sh = document.getElementById("crib-mystery");
-  if (sh) flashClass(sh, "booped", 600);
-  cribSay("Not yet... come back, and we'll look.", null, 4200);
+  if (sh) { flashClass(sh, "booped", 600); cribCue(sh, false); sh.classList.add("hidden"); }
+  cribSay("...come. Let's see what the night knows.", null, 3200);
+  prologueSetTimeout(cribNightfall, 1600);
+}
+
+/* the in-session time-skip: she dozes (same visual as Rung 1's sleep),
+   then wakes into the Rung 3 memory beat — no reload required. */
+function cribNightfall() {
+  if (!prologueActive || prologueStep !== 2) return;
+  cribSleep(true);
+  prologueSetTimeout(cribReturnMemory, 1800);
 }
 
 /* ---- Rung 3 — MEMORY (a later visit) → then graduate to the full Warren ---- */
 function cribReturnMemory() {
   prologueStep = 3;
   S.progress.rung = 3;
+  renderCribProgress();
   var o = cribOb();
   o.visits = (o.visits || 0) + 1;
   cribSleep(false);
@@ -8674,6 +8717,7 @@ function graduateCrib() {
   var skip = document.getElementById("prologue-skip");
   if (skip) skip.classList.add("hidden");
   var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
+  var prog = document.getElementById("crib-progress"); if (prog) prog.classList.add("hidden");
   S.flags.prologueSeen = true;
   S.flags.greeted = true;              // the crib already greeted; don't double-fire
   S.progress.rung = 12;
@@ -8727,6 +8771,8 @@ function resetCrib() {
   document.querySelectorAll(".zone, .wobject").forEach(function (el) { el.classList.remove("prologue-shown", "prologue-reveal", "crib-cue"); });
   PROLOGUE_CHIPS.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.remove("prologue-shown", "prologue-reveal"); });
   var sh = document.getElementById("crib-mystery"); if (sh) sh.classList.add("hidden");
+  var prog = document.getElementById("crib-progress");
+  if (prog) { prog.classList.add("hidden"); for (var i = 0; i < prog.children.length; i++) prog.children[i].classList.remove("done", "crib-cue"); }
   /* wipe the crib's world objects so a replay starts truly empty */
   S.objects = S.objects.filter(function (ob) { return ob.emoji !== "🌰" && ob.emoji !== "🌸"; });
   S.flags.prologueSeen = false;
@@ -8743,7 +8789,8 @@ function replayPrologue() {
 function advancePrologue() {
   if (!prologueActive) return false;
   if (prologueStep === 1) cribWake();
-  else if (prologueStep === 2) cribOfferSeed();
+  else if (prologueStep === 2 && !cribOb().offered) cribOfferSeed();
+  else if (prologueStep === 2 && cribOb().mystery) tapCribMystery();
   else if (prologueStep === 3) graduateCrib();
   return true;
 }
