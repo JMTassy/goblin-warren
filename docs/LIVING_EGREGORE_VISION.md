@@ -127,14 +127,21 @@ to build on operator go.
 seam: `S.lulu.mode`/`previousMode` + `needs:{energy,curiosity,connection}`
 (game.js:343) already implement a lightweight pressure→shift system — any
 mutation work should *extend* this, not add a parallel state (same
-"merge, don't fork" law as this addendum's own existence). **Hard
-constraint, non-negotiable:** no mutation state, vocabulary, or UI may
-surface before Rung 12 (graduation). Lulu is the crib's anchor, and the crib
-was just repaired (2026-07-15) after a real first-time player bounced —
-*"I get bored because I don't see the step by step progression"* — precisely
-on hidden complexity surfacing too early. This vision's own rule 5 (*"witness
-first, gardener second"*) argues for autonomy emerging late, not early; this
-constraint is that rule applied to the one character every player meets
+"merge, don't fork" law as this addendum's own existence).
+
+**Correction, 2026-07-15 (same day, later pass):** the constraint originally
+written here — *"no mutation state before Rung 12 (graduation)"* — was too
+broad, and a later design-critique pass caught the actual, narrower claim.
+The witnessed danger zone is specifically **the crib (Rungs 1-3, the first
+few minutes of contact)** — that's where a real player bounced on hidden
+complexity. It is not a claim that nothing may deepen until the *entire*
+game is unlocked. A real staged campaign (Rungs 4-11, not yet built) can and
+should introduce mutation/Wolf/Coherence material progressively, *if* each
+introduction is earned through real mechanical stakes (scarcity, trade-offs,
+a skill to practice) rather than narrative alone — see the game-design
+critique of 2026-07-15 appended to `VISION_PROGRESSION_L1_L12.md`. **The
+binding constraint is: never during the crib. Everything after that is a
+staging question, not a hard wall.**
 first.
 
 **Glitchling VFX V0 — CANDIDATE, contingent on Lulu Mutations.** Well-bounded

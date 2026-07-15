@@ -44,22 +44,93 @@ Each rung obeys four constraints (Le Petit Prince discipline):
 3. **A small reward** — a new behavior, a line, a surprise.
 4. **A simple trigger to advance** — one plain action, never a wall of text.
 
-## The ladder
+## The ladder — reframed 2026-07-15, one captivating hook per rung
 
-| Rung | Name | The ONE new thing | Lulu's growth | Trigger to advance | The hook | Reuses (already in code) |
-|---|---|---|---|---|---|---|
-| **1** | THE WAKING | Black screen, one sleeping shape, "tap to wake." She opens her eyes and looks at *you*. Nothing else exists. | asleep → awake, notices you | the first tap | *it noticed me* | prologue `greet`, `luluVoiceLine` |
-| **2** | THE BOOP | You can touch her. She reacts; one mood emoji flickers to life. | inert → has feelings | boop until she settles | *I affect its mood* | boop handler, mood buckets |
-| **3** | THE VOICE | She speaks a *generated* line about you (time, your taps) — live seam, template fallback offline. | mute → speaks to me | hear one line | *it's really alive, and it's talking to ME* | `generateGoblinLine`, v2 seam |
-| **4** | THE SEED | One patch of ground. Plant one seed with a tap. She comments on *your* seed. | alone → shares her world | plant the seed | *I can change its little world* | plot/tap-target, `pushReplay` |
-| **5** | THE RIDDLE | The Moth asks ONE riddle. Right → +ZOL, she's proud; wrong → "the mushrooms still love you." | believes in me | answer once | *I earned something* (reward loop is born) | quiz, `S.flags.quizRight`, ZOL |
-| **6** | THE SECOND GOBLIN | One more creature arrives with a clearly *different* temperament. Two personalities, contrast. | has a friend/rival | meet them | *relationships — a tiny cast, not five at once* | one `PERSONAS` entry |
-| **7** | THE FIRST CHOICE | The newcomer proposes ONE thing. You get **ADMIT / DENY** (no HOLD yet). One visible consequence. | the world bends to my hand | make one stamp | *my choice matters — the sacred loop* | `activeProposal`, `geraldFate` |
-| **8** | THE MIDDEN LEDGER | The ledger panel appears, showing what you and the goblins did. | it remembers everything | open it once | *my history is real* (receipts) | Midden Ledger, `pushReplay` |
-| **9** | THE SKY REMEMBERS | Third verdict **HOLD**; AURA's mood tints the sky from the log. | nuance, deferral | hold one thing | *the world has a mood that reflects me* | `auraWeather`, HOLD path |
-| **10** | THE COUNCIL | A few more goblins; portal plots trigger council review (recommends, never admits). | a society deliberates | convene once | *I preside over a council* | `PORTALS`, `councilReview` |
-| **11** | THE ZONES OPEN | The `LEVELS[2..9]` backgrounds become travelable — Earn the Key, Pay the Toll. Wonder Cache, Almanac, boss surface here. | a whole world to wander | travel to Level 2 | *exploration — every earned background gets its home* | `LEVELS`, `needKnow`/`tollZOL` |
-| **12** | THE FULL WARREN | Everything present — **today's homepage** — but every emoji and agent arrived as a friend you met. | fully grown; you're her operator | — (summit) | *I grew a living AI village from one sleeping goblin* | the current game, unchanged |
+Each rung is tagged with the *specific* psychological principle it leans on
+(not vibes — the same vocabulary as the "why it's catchy" essay this vision
+has already absorbed: competence loop, variable reward, curiosity gap,
+collection instinct, Zeigarnik effect, identity formation). **Status** is
+honest: `BUILT` = live and witnessed, `PLANNED` = designed here, not coded.
+
+| Rung | Name | The ONE new thing | Captivating hook (the *why*) | The line | Status |
+|---|---|---|---|---|---|
+| **1** | THE WAKING | Sleeping Lulu, one tree, tap to wake. | **Competence loop** — the fastest possible "did I understand this?" A tap produces an immediate, unambiguous response. | *"Oh... you found me..."* | **BUILT** ✅ |
+| **2** | THE OFFERING | Offer the seed (tap vs. hold — she reads *how*). It blooms. | **Micro-dopamine, three layers** — sensory pop, her line, a flower that persists in the real world. Not one reward, three, stacked. | *"A flower. We made it."* | **BUILT** ✅ |
+| **3** | THE RETURN | Tap the mystery behind the tree → the night turns → she remembers. | **The Zeigarnik effect** — an unresolved thread the mind keeps rehearsing. (This rung *was* the wall a real beta tester hit — "not yet, come back" — fixed 2026-07-15; tapping now advances instead of blocking.) | *"You came back... I kept our flower."* | **BUILT** ✅ |
+| **4** | THE NEED | Lulu expresses ONE simple want — not a task list, one sentence. Two response choices. | **Identity shift** — the pivot from *spectator* to *caretaker*. You stop answering a UI and start tending a creature. | *"I keep wondering what's behind the tree."* | PLANNED (next slice) |
+| **5** | THE FIRST QUESTION | She — not a stranger Moth — asks you one gentle thing. Right answer: a real object lights in the world (reuses `QUIZ_TO_ZOL_V2`, unlocked here instead of only post-graduation). | **Earned reward, tangible** — the first time "getting it right" visibly changes the *place*, not a score. | a 🍄/🪔 lights, tied to *her* asking | PLANNED |
+| **6** | THE SECOND VOICE | One more goblin arrives, a clearly different temperament — reacts to the *same* flower differently than Lulu did. | **Collection instinct + contrast** — proof the world holds more than one being; the promise of a cast, revealed one at a time. | two reactions to one flower | PLANNED |
+| **7** | THE FIRST CHOICE | The newcomer proposes ONE thing. ADMIT / DENY (no HOLD yet). One visible consequence. | **Agency — the sacred loop.** Your tap is the only admission that exists. | the world visibly bends to your stamp | PLANNED |
+| **8** | THE MIDDEN LEDGER | The ledger panel appears — what you and the goblins did, in order. | **The place becomes memory** — people remember *places*, not scores. This is where the Warren starts to feel like somewhere, not something. | your own history, readable | PLANNED |
+| **9** | THE SKY REMEMBERS | A held verdict; AURA's mood tints the sky from the log. | **Emotional attachment** — the world's mood is a mirror of *you*, never a meter. | the sky itself answers you | PLANNED |
+| **10** | THE COUNCIL & THE FIRST SONG | A few more goblins; portal plots trigger council (recommends, never admits). First taste of Serpent tone-play — purely felt, no Wolf/Coherence vocabulary surfaced yet. | **Variable reward** — harmonies aren't the same twice: sometimes she laughs, sometimes a lantern lights, sometimes just quiet. Unpredictability is what keeps a reward alive. | a chord that's never quite the same | PLANNED |
+| **11** | THE ZONES OPEN | `LEVELS[2..9]` become travelable — Earn the Key, Pay the Toll. Wonder Cache, Almanac, first boss. | **Curiosity gap at scale** — "one more region," relic collection. A single Almanac line may hint, purely as poetry, that something in her is still tuning itself — texture, never a mechanic. | *"one more region..."* | PLANNED |
+| **12** | THE FULL WARREN | Everything present — today's homepage — but every emoji and agent arrived as a friend you met. | **The work is never finished** (the whole project's deepest law, made playable). Wolf Intervals, Coherence, Lulu's archetypal shifts — everything designed in `LIVING_EGREGORE_VISION.md` — live *beyond* this summit, never before it. | *"I grew a living village from one sleeping goblin."* | **BUILT** (as today's game) ✅ — but arrived at with nothing earned between Rung 3 and here yet |
+
+## The graduation gap — an honest finding, not a fix (2026-07-15)
+
+Reframing this ladder surfaced something that needs saying plainly: **only
+Rungs 1–3 are actually built.** `graduateCrib()` currently jumps straight
+from Rung 3 to the *entire* Rung-12 complexity dump — every goblin, every
+zone, every chip, all at once — the instant the crib ends. Rungs 4–11 above
+are fully designed here but **not one line of them is coded.**
+
+That means the exact failure mode that bounced a real beta tester at the
+front door — *"I get bored because I don't see the step by step
+progression"* — is **still structurally possible**, just delayed by roughly
+90 seconds instead of 0. Fixing the crib's internal wall (Rung 3's mystery)
+was necessary and correct, but it did not close this gap. Rung 4 (THE NEED)
+is the literal next slice, not a someday item, if this ladder is meant to
+hold past the first three minutes.
+
+## Game-design critique (2026-07-15) — supersedes the ladder above for Rung 4+
+
+An honest external read on the ladder table above and the several full
+12-level campaign drafts generated alongside it: **captivating as a world,
+not yet consistently fun as a game.** Most levels above ask
+*observe → select dialogue → witness consequence* — compelling for a few
+minutes, passive across twelve. The diagnosis, condensed:
+
+- **No scarcity, no trade-offs.** "Care" currently means clicking every
+  available positive interaction. A real decision requires giving something
+  up: *3 visible needs, only 2 actions* — not *1 need, 1 action, always
+  right*.
+- **No skill expression.** Nothing the player can practice and get better
+  at. The Serpent Choir is the best existing candidate (tension → resolution
+  in a short harmonic sequence is a real, learnable pattern).
+- **Weak fast feedback.** Text-only consequence is weak game-feel. An action
+  should chain visibly: *root bends → droplet travels underground → a
+  distant room lights → a sleeping goblin opens one eye.*
+- **Escalating conceptual depth ≠ escalating game difficulty.** The ladder
+  above deepens *meaning* level over level; it doesn't yet deepen
+  *challenge*.
+
+**What this changes, concretely: Rung 4 (THE NEED) cannot ship as "she says
+one want, you pick 1 of 2 responses."** That's still observe→select→witness.
+The corrected shape, using the critique's own worked example as the
+template — Rung 1's actual shipped mechanic (tap to wake, offer the seed)
+already has real scarcity built in (one seed, one offer, no do-over) and
+that's *why* it worked; Rung 4 needs the same property:
+
+> Lulu is cold. A root is dry. A distant sound calls. **The player has two
+> care actions, not three.** Whichever two are chosen, the third's absence is
+> felt and remembered — not punished, just real.
+
+**What not to repeat going forward** (from the critique, binding for every
+future rung spec): no philosophical text as the primary reward · no new
+system introduced once then abandoned · no choices whose outcomes are
+nearly identical · no hidden score judging the player · no long exposition
+before interaction · **no twelfth bespoke level — three or four excellent
+mechanics recombined across twelve increasingly difficult *situations*,**
+not twelve different ideas.
+
+**Standing recommendation:** the next design artifact is one real, playable
+Rung 4 loop with actual scarcity and fast feedback — not another full
+1–12 campaign draft. Several complete alternative campaign structures exist
+in chat/session history as raw material (bosses-as-thresholds, Comma as a
+felt presence from the midpoint on, the Serpent Choir as the true climax);
+none are adopted here. They stay CANDIDATE, unconsolidated, until Rung 4
+proves the mechanical loop actually works.
 
 ## The mechanic (how it's built)
 
@@ -89,13 +160,19 @@ reducer markers are unaffected. **Garden change ⊬ Kernel truth.**
 
 ## Build order (one rung = one warren slice)
 
-Build **Rung 1 (The Waking)** first, verify end-to-end, stop at
-HOLD_FOR_OPERATOR. Then Rung 2, and so on — each its own slice, each verified,
-each a clean commit. We do **not** build the whole ladder in one push; that
-would repeat the original sin (too much at once). The roadmap is the map; we
-walk it one rung at a time, and the operator witnesses each rung on real Safari
-before the next.
+Rungs 1–3 are done: built, gated (`progression-gates.js`), and witnessed on a
+real device — including the Rung 3 fix, which only happened *because* an
+operator actually played it and reported the exact wall. That's the pattern
+to repeat, not skip: build one rung, ship a preview, get a real thumb on it,
+*then* move on. We still do **not** build the remaining ladder in one push —
+that repeats the original sin this whole document exists to fix.
 
-**Claim typing:** this document is a CANDIDATE roadmap (design inference). No
-rung is WITNESSED until built and tapped on-device. Nothing here mutates state,
-claims admission, or is canon.
+Next: **Rung 4 (THE NEED)**, then Rung 5 (reusing `QUIZ_TO_ZOL_V2` instead of
+inventing a new reward system — same law as the Egregore doc's "merge, don't
+fork").
+
+**Claim typing:** Rungs 1–3 are **WITNESSED** (built, gated, played on a real
+device, one real bug found and fixed). Rungs 4–12's *reframe* (this pass) is
+**CANDIDATE** — captivating on paper, not yet coded, not yet tapped. The
+graduation-gap finding above is **WITNESSED** as a structural fact (confirmed
+by reading `graduateCrib()`), not a guess.
