@@ -1,11 +1,13 @@
 # Warren Item Library — V0
 
 <!-- authority=false · canon=false · ledger_effect=none · non-sovereign catalog.
-     2026-07-14. Extracted from operator concept sheets (IMG_7463 feast/props,
-     IMG_7460 creatures). Concept art ⊬ shipped asset: the Warren renders
-     ORIGINAL emoji/procedural glyphs (a technique), never embeds these
-     renders (IP-safe rule + no-external-assets law). Names are original.
-     IMG_7465 not yet visible to the drafting seat — slot left open below. -->
+     2026-07-14. Extracted from operator concept sheets: IMG_7463 (feast/props),
+     IMG_7460 (creatures), and the Quiz→ZOL gameplay/economy legend sheet
+     (World Objects & Buildings / Decor & FX panels). Concept art ⊬ shipped
+     asset: the Warren renders ORIGINAL emoji/procedural glyphs (a technique),
+     never embeds these renders (IP-safe rule + no-external-assets law).
+     Names are original. IMG_7465 not yet visible to the drafting seat —
+     slot left open as Library E below. -->
 
 A placeable catalog for the Warren's existing object systems. Each row maps a
 concept item to: **glyph** (emoji, the technique — not borrowed art) ·
@@ -66,7 +68,42 @@ Ambient life + rare finds. Critters wander; a few are relics or NPCs.
 | `forgeheart` | 🔥 | Forge-Heart | forge | line | "It keeps the Warren warm. It never sleeps." |
 | `warrenwardens` | 👹 | Warren Wardens | spire | npc | "Three trolls. Club, shield, and a soft spot for pie." |
 
-## Library C — (IMG_7465, pending)
+## Library D — World Objects, Buildings & Decor (from the Quiz→ZOL gameplay sheet)
+
+Source note (claim honesty): this sheet is a **UI/economy legend** — its
+"World Objects & Buildings" and "Decor & FX" panels are icons *standing for*
+game concepts (a lantern-icon meaning "the lantern effect"), not a prop
+photograph like Libraries A/B. The mapping below is one interpretive step
+further from source than A/B, so it's marked here rather than left silent.
+Continuity note: this is the same sheet whose tiered ZOL→world-effect design
+(`+4 pulse · +10 lantern · +25 repair · +50 upgrade · +100 district`)
+independently matches `QUIZ_TO_ZOL_V2` (already shipped, `5592e3e`) — the
+`Marker Mushroom` and `Warren Lantern` rows below are the *decorative* kin of
+that quiz's `learned-mushroom` / `knowledge-lantern` effects, kept distinct
+(placeable ambiance vs. milestone-triggered reward) to avoid double-booking
+one glyph for two meanings.
+
+| id | glyph | name | zone | kind | line |
+|---|---|---|---|---|---|
+| `lantern_warren` | 🏮 | Warren Lantern | gate | deco | — |
+| `mushroom_marker` | 🍄 | Marker Mushroom | garden | deco | — |
+| `waypost` | 🪧 | Waypost | garden | line | "Mushrooms this way. Allegedly." |
+| `chest_mossy` | 📦 | Mossy Chest | nursery | relic | "Locked by moss, not by malice." |
+| `cauldron_brewing` | ⚗️ | Brewing Cauldron | forge | deco | — |
+| `bench_goblin` | 🪑 | Goblin Bench | garden | deco | — |
+| `workshop_lv1` | 🏚️ | Workshop, First Timbers | forge | deco | — |
+| `workshop_lv2` | 🏘️ | Workshop, Second Story | forge | deco | — |
+| `forge_hall` | ⚒️ | The Forge Hall | forge | deco | — |
+| `reading_roots` | 📚 | The Reading Roots | tree | line | "Every page composts eventually." |
+| `watch_spire` | 🗼 | The Watch Spire | spire | deco | — |
+| `crystal_warren` | 💎 | Warren Crystal | spire | deco | — |
+| `vine_trailing` | 🌿 | Trailing Vine | garden | deco | — |
+| `banner_warren` | 🎏 | Warren Banner | gate | deco | — |
+| `orb_floating` | 🔮 | Floating Orb | spire | deco | — |
+| `sparkle_warren` | ✨ | Warren Sparkle | tree | deco | — |
+| `zol_mote` | 🪙 | ZOL Mote | forge | deco | — |
+
+## Library E — (IMG_7465, pending)
 
 Not yet visible to the drafting seat. Re-send `IMG_7465` and I'll extract it into
 the same schema below this line.
@@ -116,7 +153,25 @@ var WARREN_ITEMS = [
   { id:"hollowstag",     glyph:"🦌", name:"Hollowstag",          zone:"tree",    kind:"relic",   line:"The forest's oldest memory, wearing antlers." },
   { id:"oldboiler",      glyph:"🤖", name:"Old Boiler",          zone:"forge",   kind:"line",    line:"Steam-hearted. Grumbles in the cold." },
   { id:"forgeheart",     glyph:"🔥", name:"Forge-Heart",         zone:"forge",   kind:"line",    line:"It keeps the Warren warm. It never sleeps." },
-  { id:"warrenwardens",  glyph:"👹", name:"Warren Wardens",      zone:"spire",   kind:"npc",     line:"Three trolls. Club, shield, and a soft spot for pie." }
+  { id:"warrenwardens",  glyph:"👹", name:"Warren Wardens",      zone:"spire",   kind:"npc",     line:"Three trolls. Club, shield, and a soft spot for pie." },
+  // World Objects, Buildings & Decor (Library D — from the gameplay/economy legend)
+  { id:"lantern_warren",  glyph:"🏮", name:"Warren Lantern",         zone:"gate",    kind:"deco" },
+  { id:"mushroom_marker", glyph:"🍄", name:"Marker Mushroom",        zone:"garden",  kind:"deco" },
+  { id:"waypost",         glyph:"🪧", name:"Waypost",                zone:"garden",  kind:"line",  line:"Mushrooms this way. Allegedly." },
+  { id:"chest_mossy",     glyph:"📦", name:"Mossy Chest",            zone:"nursery", kind:"relic", line:"Locked by moss, not by malice." },
+  { id:"cauldron_brewing",glyph:"⚗️", name:"Brewing Cauldron",       zone:"forge",   kind:"deco" },
+  { id:"bench_goblin",    glyph:"🪑", name:"Goblin Bench",           zone:"garden",  kind:"deco" },
+  { id:"workshop_lv1",    glyph:"🏚️", name:"Workshop, First Timbers",zone:"forge",   kind:"deco" },
+  { id:"workshop_lv2",    glyph:"🏘️", name:"Workshop, Second Story", zone:"forge",   kind:"deco" },
+  { id:"forge_hall",      glyph:"⚒️", name:"The Forge Hall",         zone:"forge",   kind:"deco" },
+  { id:"reading_roots",   glyph:"📚", name:"The Reading Roots",      zone:"tree",    kind:"line",  line:"Every page composts eventually." },
+  { id:"watch_spire",     glyph:"🗼", name:"The Watch Spire",        zone:"spire",   kind:"deco" },
+  { id:"crystal_warren",  glyph:"💎", name:"Warren Crystal",         zone:"spire",   kind:"deco" },
+  { id:"vine_trailing",   glyph:"🌿", name:"Trailing Vine",          zone:"garden",  kind:"deco" },
+  { id:"banner_warren",   glyph:"🎏", name:"Warren Banner",          zone:"gate",    kind:"deco" },
+  { id:"orb_floating",    glyph:"🔮", name:"Floating Orb",           zone:"spire",   kind:"deco" },
+  { id:"sparkle_warren",  glyph:"✨", name:"Warren Sparkle",         zone:"tree",    kind:"deco" },
+  { id:"zol_mote",        glyph:"🪙", name:"ZOL Mote",               zone:"forge",   kind:"deco" }
 ];
 ```
 
