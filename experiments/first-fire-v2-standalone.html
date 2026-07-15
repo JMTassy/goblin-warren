@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The First Fire — a Goblin Warren beginning</title>
+<!--
+  The First Fire — Goblin Warren · Rung 1 intro asset. DESIGN PASS v2.
+  authority=false · claim=NO_CLAIM · non-sovereign · session-only · offline (no CDN).
+  LAW: the engine decides consequence (fire ignites from friction-heat >= threshold,
+  never from a model). Lulu's lines are curated (source:"curated") and tagged so they
+  can later be replaced by the local NPC gateway. Pixel look = technique (low-res
+  render + nearest-neighbour upscale), original art. No third-party game content.
+  Minimum bar: Lulu notices + Lulu remembers + Lulu surprises.
+
+  v2 changes visuals ONLY. The engine (scratch->heat->ignite->grade->warm loop,
+  window.__warren debug hooks, source:"curated" provenance, offline audio,
+  reduced-motion handling) is byte-identical in behavior to v1
+  (warren-intro-firemaking.html). What changed: every DOM style and every canvas
+  fillStyle now reads from warren-design/tokens.css — one palette, one type
+  scale, one pixel-border idiom — instead of two independent visual languages
+  (a "webpage hero" DOM layer vs. a hardcoded-hex canvas layer). See
+  warren-design/scene-grammar.md and warren-design/COHERENCE_AUDIT.md.
+-->
+<style>
+/* inlined warren-design/tokens.css — single source of truth */
+/*
+  warren-design/tokens.css
+  ------------------------------------------------------------------
+  Single source of truth for every color, spacing, type-size, border
+  and z-layer used anywhere in a Warren "first fire" scene — DOM *and*
+  canvas. DOM reads these natively via var(...). The canvas cannot read
+  CSS custom properties directly, so first-fire-v2.html reads this same
+  file at boot time via getComputedStyle(document.documentElement) and
+  builds its fillStyle palette from these exact values. There is no
+  second, hardcoded copy of any hex color anywhere else in the project.
+
+  Root cause this file fixes: v1 had two unrelated palettes (a DOM
+  palette in a <style> block, a canvas palette as hardcoded hex inside
+  <script>) and two unrelated type systems (vw-scaled "hero" title vs.
+  fixed-px in-scene HUD text). One frame, one set of numbers.
+  ------------------------------------------------------------------
+*/
+:root{
+
+  /* ===== TEMPERATURE RAMP (primary) =====
+     The whole scene is one linear interpolation, 0 (cold) -> 1 (warm),
+     called `grade` in the engine. Every color below is either one of
+     these six anchors, or mix(anchorA, anchorB, grade) between them.
+     Do not introduce a color that isn't derived from this ramp. */
+  --cold:   #0c1418;  /* coldest stop — cave dark, unlit bg, --z-bg floor */
+  --stone:  #3a4048;  /* unlit hearth stone / neutral chrome, mid-cold */
+  --ember:  #ff7a2c;  /* mid-warm accent — sparks, borders, kicker, fire */
+  --gold:   #ffd24a;  /* hottest accent — flame tips, hot title word */
+  --bone:   #e8dcc0;  /* primary text + lit stone highlight (warm-neutral) */
+  --glow:   #a8d858;  /* Lulu's eye-glow / affirming dialogue color */
+
+  /* ===== TEMPERATURE RAMP (secondary stops) =====
+     Second color at each end of specific gradients (ceiling, floor,
+     stone, Lulu's fur) so the mix() has a *matched pair* rather than
+     reusing a primary anchor out of context. Each is named for what it
+     mixes with above, so the pairing stays legible in code review. */
+  --cold-2:      #0f1c22;  /* ceiling/floor cold stop, pairs with --ember-2 */
+  --ember-2:     #3a1e12;  /* ceiling/floor warm stop, pairs with --cold-2 */
+  --ceiling-hi:  #241417;  /* ceiling-top warm stop, pairs with --cold */
+  --floor-cold:  #0a1216;  /* cave floor, cold */
+  --floor-warm:  #1c120e;  /* cave floor, warm */
+  --speck-cold:  #10191e;  /* floor speckle, cold */
+  --speck-warm:  #2a170f;  /* floor speckle, warm */
+  --stone-warm:  #5a3a2c;  /* hearth-ring stone, warm (pairs with --stone) */
+  --stone-hi-cold: #4b525b; /* stone highlight edge, cold */
+  --stone-hi-warm: #7a4e34; /* stone highlight edge, warm */
+  --flint-cold:  #565e66;  /* the two rubbed flints, cold */
+  --flint-warm:  #8a5230;  /* the two rubbed flints, warm */
+
+  /* ===== LULU PALETTE (character layer) =====
+     Fixed per SPRITE_SPEC.md. Cold/warm pairs mix on the same `grade`
+     as the environment so she warms in lockstep with the room. */
+  --moss:      #2f5a3a;  /* body, cold */
+  --moss-warm: #5c7a3a;  /* body, warm/lit */
+  --belly:     #3f6a48;  /* belly, cold */
+  --belly-warm:#7a9a52;  /* belly, warm/lit */
+  --ear:       #264a30;  /* ears + feet, cold */
+  --ear-warm:  #4a642e;  /* ears + feet, warm/lit */
+  --ink:       #0a120a;  /* eye socket / outline, constant */
+  --glow-hot:  #d8ff9a;  /* eye-glow once fire gives her rim light */
+  --breath:    #9fb3ba;  /* cold-breath puff, constant */
+  --rim:       #ffb45a;  /* fire rim-light edge on Lulu, constant */
+
+  /* ===== PARTICLES (glyph-object layer) ===== */
+  --amber:  #ffcf6a;  /* spark / fire particle, light */
+  --coal:   #e0532a;  /* fire particle, dark ember */
+  --smoke:  #6b7076;  /* smoke particle, near */
+  --smoke-2:#5a5f64;  /* smoke particle, far/thin */
+  --dust:   #22303a;  /* ambient cave dust mote */
+
+  /* ===== SUPPORTING NEUTRALS (HUD chrome) =====
+     Not new hues — read as one more step colder than --cold, or a
+     muted version of --bone, so HUD chrome still belongs to the ramp. */
+  --dim:    #8fa0a6;  /* secondary/quiet text — hint, lede, dbg */
+  --panel:  #0a1116;  /* HUD panel/track fill, one step colder than --cold */
+  --line:   #26323a;  /* hairline / inactive border, cold-stone family */
+  --line-2: #33424a;  /* slightly lighter hairline (replay button) */
+  --meter-cold: #2f4a52; /* warmth-meter gradient's cold stop (unlit end) */
+  --panel-hover: #20313b; /* button hover fill, one step warmer than --panel */
+  --scrim:  rgba(6,10,13,.55); /* flat title-screen scrim — NOT a blurred
+                                   gradient; a single flat translucent
+                                   wash of --cold so the canvas underneath
+                                   stays legible as the same world */
+
+  /* ===== PIXEL GRID =====
+     --px matches the canvas's internal PIX constant (5 device px per
+     logical pixel at 1x zoom). Every DOM border, padding, gap and
+     shadow offset below is an integer multiple of --px-base so the
+     crisp canvas grid and the DOM chrome share one lattice instead of
+     floating past each other at arbitrary fractional offsets. */
+  --px-base: 5px;
+  --px-1: 5px;   /* 1x  */
+  --px-2: 10px;  /* 2x  */
+  --px-3: 15px;  /* 3x  */
+  --px-4: 20px;  /* 4x  */
+  --px-6: 30px;  /* 6x  */
+  --px-8: 40px;  /* 8x  */
+
+  /* ===== TYPE SCALE =====
+     One face, one scale, used identically by the title screen and the
+     in-scene HUD — this is the fix for "two sizes-of-world": there is
+     no separate vw-driven "hero" scale anymore. Every step is a fixed
+     px value (a whole multiple of 1px, chosen to sit cleanly against
+     --px-base) so text doesn't fluid-scale independently of the pixel
+     grid the canvas is locked to. */
+  --font-mono: "Courier New", Courier, monospace;
+  --step-0: 10px;  /* micro-label: hint, meter label, foot, dbg */
+  --step-1: 13px;  /* body: lede, say-line, replay */
+  --step-2: 15px;  /* button label */
+  --step-3: 20px;  /* kicker */
+  --step-4: 34px;  /* title — capped, no viewport-hero scaling */
+  --tracking-label: .16em;   /* uppercase micro-label letter-spacing */
+  --tracking-kicker: .32em;  /* kicker letter-spacing (was .4em — tightened
+                                 to read as "louder label", not "logo") */
+  --tracking-title: .04em;   /* title letter-spacing */
+
+  /* ===== PIXEL BORDER / SHADOW IDIOM =====
+     The chunky "Nx Nx 0 #000" offset-shadow look, shared by every
+     bordered DOM element (buttons, meter track) — no blur, no radius,
+     ever. Offsets are --px-base multiples so the shadow steps land on
+     the same grid as the canvas pixels. */
+  --bw: 3px;                          /* standard border width */
+  --shadow-1: var(--px-1) var(--px-1) 0 #000;  /* small chrome (meter track) */
+  --shadow-2: var(--px-2) var(--px-2) 0 #000;  /* buttons */
+  --shadow-active: var(--px-1) var(--px-1) 0 #000; /* pressed state */
+
+  /* ===== Z-LAYERS =====
+     The four layers every zone is built from (see scene-grammar.md).
+     Only --z-hud is DOM; the rest are draw-order integers used inside
+     the canvas's own draw() call, kept here so the ordering is a single
+     documented fact instead of implicit call order. */
+  --z-bg: 0;      /* background wash — sky/ceiling + floor gradient */
+  --z-glyph: 10;  /* glyph-objects — hearth stones, embers, mark */
+  --z-char: 20;   /* character layer — Lulu */
+  --z-hud: 30;    /* DOM HUD — say/hint/meter/buttons/title, always on top */
+}
+
+</style>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--cold);overflow:hidden}
+  body{
+    font-family:var(--font-mono);color:var(--bone);
+    -webkit-font-smoothing:none; touch-action:none; user-select:none;
+    -webkit-user-select:none;
+  }
+  #stage{position:fixed;inset:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;z-index:var(--z-bg);
+    image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+
+  /* ===== HUD layer — all sizing/spacing snapped to --px-* multiples,
+     all type on the shared --step-* scale, all color via var(--token) ===== */
+  #hud{position:absolute;inset:0;pointer-events:none;z-index:var(--z-hud)}
+  .say{
+    position:absolute;left:50%;top:var(--px-8);transform:translateX(-50%);
+    max-width:min(80vw,560px);text-align:center;
+    color:var(--glow);font-size:var(--step-1);line-height:1.5;
+    text-shadow:var(--shadow-1);letter-spacing:.02em;
+    opacity:0;transition:opacity .5s ease;
+  }
+  .say.show{opacity:1}
+
+  #hint{
+    position:absolute;left:50%;bottom:15%;transform:translateX(-50%);
+    text-align:center;color:var(--dim);font-size:var(--step-0);
+    letter-spacing:var(--tracking-label);text-transform:uppercase;
+    text-shadow:var(--shadow-1);opacity:0;transition:opacity .6s ease;
+  }
+  #hint.show{opacity:.9}
+
+  /* warmth meter */
+  #meterWrap{
+    position:absolute;left:50%;bottom:var(--px-8);transform:translateX(-50%);
+    width:min(64vw,340px);opacity:0;transition:opacity .6s ease;
+  }
+  #meterWrap.show{opacity:1}
+  #meterLabel{font-size:var(--step-0);letter-spacing:var(--tracking-kicker);
+    text-transform:uppercase;color:var(--dim);margin:0 0 var(--px-1) 2px;
+    text-shadow:var(--shadow-1)}
+  #meterTrack{height:var(--px-2);background:var(--panel);border:var(--bw) solid var(--line);
+    box-shadow:var(--shadow-1);position:relative;overflow:hidden}
+  #meterFill{position:absolute;inset:0;width:0%;
+    background:linear-gradient(90deg,var(--meter-cold),var(--ember) 70%,var(--gold));
+    transition:width .12s linear}
+  #meterFill.warn{animation:pulseWarn .5s steps(2) infinite}
+  @keyframes pulseWarn{50%{filter:brightness(1.6)}}
+
+  /* ===== title / start — now the SAME register as in-scene HUD text:
+     no vw-hero clamp, no blurred radial-gradient vignette. A flat --scrim
+     wash lets the cold canvas underneath read as the same world. ===== */
+  #start{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    background:var(--scrim);
+    pointer-events:auto;transition:opacity .8s ease}
+  #start.gone{opacity:0;pointer-events:none}
+  .kicker{font-size:var(--step-3);letter-spacing:var(--tracking-kicker);
+    text-transform:uppercase;color:var(--ember);text-shadow:var(--shadow-1);
+    margin-bottom:var(--px-3)}
+  .title{font-size:var(--step-4);letter-spacing:var(--tracking-title);
+    text-transform:uppercase;color:var(--bone);text-shadow:var(--shadow-1);
+    margin:0;line-height:1}
+  .title .hot{color:var(--gold)}
+  .lede{max-width:min(84vw,480px);margin:var(--px-4) 0 var(--px-6);
+    color:var(--dim);font-size:var(--step-1);line-height:1.6;
+    text-shadow:var(--shadow-1)}
+  button{
+    font-family:inherit;font-size:var(--step-2);cursor:pointer;
+    color:var(--bone);background:var(--panel);border:var(--bw) solid var(--ember);
+    padding:var(--px-2) var(--px-4);text-transform:uppercase;letter-spacing:.12em;
+    box-shadow:var(--shadow-2);pointer-events:auto;
+  }
+  button:hover{background:var(--panel-hover)}
+  button:active{transform:translate(var(--px-1),var(--px-1));box-shadow:var(--shadow-active)}
+  button:focus-visible{outline:var(--bw) solid var(--glow);outline-offset:var(--px-1)}
+  .foot{position:absolute;bottom:var(--px-3);left:0;right:0;text-align:center;
+    color:var(--line-2);font-size:var(--step-0);letter-spacing:.12em}
+
+  #replay{position:absolute;right:var(--px-3);top:var(--px-3);font-size:var(--step-0);
+    padding:var(--px-2) var(--px-3);border-color:var(--line-2);
+    opacity:0;transition:opacity .6s;pointer-events:none}
+  #replay.show{opacity:.85;pointer-events:auto}
+
+  #dbg{position:absolute;left:var(--px-2);top:var(--px-2);font-size:var(--step-0);
+    color:var(--dim);background:rgba(0,0,0,.4);padding:var(--px-1) var(--px-1);
+    display:none;white-space:pre}
+
+  @media (prefers-reduced-motion: reduce){
+    .say,#hint,#meterWrap,#start{transition:none}
+    #meterFill.warn{animation:none}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <div id="hud">
+    <div id="say" class="say"></div>
+    <div id="hint">hold the stones &amp; rub — back and forth</div>
+    <div id="meterWrap">
+      <div id="meterLabel">warmth</div>
+      <div id="meterTrack"><div id="meterFill"></div></div>
+    </div>
+    <button id="replay">▸ again</button>
+    <div id="dbg"></div>
+  </div>
+  <div id="start">
+    <div class="kicker">A Goblin Warren beginning · Rung 1</div>
+    <h1 class="title">The First <span class="hot">Fire</span></h1>
+    <p class="lede">It is cold under the hill, and Lulu is small.
+      No words yet — only your hands. Kneel, take the stones,
+      and rub until something wakes.</p>
+    <button id="startBtn">Kneel by the stones</button>
+    <div class="foot">friction makes the fire · your hands, not the machine</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const DEBUG = /[?&]debug/.test(location.search);
+const cv = document.getElementById("scene");
+const ctx = cv.getContext("2d", { alpha:false });
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---- palette: read once from tokens.css so canvas and DOM share the
+   exact same source of truth (see warren-design/tokens.css + scene-grammar.md) ---- */
+const cssRoot = getComputedStyle(document.documentElement);
+function tok(name){ return cssRoot.getPropertyValue(name).trim(); }
+const PAL = {
+  cold: tok("--cold"), stone: tok("--stone"), ember: tok("--ember"), gold: tok("--gold"),
+  bone: tok("--bone"), glow: tok("--glow"), glowHot: tok("--glow-hot"),
+  cold2: tok("--cold-2"), ember2: tok("--ember-2"), ceilingHi: tok("--ceiling-hi"),
+  floorCold: tok("--floor-cold"), floorWarm: tok("--floor-warm"),
+  speckCold: tok("--speck-cold"), speckWarm: tok("--speck-warm"),
+  stoneWarm: tok("--stone-warm"), stoneHiCold: tok("--stone-hi-cold"), stoneHiWarm: tok("--stone-hi-warm"),
+  flintCold: tok("--flint-cold"), flintWarm: tok("--flint-warm"),
+  moss: tok("--moss"), mossWarm: tok("--moss-warm"),
+  belly: tok("--belly"), bellyWarm: tok("--belly-warm"),
+  ear: tok("--ear"), earWarm: tok("--ear-warm"),
+  ink: tok("--ink"), breath: tok("--breath"), rim: tok("--rim"),
+  amber: tok("--amber"), coal: tok("--coal"), smoke: tok("--smoke"), smoke2: tok("--smoke-2"), dust: tok("--dust"),
+};
+
+/* ---- low-res pixel buffer (the Warren technique) ---- */
+const PIX = 5;
+let W = 240, H = 135, DPR = 1;
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  W = Math.max(200, Math.round(w / PIX));
+  H = Math.round(W * (h / w));
+  cv.width = W; cv.height = H;               // internal low-res
+  cv.style.width = w + "px"; cv.style.height = h + "px"; // CSS upscales (pixelated)
+}
+addEventListener("resize", resize); resize();
+
+/* ---- scene geometry (in low-res units), recomputed from H ---- */
+function geo(){
+  return {
+    floorY: Math.round(H*0.72),
+    hearthX: Math.round(W*0.5),
+    hearthY: Math.round(H*0.72),
+    luluHome: Math.round(W*0.5 - W*0.17),
+  };
+}
+
+/* ---- state ---- */
+const S = {
+  heat:0, grade:0, gradeT:0, stage:"cold", started:false,
+  igniting:false, lit:false, rubbing:false, kbRub:false,
+  lastX:0, lastY:0, moveAcc:0, idle:0, mark:false,
+  luluX:0, luluTX:0, luluWarm:0, shiver:0, t:0,
+  curiousUntil:-1,
+};
+const G = geo(); S.luluX = G.luluHome; S.luluTX = G.luluHome;
+
+/* ---- particles ---- */
+const P = [];
+function spawn(x,y,vx,vy,life,color,size,kind){ P.push({x,y,vx,vy,life,max:life,color,size,kind}); }
+
+/* ---- audio (procedural; created on first gesture) ---- */
+let AC=null, master=null, noiseBuf=null, crackle=false;
+function initAudio(){
+  if(AC) return;
+  try{
+    AC = new (window.AudioContext||window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.6; master.connect(AC.destination);
+    const n = AC.sampleRate*1.0; noiseBuf = AC.createBuffer(1,n,AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i] = Math.random()*2-1;
+  }catch(e){ AC=null; }
+}
+function scratchSound(speed){
+  if(!AC) return;
+  const src = AC.createBufferSource(); src.buffer = noiseBuf; src.loop=true;
+  const bp = AC.createBiquadFilter(); bp.type="bandpass";
+  bp.frequency.value = 900 + speed*220; bp.Q.value = 0.7;
+  const g = AC.createGain(); const now=AC.currentTime;
+  const vol = Math.min(0.5, 0.06 + speed*0.05);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(vol, now+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now+0.12);
+  src.connect(bp); bp.connect(g); g.connect(master);
+  src.start(now); src.stop(now+0.14);
+}
+function whoosh(){
+  if(!AC) return;
+  const src=AC.createBufferSource(); src.buffer=noiseBuf;
+  const lp=AC.createBiquadFilter(); lp.type="lowpass";
+  const now=AC.currentTime;
+  lp.frequency.setValueAtTime(300,now); lp.frequency.exponentialRampToValueAtTime(2600,now+0.5);
+  const g=AC.createGain(); g.gain.setValueAtTime(0.0001,now);
+  g.gain.exponentialRampToValueAtTime(0.5,now+0.08);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+1.1);
+  src.connect(lp); lp.connect(g); g.connect(master);
+  src.start(now); src.stop(now+1.2);
+}
+function crackleTick(){
+  if(!AC||!crackle) return;
+  const src=AC.createBufferSource(); src.buffer=noiseBuf;
+  const bp=AC.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1500+Math.random()*1800;
+  const g=AC.createGain(); const now=AC.currentTime;
+  g.gain.setValueAtTime(0.0001,now);
+  g.gain.exponentialRampToValueAtTime(0.05+Math.random()*0.06,now+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+0.05);
+  src.connect(bp); bp.connect(g); g.connect(master);
+  src.start(now); src.stop(now+0.06);
+  setTimeout(crackleTick, 60+Math.random()*220);
+}
+
+/* ---- Lulu's curated voice (source:"curated" — swappable for the gateway) ---- */
+const sayEl = document.getElementById("say");
+let sayTimer=null, lastLine="";
+function lulu(line, hold){
+  if(line===lastLine) return;
+  lastLine=line;
+  // provenance kept for parity with the NPC gateway law:
+  // { source:"curated", fallback:false, model:null }
+  sayEl.textContent = line; sayEl.classList.add("show");
+  clearTimeout(sayTimer);
+  sayTimer = setTimeout(()=>sayEl.classList.remove("show"), hold||3600);
+}
+
+/* ---- stages (deterministic thresholds — the engine, not the model) ---- */
+function stageFor(h){
+  if(h>=100) return "fire";
+  if(h>=70) return "flame";
+  if(h>=40) return "ember";
+  if(h>=15) return "smoke";
+  return "cold";
+}
+const LINES = {
+  cold:  "It's so cold, Tall One… can you wake a fire?",
+  spark: "Sparks! Do that again—",
+  smoke: "I smell smoke. Keep going, keep going.",
+  ember: "There — an ember! Faster, don't let it sleep.",
+  flame: "It's catching! Almost, almost—",
+  fading:"It's fading… rub, rub!",
+};
+
+function onStage(prev, next){
+  if(next==="smoke") lulu(LINES.smoke);
+  else if(next==="ember") lulu(LINES.ember);
+  else if(next==="flame") lulu(LINES.flame);
+  else if(next==="fire") ignite();
+}
+
+/* ---- ignition: the orchestrated payoff ---- */
+let firstSpark=false;
+function ignite(){
+  if(S.igniting||S.lit) return;
+  S.igniting=true;
+  whoosh();
+  crackle=true; crackleTick();
+  document.getElementById("meterFill").classList.remove("warn");
+  const gg=geo();
+  // burst
+  for(let i=0;i<80;i++){
+    const a=Math.random()*Math.PI*2, sp=Math.random()*2+.4;
+    spawn(gg.hearthX,gg.hearthY-2,Math.cos(a)*sp,Math.sin(a)*sp-1.2,
+      30+Math.random()*30, Math.random()<.5?PAL.gold:PAL.ember, 1, "spark");
+  }
+  lulu("Fire. You made fire.", 4200);
+  // Lulu walks to the hearth, then warms her hands, then remembers.
+  S.luluTX = gg.hearthX - Math.round(W*0.075);
+  setTimeout(()=>{ S.luluWarm=1; }, 1400);
+  setTimeout(()=>{ lulu("I'll keep this one. Our first warmth.", 6000); S.mark=true; afterLit(); }, 3600);
+  S.lit=true;
+}
+function afterLit(){
+  document.getElementById("meterWrap").classList.remove("show");
+  document.getElementById("hint").classList.remove("show");
+  const r=document.getElementById("replay"); r.classList.add("show");
+}
+
+/* ---- input: rubbing ---- */
+function beginRub(x,y){
+  if(!S.started||S.lit) return;
+  S.rubbing=true; S.lastX=x; S.lastY=y; initAudio();
+  if(AC && AC.state==="suspended") AC.resume();
+}
+function noticeSpark(){
+  if(firstSpark) return;
+  firstSpark=true; lulu(LINES.spark);
+  S.curiousUntil = S.t + 1.6; // curious pose, see SPRITE_SPEC.md
+}
+function moveRub(x,y){
+  if(!S.rubbing||S.lit) return;
+  const dx=x-S.lastX, dy=y-S.lastY;
+  const dist=Math.hypot(dx,dy);
+  S.lastX=x; S.lastY=y;
+  if(dist<0.4) return;
+  const speed=Math.min(6, dist);
+  S.moveAcc += speed;
+  S.idle=0;
+  // sparks at the hearth stones
+  const gg=geo();
+  if(Math.random()<Math.min(.9,speed/3)){
+    for(let i=0;i<1+speed;i++){
+      spawn(gg.hearthX+(Math.random()*8-4), gg.hearthY-3,
+        (Math.random()*2-1)*1.2, -Math.random()*1.6-.3,
+        10+Math.random()*16, PAL.amber, 1, "spark");
+    }
+    noticeSpark();
+    if(Math.random()<.25) scratchSound(speed);
+  }
+}
+function endRub(){ S.rubbing=false; }
+
+/* pointer */
+function xy(e){
+  const t = e.touches ? e.touches[0] : e;
+  const r = cv.getBoundingClientRect();
+  return { x:(t.clientX-r.left)/r.width*W, y:(t.clientY-r.top)/r.height*H };
+}
+cv.addEventListener("pointerdown", e=>{ const p=xy(e); beginRub(p.x,p.y); });
+cv.addEventListener("pointermove", e=>{ const p=xy(e); moveRub(p.x,p.y); });
+addEventListener("pointerup", endRub);
+addEventListener("pointercancel", endRub);
+
+/* keyboard rub (accessibility): hold Space to rub */
+addEventListener("keydown", e=>{
+  if(e.code==="Space" && S.started && !S.lit){ e.preventDefault(); S.kbRub=true; initAudio(); if(AC&&AC.state==="suspended")AC.resume(); }
+});
+addEventListener("keyup", e=>{ if(e.code==="Space") S.kbRub=false; });
+
+/* ---- start / replay ---- */
+function begin(){
+  S.started=true;
+  document.getElementById("start").classList.add("gone");
+  document.getElementById("hint").classList.add("show");
+  document.getElementById("meterWrap").classList.add("show");
+  lulu(LINES.cold, 5000);
+}
+document.getElementById("startBtn").addEventListener("click", begin);
+document.getElementById("replay").addEventListener("click", ()=>location.reload());
+
+/* ---- update ---- */
+let last=performance.now();
+function update(now){
+  const dt=Math.min(50, now-last)/1000; last=now; S.t+=dt;
+
+  if(S.started && !S.lit){
+    // keyboard rub simulates oscillating friction
+    if(S.kbRub){ S.moveAcc += (2.2 + Math.sin(S.t*22)*1.2); S.idle=0;
+      if(Math.random()<.5){ const gg=geo();
+        spawn(gg.hearthX+(Math.random()*8-4),gg.hearthY-3,(Math.random()*2-1),-Math.random()*1.6-.3,10+Math.random()*14,PAL.amber,1,"spark");
+        noticeSpark(); if(Math.random()<.15)scratchSound(2);
+      }
+    }
+    // friction → heat (capped per frame so you can't cheese by flicking)
+    const gain = Math.min(2.4, S.moveAcc*0.09);
+    S.moveAcc *= 0.35;
+    S.heat += gain * (dt*60);
+    // idle decay: the fire wants tending
+    if(!S.rubbing && !S.kbRub){ S.idle+=dt; }
+    if(S.idle>0.35 && S.heat>0){ S.heat -= 7*dt; if(S.heat<0)S.heat=0; }
+    S.heat = Math.max(0, Math.min(100, S.heat));
+
+    const ns = stageFor(S.heat);
+    if(ns!==S.stage){ const p=S.stage; S.stage=ns; onStage(p,ns); }
+
+    // fading warning
+    const fill=document.getElementById("meterFill");
+    const warn = (S.idle>0.9 && S.heat>25 && S.heat<100);
+    fill.classList.toggle("warn", warn);
+    if(warn && Math.random()<0.02) lulu(LINES.fading,1600);
+  }
+
+  // grade (cold→warm) eases toward target
+  S.gradeT = S.lit ? 1 : Math.min(0.55, S.heat/100*0.55);
+  S.grade += (S.gradeT - S.grade) * Math.min(1, dt*(S.igniting?2.4:3));
+
+  // Lulu locomotion + shiver
+  S.luluX += (S.luluTX - S.luluX) * Math.min(1, dt*3);
+  S.shiver = (!S.lit && S.grade<0.25) ? (reduce?0:1) : 0;
+  if(S.luluWarm>0 && S.luluWarm<1) S.luluWarm=Math.min(1,S.luluWarm+dt*1.5);
+
+  // particles
+  const gg=geo();
+  const emit = S.stage;
+  if(S.started && !S.lit){
+    if(emit==="smoke"||emit==="ember"||emit==="flame"){
+      if(Math.random()<(emit==="smoke"?.3:.15))
+        spawn(gg.hearthX+(Math.random()*6-3),gg.hearthY-3,(Math.random()*2-1)*.2,-.3-Math.random()*.3,
+          40+Math.random()*40,PAL.smoke,1,"smoke");
+    }
+    if(emit==="ember"||emit==="flame"){
+      if(Math.random()<(emit==="flame"?.5:.25))
+        spawn(gg.hearthX+(Math.random()*4-2),gg.hearthY-2,(Math.random()*2-1)*.3,-.5-Math.random()*.6,
+          16+Math.random()*16,Math.random()<.5?PAL.ember:PAL.amber,1,"fire");
+    }
+  }
+  if(S.lit){
+    for(let i=0;i<3;i++)
+      spawn(gg.hearthX+(Math.random()*6-3),gg.hearthY-2,(Math.random()*2-1)*.3,-.7-Math.random()*.9,
+        18+Math.random()*22,Math.random()<.4?PAL.gold:(Math.random()<.7?PAL.ember:PAL.coal),1,"fire");
+    if(Math.random()<.25)
+      spawn(gg.hearthX+(Math.random()*8-4),gg.hearthY-6,(Math.random()*2-1)*.2,-.4,50,PAL.smoke2,1,"smoke");
+  }
+  // ambient cave dust
+  if(!reduce && Math.random()<.06)
+    spawn(Math.random()*W, Math.random()*gg.floorY, (Math.random()*2-1)*.05,-.03, 200, PAL.dust,1,"dust");
+
+  for(let i=P.length-1;i>=0;i--){
+    const p=P[i]; p.life-=dt*60; if(p.life<=0){P.splice(i,1);continue;}
+    p.x+=p.vx*dt*60; p.y+=p.vy*dt*60;
+    if(p.kind==="fire"){ p.vy-=0.02; p.vx*=0.98; }
+    else if(p.kind==="smoke"){ p.vy-=0.006; p.vx*=0.99; }
+    else if(p.kind==="spark"){ p.vy+=0.03; }
+  }
+
+  // meter
+  document.getElementById("meterFill").style.width = S.heat.toFixed(1)+"%";
+  if(DEBUG){ const d=document.getElementById("dbg"); d.style.display="block";
+    d.textContent = `heat ${S.heat.toFixed(0)}  stage ${S.stage}  grade ${S.grade.toFixed(2)}  parts ${P.length}`; }
+
+  draw();
+  requestAnimationFrame(update);
+}
+
+/* ---- draw ---- */
+function lerp(a,b,t){return a+(b-a)*t;}
+function mixHex(c1,c2,t){
+  const a=parseInt(c1.slice(1),16), b=parseInt(c2.slice(1),16);
+  const r=Math.round(lerp((a>>16)&255,(b>>16)&255,t));
+  const g=Math.round(lerp((a>>8)&255,(b>>8)&255,t));
+  const bl=Math.round(lerp(a&255,b&255,t));
+  return `rgb(${r},${g},${bl})`;
+}
+function rgbaHex(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function draw(){
+  const gg=geo(), g=S.grade;
+  // ===== z-bg: background wash — ceiling + floor, cold->warm, tokens only =====
+  const top = mixHex(PAL.cold, PAL.ceilingHi, g);
+  const bot = mixHex(PAL.cold2, PAL.ember2, g);
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, top); grd.addColorStop(1, bot);
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+
+  // hearth light pool (grows with grade)
+  if(g>0.02){
+    const R = lerp(W*0.10, W*0.42, g);
+    const glowCore = mixHex(PAL.ember, PAL.gold, 0.4);
+    const rg = ctx.createRadialGradient(gg.hearthX,gg.hearthY-4,2, gg.hearthX,gg.hearthY-4,R);
+    rg.addColorStop(0, rgbaHex(glowCore, 0.35+0.4*g));
+    rg.addColorStop(0.5, rgbaHex(PAL.ember, 0.12+0.18*g));
+    rg.addColorStop(1, rgbaHex(PAL.ember, 0));
+    ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+  }
+
+  // cave floor
+  ctx.fillStyle = mixHex(PAL.floorCold, PAL.floorWarm, g);
+  ctx.fillRect(0,gg.floorY,W,H-gg.floorY);
+  // floor speckle
+  ctx.fillStyle = mixHex(PAL.speckCold, PAL.speckWarm, g);
+  for(let x=0;x<W;x+=7){ const yy=gg.floorY+((x*13)%5); ctx.fillRect(x,yy,3,1); }
+
+  // ===== z-glyph: hearth-stone ring =====
+  const stoneC = mixHex(PAL.stone, PAL.stoneWarm, g);
+  const stoneHi = mixHex(PAL.stoneHiCold, PAL.stoneHiWarm, g);
+  const ring = [[-11,1,4,3],[-6,3,5,3],[0,4,5,3],[6,3,5,3],[11,1,4,3],[-9,-1,4,3],[9,-1,4,3]];
+  for(const s of ring){
+    ctx.fillStyle=stoneC;
+    ctx.fillRect(gg.hearthX+s[0]-Math.floor(s[2]/2), gg.hearthY+s[1], s[2], s[3]);
+    ctx.fillStyle=stoneHi;
+    ctx.fillRect(gg.hearthX+s[0]-Math.floor(s[2]/2), gg.hearthY+s[1], s[2], 1);
+  }
+  // the two flint stones you rub (glint when cold, glow when hot)
+  const flintGlow = S.rubbing||S.kbRub ? 1 : 0.35;
+  ctx.fillStyle = mixHex(PAL.flintCold, PAL.flintWarm, g);
+  ctx.fillRect(gg.hearthX-4, gg.hearthY-3, 3,3);
+  ctx.fillRect(gg.hearthX+2, gg.hearthY-3, 3,3);
+  if(S.heat>2 && !S.lit){
+    const flintGlowColor = mixHex(PAL.ember, PAL.gold, 0.3);
+    ctx.fillStyle=rgbaHex(flintGlowColor, Math.min(.9,S.heat/100)*flintGlow);
+    ctx.fillRect(gg.hearthX-2, gg.hearthY-2, 3,1);
+  }
+
+  // particles (behind/around fire drawn as single pixels with fade)
+  for(const p of P){
+    const a = Math.max(0, p.life/p.max);
+    ctx.globalAlpha = p.kind==="dust" ? a*0.4 : a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+  }
+  ctx.globalAlpha=1;
+
+  // ===== z-char: Lulu =====
+  drawLulu(gg);
+
+  // remembered ember-mark (persists after lit) — the "I'll keep this one"
+  if(S.mark){
+    ctx.fillStyle=PAL.ember;
+    ctx.fillRect(gg.hearthX-1, gg.floorY+ (H-gg.floorY) - 3, 2,2);
+  }
+}
+
+function drawLulu(gg){
+  // pose selection — see warren-design/SPRITE_SPEC.md
+  const curious = !S.lit && S.t < S.curiousUntil;
+  const bob = S.lit ? Math.sin(S.t*3)*0.6 : (S.shiver?Math.sin(S.t*30)*0.5:0);
+  const x = Math.round(S.luluX + (S.shiver?Math.round(Math.sin(S.t*33)*0.6):0));
+  const y = Math.round(gg.floorY - 10 + bob);
+  const warmT = S.grade;
+  const body = mixHex(PAL.moss, PAL.mossWarm, Math.min(1,warmT*1.6)); // mossy → lit warm-green
+  const belly= mixHex(PAL.belly, PAL.bellyWarm, Math.min(1,warmT*1.6));
+  const ear  = mixHex(PAL.ear, PAL.earWarm, Math.min(1,warmT*1.6));
+  // rim light from fire
+  const rim = warmT>0.15;
+
+  // ears — curious pose nudges them up 1px (SPRITE_SPEC: "curious")
+  const earYRel = y-1 - (curious?1:0);
+  ctx.fillStyle=ear;
+  ctx.fillRect(x-3,earYRel,2,3); ctx.fillRect(x+5,earYRel,2,3);
+  // body
+  ctx.fillStyle=body;
+  ctx.fillRect(x-3,y+1,8,7);
+  ctx.fillRect(x-2,y,6,2);
+  // belly
+  ctx.fillStyle=belly;
+  ctx.fillRect(x-1,y+3,4,4);
+  // feet
+  ctx.fillStyle=ear;
+  ctx.fillRect(x-3,y+8,2,1); ctx.fillRect(x+3,y+8,2,1);
+  // eyes (glow) — curious/rim both push toward the "hot" glow token
+  ctx.fillStyle=PAL.ink;
+  ctx.fillRect(x-2,y+2,1,1); ctx.fillRect(x+2,y+2,1,1);
+  ctx.fillStyle= (rim||curious) ? PAL.glowHot : PAL.glow;
+  ctx.fillRect(x-2,y+2,1,1); ctx.fillRect(x+2,y+2,1,1);
+  // little cold breath puff
+  if(!S.lit && S.grade<0.25 && !reduce && (Math.floor(S.t*2)%3===0)){
+    ctx.globalAlpha=0.4; ctx.fillStyle=PAL.breath;
+    ctx.fillRect(x+6, y+1, 2,1); ctx.globalAlpha=1;
+  }
+  // warming hands toward the fire
+  if(S.luluWarm>0){
+    ctx.fillStyle=body;
+    const reach=Math.round(2*S.luluWarm);
+    ctx.fillRect(x+5, y+3, reach+1, 1);
+    if(rim){ ctx.fillStyle=rgbaHex(PAL.rim,.8); ctx.fillRect(x+5+reach, y+3, 1,1); }
+  }
+  // rim light pixels
+  if(rim){
+    ctx.fillStyle=rgbaHex(PAL.rim, 0.3+0.4*warmT);
+    ctx.fillRect(x+4,y+1,1,6);
+  }
+}
+
+/* debug hooks for verification (no effect on play) */
+window.__warren = {
+  addHeat(n){ S.started=true; document.getElementById("start").classList.add("gone"); S.heat=Math.min(100,S.heat+n); },
+  ignite(){ S.started=true; document.getElementById("start").classList.add("gone"); S.heat=100; S.stage="flame"; ignite(); },
+  state(){ return {heat:S.heat, stage:S.stage, lit:S.lit, grade:S.grade}; }
+};
+
+requestAnimationFrame(update);
+})();
+</script>
+</body>
+</html>

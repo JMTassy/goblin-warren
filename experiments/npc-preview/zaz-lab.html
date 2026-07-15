@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goblin Warren — Zaz Contrast Lab (debug/test only, V0 stub)</title>
+<!--
+  GOBLIN WARREN LOCAL AI NPC PREVIEW V0 -- zaz-lab.html
+  authority=false . claim=NO_CLAIM . non-sovereign
+  LOCAL-ONLY PREVIEW. No deploy target. No production endpoint.
+
+  DEBUG / TEST TOOL ONLY. Zaz is NOT part of the normal Rungs 1-3
+  progression (see npc/personas.js: ZAZ.rung_available_from = null).
+  This page exists solely to send the SAME player event/context to
+  Lulu and Zaz via two separate gateway calls, side by side, so a
+  developer can eyeball that the two personas are measurably distinct
+  in tone/vocabulary/behavior -- structurally guaranteed by their
+  differing constitutions in personas.js, and (with a live local
+  model attached) behaviorally confirmable here too.
+-->
+<style>
+  :root{ --bone:#e8dcc0; --ember:#d08a3c; --swamp:#141c0e; --moss:#5c7a3a;
+         --glow:#a8d858; --amber:#e0a83c; --zaz:#6ba8c9; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:0;background:var(--swamp);color:var(--bone);
+    font-family:"Courier New",Courier,monospace}
+  #banner{background:#2a0d0d;color:#e0a83c;border-bottom:3px solid var(--ember);
+    padding:6px 12px;font-size:11px;text-align:center}
+  #controls{padding:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .panel{background:#0d1408;border:3px solid var(--moss);padding:10px 14px;font-size:12px}
+  label{display:block;margin:4px 0 2px;color:var(--glow);font-size:11px}
+  input[type=text],input[type=number],textarea{width:100%;background:#1a2410;color:var(--bone);
+    border:2px solid var(--moss);padding:4px;font-family:inherit;font-size:11px}
+  textarea{min-height:44px;resize:vertical}
+  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);
+    padding:8px 16px;cursor:pointer;font-family:inherit;font-size:12px}
+  button:hover{background:#2a350f}
+  #results{display:flex;gap:16px;padding:0 12px 20px;flex-wrap:wrap}
+  .card{flex:1;min-width:320px;background:#0d1408;border:3px solid var(--moss);padding:14px}
+  .card.lulu{border-color:var(--glow)}
+  .card.zaz{border-color:var(--zaz)}
+  .card h2{margin:0 0 8px;font-size:15px;text-transform:uppercase;letter-spacing:.05em}
+  .card.lulu h2{color:var(--glow)}
+  .card.zaz h2{color:var(--zaz)}
+  .speech{background:var(--bone);color:#141c0e;padding:10px;border-radius:4px;margin-bottom:10px;font-size:13px}
+  .tag{display:inline-block;padding:1px 6px;border-radius:2px;font-size:10px;margin-left:6px}
+  .tag.model{background:#2a5a2a;color:#a8d858}
+  .tag.curated_fallback{background:#5a2a2a;color:#e08a8a}
+  .tag.memory_derived{background:#3a3a5a;color:#b0b0e8}
+  pre{white-space:pre-wrap;font-size:10.5px;background:#080c05;border:2px solid #333;padding:8px;max-height:220px;overflow-y:auto}
+  .note{font-size:10.5px;color:#9ab080;margin-top:10px;line-height:1.5}
+  #distinctCheck.pass{color:#a8d858}
+  #distinctCheck.fail{color:#e08a8a;font-weight:bold}
+</style>
+</head>
+<body>
+
+<div id="banner">GOBLIN WARREN &mdash; ZAZ CONTRAST LAB &middot; DEBUG/TEST TOOL ONLY, not part of Rungs 1-3 &middot; authority=false &middot; claim=NO_CLAIM &middot; LOCAL-ONLY, NO DEPLOY</div>
+
+<div id="controls">
+  <div class="panel" style="flex:1;min-width:280px">
+    <label>Player event (JSON)</label>
+    <textarea id="eventInput">{"type":"offer_seed"}</textarea>
+    <label>Model endpoint</label>
+    <input type="text" id="cfgEndpoint" value="http://localhost:11434/api/chat">
+    <label>Model tag</label>
+    <input type="text" id="cfgModel" value="">
+    <label>Timeout (ms)</label>
+    <input type="number" id="cfgTimeout" value="2000">
+    <label><input type="checkbox" id="cfgUseMock" checked style="width:auto;display:inline-block"> Use deterministic mock (no live model)</label>
+  </div>
+  <div class="panel">
+    <button id="btnRun">Send same event to Lulu &amp; Zaz</button>
+    <p class="note" style="max-width:220px">Both calls share the identical playerEvent and sceneCtx. Only the persona differs.</p>
+  </div>
+</div>
+
+<div id="results">
+  <div class="card lulu">
+    <h2>Lulu <span id="luluTag"></span></h2>
+    <div class="speech" id="luluSpeech">(not run yet)</div>
+    <div>emotion: <span id="luluEmotion">-</span> &middot; gesture: <span id="luluGesture">-</span> &middot; initiative: <span id="luluInitiative">-</span></div>
+    <pre id="luluDebug"></pre>
+  </div>
+  <div class="card zaz">
+    <h2>Zaz <span id="zazTag"></span></h2>
+    <div class="speech" id="zazSpeech">(not run yet)</div>
+    <div>emotion: <span id="zazEmotion">-</span> &middot; gesture: <span id="zazGesture">-</span> &middot; initiative: <span id="zazInitiative">-</span></div>
+    <pre id="zazDebug"></pre>
+  </div>
+</div>
+
+<div class="panel" style="margin:0 12px 20px">
+  <h2 style="font-size:13px;color:var(--bone);margin:0 0 6px">Distinctness check (structural)</h2>
+  <div id="distinctCheck" class="note">Run a comparison to populate this.</div>
+</div>
+
+<script src="npc/response-schema.js"></script>
+<script src="npc/model-adapter.js"></script>
+<script src="npc/personas.js"></script>
+<script src="npc/context-builder.js"></script>
+<script src="npc/memory.js"></script>
+<script src="npc/npc-gateway.js"></script>
+<script>
+'use strict';
+
+function sceneCtx() {
+  // A neutral rung-2 scene both personas can react to; Zaz is present
+  // here ONLY because this is the debug lab -- available_characters
+  // deliberately includes both so neither response is rejected for
+  // "mentioning an unavailable character" against the other.
+  return NPCPreview.contextBuilder.buildContext({
+    rung: 2,
+    visibleObjects: ['seed_mound', 'sprout'],
+    sharedMemories: [],
+    currentMood: 'calm',
+    availableCharacters: ['lulu', 'zaz'],
+    supportedMemoryTerms: ['seed', 'planted'],
+  });
+}
+
+function currentAdapter(personaId) {
+  const useMock = document.getElementById('cfgUseMock').checked;
+  const timeoutMs = parseInt(document.getElementById('cfgTimeout').value, 10) || 2000;
+  if (useMock) {
+    return new NPCPreview.modelAdapter.MockModelAdapter({ persona: personaId, delayMs: 150 });
+  }
+  return new NPCPreview.modelAdapter.ModelAdapter({
+    endpoint: document.getElementById('cfgEndpoint').value,
+    model: document.getElementById('cfgModel').value,
+    timeoutMs,
+  });
+}
+
+function renderCard(prefix, result) {
+  document.getElementById(prefix + 'Speech').textContent = result.candidate.speech;
+  document.getElementById(prefix + 'Emotion').textContent = result.candidate.emotion;
+  document.getElementById(prefix + 'Gesture').textContent = result.candidate.gesture || '(none)';
+  document.getElementById(prefix + 'Initiative').textContent = result.candidate.initiative || '(none)';
+  const tagEl = document.getElementById(prefix + 'Tag');
+  tagEl.innerHTML = `<span class="tag ${result.source}">${result.source}</span>`;
+  document.getElementById(prefix + 'Debug').textContent =
+    `latency: ${result.telemetry.latencyMs.toFixed(1)}ms\n` +
+    `failureReason: ${result.telemetry.failureReason || '(none)'}\n` +
+    `raw: ${result.telemetry.rawText === null ? '(none)' : result.telemetry.rawText}`;
+}
+
+document.getElementById('btnRun').addEventListener('click', async () => {
+  let playerEvent;
+  try {
+    playerEvent = JSON.parse(document.getElementById('eventInput').value);
+  } catch (e) {
+    alert('Player event must be valid JSON.');
+    return;
+  }
+
+  const ctx = sceneCtx();
+  const lulu = NPCPreview.personas.getPersona('lulu');
+  const zaz = NPCPreview.personas.getPersona('zaz');
+
+  const [luluResult, zazResult] = await Promise.all([
+    NPCPreview.gateway.getNpcResponse(playerEvent, ctx, lulu, currentAdapter('lulu'), { timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000 }),
+    NPCPreview.gateway.getNpcResponse(playerEvent, ctx, zaz, currentAdapter('zaz'), { timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000 }),
+  ]);
+
+  renderCard('lulu', luluResult);
+  renderCard('zaz', zazResult);
+
+  // Gate 2's ACTIVE check: not a passive side-by-side. assessDivergence
+  // FAILS (flags) when the two voices collapse into one.
+  const verdict = NPCPreview.gateway.assessDivergence(luluResult.candidate, zazResult.candidate);
+  const el = document.getElementById('distinctCheck');
+  el.classList.remove('pass', 'fail');
+  if (verdict.distinct) {
+    el.classList.add('pass');
+    el.textContent = `PASS ("two minds, not two skins"): dissimilarity score ${verdict.score.toFixed(2)}. `
+      + 'Lulu and Zaz gave distinct speech/emotion for the identical stimulus.';
+  } else {
+    el.classList.add('fail');
+    el.textContent = `FAIL — voices collapsed: ${verdict.reason}. `
+      + 'Two skins, one mind. Investigate the persona constitutions in personas.js '
+      + '(with the mock this is rare; with a live model it means the prompts are not steering hard enough).';
+  }
+});
+</script>
+</body>
+</html>

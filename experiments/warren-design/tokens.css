@@ -1,0 +1,136 @@
+/*
+  warren-design/tokens.css
+  ------------------------------------------------------------------
+  Single source of truth for every color, spacing, type-size, border
+  and z-layer used anywhere in a Warren "first fire" scene — DOM *and*
+  canvas. DOM reads these natively via var(...). The canvas cannot read
+  CSS custom properties directly, so first-fire-v2.html reads this same
+  file at boot time via getComputedStyle(document.documentElement) and
+  builds its fillStyle palette from these exact values. There is no
+  second, hardcoded copy of any hex color anywhere else in the project.
+
+  Root cause this file fixes: v1 had two unrelated palettes (a DOM
+  palette in a <style> block, a canvas palette as hardcoded hex inside
+  <script>) and two unrelated type systems (vw-scaled "hero" title vs.
+  fixed-px in-scene HUD text). One frame, one set of numbers.
+  ------------------------------------------------------------------
+*/
+:root{
+
+  /* ===== TEMPERATURE RAMP (primary) =====
+     The whole scene is one linear interpolation, 0 (cold) -> 1 (warm),
+     called `grade` in the engine. Every color below is either one of
+     these six anchors, or mix(anchorA, anchorB, grade) between them.
+     Do not introduce a color that isn't derived from this ramp. */
+  --cold:   #0c1418;  /* coldest stop — cave dark, unlit bg, --z-bg floor */
+  --stone:  #3a4048;  /* unlit hearth stone / neutral chrome, mid-cold */
+  --ember:  #ff7a2c;  /* mid-warm accent — sparks, borders, kicker, fire */
+  --gold:   #ffd24a;  /* hottest accent — flame tips, hot title word */
+  --bone:   #e8dcc0;  /* primary text + lit stone highlight (warm-neutral) */
+  --glow:   #a8d858;  /* Lulu's eye-glow / affirming dialogue color */
+
+  /* ===== TEMPERATURE RAMP (secondary stops) =====
+     Second color at each end of specific gradients (ceiling, floor,
+     stone, Lulu's fur) so the mix() has a *matched pair* rather than
+     reusing a primary anchor out of context. Each is named for what it
+     mixes with above, so the pairing stays legible in code review. */
+  --cold-2:      #0f1c22;  /* ceiling/floor cold stop, pairs with --ember-2 */
+  --ember-2:     #3a1e12;  /* ceiling/floor warm stop, pairs with --cold-2 */
+  --ceiling-hi:  #241417;  /* ceiling-top warm stop, pairs with --cold */
+  --floor-cold:  #0a1216;  /* cave floor, cold */
+  --floor-warm:  #1c120e;  /* cave floor, warm */
+  --speck-cold:  #10191e;  /* floor speckle, cold */
+  --speck-warm:  #2a170f;  /* floor speckle, warm */
+  --stone-warm:  #5a3a2c;  /* hearth-ring stone, warm (pairs with --stone) */
+  --stone-hi-cold: #4b525b; /* stone highlight edge, cold */
+  --stone-hi-warm: #7a4e34; /* stone highlight edge, warm */
+  --flint-cold:  #565e66;  /* the two rubbed flints, cold */
+  --flint-warm:  #8a5230;  /* the two rubbed flints, warm */
+
+  /* ===== LULU PALETTE (character layer) =====
+     Fixed per SPRITE_SPEC.md. Cold/warm pairs mix on the same `grade`
+     as the environment so she warms in lockstep with the room. */
+  --moss:      #2f5a3a;  /* body, cold */
+  --moss-warm: #5c7a3a;  /* body, warm/lit */
+  --belly:     #3f6a48;  /* belly, cold */
+  --belly-warm:#7a9a52;  /* belly, warm/lit */
+  --ear:       #264a30;  /* ears + feet, cold */
+  --ear-warm:  #4a642e;  /* ears + feet, warm/lit */
+  --ink:       #0a120a;  /* eye socket / outline, constant */
+  --glow-hot:  #d8ff9a;  /* eye-glow once fire gives her rim light */
+  --breath:    #9fb3ba;  /* cold-breath puff, constant */
+  --rim:       #ffb45a;  /* fire rim-light edge on Lulu, constant */
+
+  /* ===== PARTICLES (glyph-object layer) ===== */
+  --amber:  #ffcf6a;  /* spark / fire particle, light */
+  --coal:   #e0532a;  /* fire particle, dark ember */
+  --smoke:  #6b7076;  /* smoke particle, near */
+  --smoke-2:#5a5f64;  /* smoke particle, far/thin */
+  --dust:   #22303a;  /* ambient cave dust mote */
+
+  /* ===== SUPPORTING NEUTRALS (HUD chrome) =====
+     Not new hues — read as one more step colder than --cold, or a
+     muted version of --bone, so HUD chrome still belongs to the ramp. */
+  --dim:    #8fa0a6;  /* secondary/quiet text — hint, lede, dbg */
+  --panel:  #0a1116;  /* HUD panel/track fill, one step colder than --cold */
+  --line:   #26323a;  /* hairline / inactive border, cold-stone family */
+  --line-2: #33424a;  /* slightly lighter hairline (replay button) */
+  --meter-cold: #2f4a52; /* warmth-meter gradient's cold stop (unlit end) */
+  --panel-hover: #20313b; /* button hover fill, one step warmer than --panel */
+  --scrim:  rgba(6,10,13,.55); /* flat title-screen scrim — NOT a blurred
+                                   gradient; a single flat translucent
+                                   wash of --cold so the canvas underneath
+                                   stays legible as the same world */
+
+  /* ===== PIXEL GRID =====
+     --px matches the canvas's internal PIX constant (5 device px per
+     logical pixel at 1x zoom). Every DOM border, padding, gap and
+     shadow offset below is an integer multiple of --px-base so the
+     crisp canvas grid and the DOM chrome share one lattice instead of
+     floating past each other at arbitrary fractional offsets. */
+  --px-base: 5px;
+  --px-1: 5px;   /* 1x  */
+  --px-2: 10px;  /* 2x  */
+  --px-3: 15px;  /* 3x  */
+  --px-4: 20px;  /* 4x  */
+  --px-6: 30px;  /* 6x  */
+  --px-8: 40px;  /* 8x  */
+
+  /* ===== TYPE SCALE =====
+     One face, one scale, used identically by the title screen and the
+     in-scene HUD — this is the fix for "two sizes-of-world": there is
+     no separate vw-driven "hero" scale anymore. Every step is a fixed
+     px value (a whole multiple of 1px, chosen to sit cleanly against
+     --px-base) so text doesn't fluid-scale independently of the pixel
+     grid the canvas is locked to. */
+  --font-mono: "Courier New", Courier, monospace;
+  --step-0: 10px;  /* micro-label: hint, meter label, foot, dbg */
+  --step-1: 13px;  /* body: lede, say-line, replay */
+  --step-2: 15px;  /* button label */
+  --step-3: 20px;  /* kicker */
+  --step-4: 34px;  /* title — capped, no viewport-hero scaling */
+  --tracking-label: .16em;   /* uppercase micro-label letter-spacing */
+  --tracking-kicker: .32em;  /* kicker letter-spacing (was .4em — tightened
+                                 to read as "louder label", not "logo") */
+  --tracking-title: .04em;   /* title letter-spacing */
+
+  /* ===== PIXEL BORDER / SHADOW IDIOM =====
+     The chunky "Nx Nx 0 #000" offset-shadow look, shared by every
+     bordered DOM element (buttons, meter track) — no blur, no radius,
+     ever. Offsets are --px-base multiples so the shadow steps land on
+     the same grid as the canvas pixels. */
+  --bw: 3px;                          /* standard border width */
+  --shadow-1: var(--px-1) var(--px-1) 0 #000;  /* small chrome (meter track) */
+  --shadow-2: var(--px-2) var(--px-2) 0 #000;  /* buttons */
+  --shadow-active: var(--px-1) var(--px-1) 0 #000; /* pressed state */
+
+  /* ===== Z-LAYERS =====
+     The four layers every zone is built from (see scene-grammar.md).
+     Only --z-hud is DOM; the rest are draw-order integers used inside
+     the canvas's own draw() call, kept here so the ordering is a single
+     documented fact instead of implicit call order. */
+  --z-bg: 0;      /* background wash — sky/ceiling + floor gradient */
+  --z-glyph: 10;  /* glyph-objects — hearth stones, embers, mark */
+  --z-char: 20;   /* character layer — Lulu */
+  --z-hud: 30;    /* DOM HUD — say/hint/meter/buttons/title, always on top */
+}
