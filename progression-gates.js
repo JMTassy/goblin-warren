@@ -146,14 +146,55 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
     g4.cribActiveStill && g4.dots.dots[0].done && g4.dots.dots[1].done && g4.dots.dots[2].current,
     JSON.stringify(g4));
 
-  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // graduate from memory
-  await page.waitForTimeout(1000);
-  const g4b = await page.evaluate(({ chips, otherGoblins, visSrc, dotsSrc }) => {
+  // ---- Rung 4 THE NEED: memory graduates into the need beat, not straight
+  // to the full Warren — this is the fix for "the graduation gap" (Rungs
+  // 4-11 were 100% unbuilt; the crib jumped from Rung 3 to full complexity
+  // in ~90s). Real scarcity under test: Lulu names THREE things, but only
+  // TWO are actionable this rung (matcha cup + bloom); the third is named
+  // then deliberately deferred, never spawning a tappable object. ----------
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // memory -> THE NEED
+  await page.waitForTimeout(2800); // the matcha cup spawns ~2.2s in
+  const g4d = await page.evaluate(({ dotsSrc }) => {
+    const st = window.WARREN_DEBUG.getCribState();
+    const dots = eval('(' + dotsSrc + ')')();
+    const objs = window.WARREN_DEBUG.getObjects();
+    return { step: st.step, rung: st.rung,
+      need1: st.onboarding.need1Done, need2: st.onboarding.need2Done, need3: st.onboarding.need3Deferred,
+      matchaCupObjId: st.onboarding.matchaCupObjId,
+      cupPresent: objs.some(o => o.emoji === '🍵'), bloomPresent: objs.some(o => o.emoji === '🌸'),
+      careObjectCount: objs.filter(o => o.emoji === '🍵' || o.emoji === '🌸').length,
+      dots };
+  }, { dotsSrc });
+  log('G4d_need_named_only_two_actions_real_scarcity',
+    g4d.step === 4 && g4d.rung === 4 && !g4d.need1 && !g4d.need2 && !g4d.need3 &&
+    !!g4d.matchaCupObjId && g4d.cupPresent && g4d.bloomPresent && g4d.careObjectCount === 2 &&
+    g4d.dots.dots[2].done && g4d.dots.dots[3].current,
+    JSON.stringify(g4d));
+
+  // feed Lulu (need 1): the cup is consumed, not left lying around
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue());
+  await page.waitForTimeout(400);
+  const g4e = await page.evaluate(() => {
+    const st = window.WARREN_DEBUG.getCribState();
+    const objs = window.WARREN_DEBUG.getObjects();
+    return { need1: st.onboarding.need1Done, need2: st.onboarding.need2Done, rung: st.rung,
+      cupGone: !objs.some(o => o.emoji === '🍵') };
+  });
+  log('G4e_feed_lulu_consumes_matcha_not_yet_graduated',
+    g4e.need1 && !g4e.need2 && g4e.rung === 4 && g4e.cupGone,
+    JSON.stringify(g4e));
+
+  // water the bloom (need 2): the SAME persistent flower, not a new object —
+  // both needs met now triggers the deferred-third beat, then graduation.
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue());
+  await page.waitForTimeout(4800); // deferred-third line (1.2s) + graduate (3.2s) + buffer
+  const g4f = await page.evaluate(({ chips, otherGoblins, visSrc, dotsSrc }) => {
     const vis = eval('(' + visSrc + ')');
     const app = document.getElementById('app');
     const st = window.WARREN_DEBUG.getCribState();
     const dots = eval('(' + dotsSrc + ')')();
     return {
+      need2: st.onboarding.need2Done, need3Deferred: st.onboarding.need3Deferred,
       graduated: !app.classList.contains('crib-active') && !app.classList.contains('prologue-active'),
       seen: st.seen, rung: st.rung,
       crewVisible: otherGoblins.every(id => vis('goblin-' + id)),
@@ -162,10 +203,42 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
       progressHidden: dots && dots.hidden
     };
   }, { chips: CHIPS, otherGoblins: OTHER_GOBLINS, visSrc: vises, dotsSrc });
-  log('G4b_graduation_opens_full_warren_progress_hides',
-    g4b.graduated && g4b.seen && g4b.rung === 12 && g4b.crewVisible && g4b.chipsVisible &&
-    g4b.barsBack && g4b.bloomPersists && g4b.progressHidden,
-    JSON.stringify(g4b));
+  log('G4f_third_need_deferred_then_graduates_progress_hides',
+    g4f.need2 && g4f.need3Deferred && g4f.graduated && g4f.seen && g4f.rung === 12 &&
+    g4f.crewVisible && g4f.chipsVisible && g4f.barsBack && g4f.bloomPersists && g4f.progressHidden,
+    JSON.stringify(g4f));
+
+  // ---- Resume safety: a genuine reload mid-Rung-4 (need named, matcha cup
+  // spawned, neither need met yet) must land back in the SAME beat, not
+  // replay Rung 3 or lose the cup — the resume path added for this rung. ---
+  await page.evaluate(() => window.WARREN_DEBUG.wipe());
+  await page.reload();
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => window.WARREN_DEBUG.tapLuluPrologue());
+  await page.waitForTimeout(5600);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // offer seed
+  await page.waitForTimeout(5000); // bloom + mystery
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // tap mystery -> rung3
+  await page.waitForTimeout(3600);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // memory -> rung4
+  await page.waitForTimeout(2800); // matcha cup spawns
+  await page.reload(); // genuine close/reopen, mid-need, nothing fed/watered yet
+  await page.waitForTimeout(1200);
+  const g4g = await page.evaluate(() => {
+    const st = window.WARREN_DEBUG.getCribState();
+    const objs = window.WARREN_DEBUG.getObjects();
+    return { step: st.step, rung: st.rung, active: st.active, seen: st.seen,
+      need1: st.onboarding.need1Done, need2: st.onboarding.need2Done,
+      cupPresent: objs.some(o => o.emoji === '🍵'), bloomPresent: objs.some(o => o.emoji === '🌸') };
+  });
+  log('G4g_reload_resume_mid_need_lands_same_beat',
+    g4g.step === 4 && g4g.rung === 4 && g4g.active && !g4g.seen &&
+    !g4g.need1 && !g4g.need2 && g4g.cupPresent && g4g.bloomPresent,
+    JSON.stringify(g4g));
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // feed
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // water -> graduates
+  await page.waitForTimeout(4800);
 
   // ---- Secondary path: a REAL reload (genuine tab close/reopen) after
   // offering the seed — before the mystery is ever tapped — must still
@@ -188,8 +261,12 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
   log('G4c_reload_resume_still_lawful_secondary_path',
     g4c.step === 3 && g4c.rung === 3 && g4c.active && !g4c.seen && g4c.bloomPersists,
     JSON.stringify(g4c));
-  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // graduate
-  await page.waitForTimeout(800);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // memory -> rung4
+  await page.waitForTimeout(2800);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // feed
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // water -> graduates
+  await page.waitForTimeout(4800);
 
   // ---- Grandfather: an established save gets the full Warren, no crib ------
   await page.reload();
@@ -220,8 +297,12 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
   await page.waitForTimeout(5000);   // bloom → mystery appears
   await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // tap mystery
   await page.waitForTimeout(3600);   // nightfall → rung 3
-  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // graduate
-  await page.waitForTimeout(800);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // memory -> rung4
+  await page.waitForTimeout(2800);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // feed
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // water -> graduates
+  await page.waitForTimeout(4800);
   const after = await page.evaluate((SNAP) => eval(SNAP), SNAP);
   const finalSeen = await page.evaluate(() => window.WARREN_DEBUG.getCribState().seen);
   log('G6_membrane_no_zol_no_admission', before === after && finalSeen === true,

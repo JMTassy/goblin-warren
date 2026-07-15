@@ -57,7 +57,7 @@ honest: `BUILT` = live and witnessed, `PLANNED` = designed here, not coded.
 | **1** | THE WAKING | Sleeping Lulu, one tree, tap to wake. | **Competence loop** — the fastest possible "did I understand this?" A tap produces an immediate, unambiguous response. | *"Oh... you found me..."* | **BUILT** ✅ |
 | **2** | THE OFFERING | Offer the seed (tap vs. hold — she reads *how*). It blooms. | **Micro-dopamine, three layers** — sensory pop, her line, a flower that persists in the real world. Not one reward, three, stacked. | *"A flower. We made it."* | **BUILT** ✅ |
 | **3** | THE RETURN | Tap the mystery behind the tree → the night turns → she remembers. | **The Zeigarnik effect** — an unresolved thread the mind keeps rehearsing. (This rung *was* the wall a real beta tester hit — "not yet, come back" — fixed 2026-07-15; tapping now advances instead of blocking.) | *"You came back... I kept our flower."* | **BUILT** ✅ |
-| **4** | THE NEED | Lulu expresses ONE simple want — not a task list, one sentence. Two response choices. | **Identity shift** — the pivot from *spectator* to *caretaker*. You stop answering a UI and start tending a creature. | *"I keep wondering what's behind the tree."* | PLANNED (next slice) |
+| **4** | THE NEED | Lulu names THREE things at once, but the player has only TWO care actions (feed her matcha, water the bloom). The third — the sound behind the tree — is named, then deliberately deferred as a callback. | **Identity shift + real scarcity** — the pivot from *spectator* to *caretaker*, with an actual trade-off (game-design critique 2026-07-15: "3 visible needs, only 2 actions"), not observe→select→witness. | *"Lulu is a little hungry. Our flower could use water. Something moved again, behind the tree."* | **BUILT** ✅ (2026-07-15, `progression-gates.js` G4d-G4g, 14/14) |
 | **5** | THE FIRST QUESTION | She — not a stranger Moth — asks you one gentle thing. Right answer: a real object lights in the world (reuses `QUIZ_TO_ZOL_V2`, unlocked here instead of only post-graduation). | **Earned reward, tangible** — the first time "getting it right" visibly changes the *place*, not a score. | a 🍄/🪔 lights, tied to *her* asking | PLANNED |
 | **6** | THE SECOND VOICE | One more goblin arrives, a clearly different temperament — reacts to the *same* flower differently than Lulu did. | **Collection instinct + contrast** — proof the world holds more than one being; the promise of a cast, revealed one at a time. | two reactions to one flower | PLANNED |
 | **7** | THE FIRST CHOICE | The newcomer proposes ONE thing. ADMIT / DENY (no HOLD yet). One visible consequence. | **Agency — the sacred loop.** Your tap is the only admission that exists. | the world visibly bends to your stamp | PLANNED |
@@ -67,21 +67,28 @@ honest: `BUILT` = live and witnessed, `PLANNED` = designed here, not coded.
 | **11** | THE ZONES OPEN | `LEVELS[2..9]` become travelable — Earn the Key, Pay the Toll. Wonder Cache, Almanac, first boss. | **Curiosity gap at scale** — "one more region," relic collection. A single Almanac line may hint, purely as poetry, that something in her is still tuning itself — texture, never a mechanic. | *"one more region..."* | PLANNED |
 | **12** | THE FULL WARREN | Everything present — today's homepage — but every emoji and agent arrived as a friend you met. | **The work is never finished** (the whole project's deepest law, made playable). Wolf Intervals, Coherence, Lulu's archetypal shifts — everything designed in `LIVING_EGREGORE_VISION.md` — live *beyond* this summit, never before it. | *"I grew a living village from one sleeping goblin."* | **BUILT** (as today's game) ✅ — but arrived at with nothing earned between Rung 3 and here yet |
 
-## The graduation gap — an honest finding, not a fix (2026-07-15)
+## The graduation gap — an honest finding, partially closed (2026-07-15)
 
-Reframing this ladder surfaced something that needs saying plainly: **only
-Rungs 1–3 are actually built.** `graduateCrib()` currently jumps straight
-from Rung 3 to the *entire* Rung-12 complexity dump — every goblin, every
-zone, every chip, all at once — the instant the crib ends. Rungs 4–11 above
-are fully designed here but **not one line of them is coded.**
+Reframing this ladder surfaced something that needed saying plainly: **only
+Rungs 1–3 were actually built** as of the first pass of this document.
+`graduateCrib()` jumped straight from Rung 3 to the *entire* Rung-12
+complexity dump — every goblin, every zone, every chip, all at once — the
+instant the crib ended. Rungs 4–11 were fully designed but not one line of
+them was coded, meaning the exact failure mode that bounced a real beta
+tester at the front door — *"I get bored because I don't see the step by
+step progression"* — was still structurally possible, just delayed by
+roughly 90 seconds instead of 0.
 
-That means the exact failure mode that bounced a real beta tester at the
-front door — *"I get bored because I don't see the step by step
-progression"* — is **still structurally possible**, just delayed by roughly
-90 seconds instead of 0. Fixing the crib's internal wall (Rung 3's mystery)
-was necessary and correct, but it did not close this gap. Rung 4 (THE NEED)
-is the literal next slice, not a someday item, if this ladder is meant to
-hold past the first three minutes.
+**Same day, later pass: Rung 4 (THE NEED) is now built** (`cribNeed()` /
+`cribFeedLulu()` / `cribWaterBloom()` / `cribCheckNeedsDone()`,
+`game.js`) — `cribReturnMemory()`'s tail now leads into it instead of
+straight into `graduateCrib()`. Graduation is delayed further, and — more
+importantly — the delay is no longer empty stalling: it is a real,
+scarcity-shaped decision (2 actions for 3 named needs). The gap is **not
+fully closed** — Rungs 5–11 remain 100% unbuilt, and the failure mode is
+still reachable a few minutes further in than before — but the pattern
+that closes it (one rung, one real mechanic, shipped and witnessed before
+the next) has now been proven twice, not once.
 
 ## Game-design critique (2026-07-15) — supersedes the ladder above for Rung 4+
 
@@ -167,12 +174,21 @@ to repeat, not skip: build one rung, ship a preview, get a real thumb on it,
 *then* move on. We still do **not** build the remaining ladder in one push —
 that repeats the original sin this whole document exists to fix.
 
-Next: **Rung 4 (THE NEED)**, then Rung 5 (reusing `QUIZ_TO_ZOL_V2` instead of
-inventing a new reward system — same law as the Egregore doc's "merge, don't
-fork").
+Rung 4 (THE NEED) is now built and gated the same way — `progression-gates.js`
+G4d–G4g (real scarcity is named, only 2 of 3 needs are actionable, the third
+defers cleanly, a genuine reload mid-need resumes in the same beat, everything
+graduates only after both actionable needs are met). **Not yet witnessed** —
+built and self-tested, but not yet played by the operator on a real device;
+that thumb is still the gate before calling it done.
+
+Next: Rung 5 (reusing `QUIZ_TO_ZOL_V2` instead of inventing a new reward
+system — same law as the Egregore doc's "merge, don't fork") — held until
+Rung 4 gets its real-device witness.
 
 **Claim typing:** Rungs 1–3 are **WITNESSED** (built, gated, played on a real
-device, one real bug found and fixed). Rungs 4–12's *reframe* (this pass) is
-**CANDIDATE** — captivating on paper, not yet coded, not yet tapped. The
-graduation-gap finding above is **WITNESSED** as a structural fact (confirmed
-by reading `graduateCrib()`), not a guess.
+device, one real bug found and fixed). **Rung 4 is BUILT + gated
+(14/14, `progression-gates.js`) but not yet WITNESSED** — no real-device play
+yet. Rungs 5–12's *reframe* (2026-07-15 pass) is **CANDIDATE** — captivating
+on paper, not yet coded, not yet tapped. The graduation-gap finding above is
+**WITNESSED** as a structural fact (confirmed by reading `graduateCrib()` /
+`cribReturnMemory()` / `cribNeed()`), not a guess.

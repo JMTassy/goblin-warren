@@ -366,7 +366,8 @@ function makeState() {
        rung 12 / onboarding-complete at load, so established players get
        EXACTLY today's Warren (see the loadState belt below). */
     progress: { level: 1, levelsUnlocked: [1], glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0,
-                rung: 1, onboarding: { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 } },
+                rung: 1, onboarding: { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
+                matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false } },
     settings: { muted: false },
     territories: { owned: [], building: null },
     learning: { maestroUnlocked: false, activeQuest: null, completedQuests: [],
@@ -528,8 +529,10 @@ var _graduated = !!(S.flags && S.flags.prologueSeen);
 if (typeof S.progress.rung !== "number") S.progress.rung = _graduated ? 12 : 1;
 if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
   S.progress.onboarding = _graduated
-    ? { woke: true, offered: true, mystery: true, seedObjId: null, bloomObjId: null, visits: 99 }
-    : { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
+    ? { woke: true, offered: true, mystery: true, seedObjId: null, bloomObjId: null, visits: 99,
+        matchaCupObjId: null, need1Done: true, need2Done: true, need3Deferred: true }
+    : { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
+        matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false };
 }
 if (_graduated && S.progress.rung < 12) S.progress.rung = 12;
 
@@ -4607,6 +4610,8 @@ function renderObjects() {
           ensureAudio(); resumeAudio();
           /* VISION_PROGRESSION Rung 2 — tapping the seed offers it to Lulu */
           if (prologueActive && prologueStep === 2 && obj.id === prologueSeedObjId) tapPrologueSeed();
+          /* VISION_PROGRESSION Rung 4 — tapping the matcha cup feeds Lulu, tapping the bloom waters it */
+          if (prologueActive && prologueStep === 4) { tapMatchaCup(obj.id); tapBloomWater(obj.id); }
           /* QUIZ_TO_ZOL_V2 — the lit Knowledge Lantern is the repeat door to Lulu's fun facts */
           if (obj.sign === "Knowledge Lantern" && quizZolAvailable()) { openQuizZol(); return; }
           if (obj.emoji === "🍄") Sound.shamanicBurst();
@@ -8393,10 +8398,17 @@ var prologueSeedObjId = null;
 var prologueBloomObjId = null;
 var PROLOGUE_CHIPS = ["signal-indicator", "riddle-chip", "level-chip", "currency", "zol-wallet"];
 
+var CRIB_OB_DEFAULTS = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
+  matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false };
 function cribOb() {
   if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
-    S.progress.onboarding = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
+    S.progress.onboarding = Object.assign({}, CRIB_OB_DEFAULTS);
   }
+  /* field-level backfill: an in-progress crib save from before Rung 4 existed
+     has the old shape — fill only what's missing, never clobber real progress. */
+  Object.keys(CRIB_OB_DEFAULTS).forEach(function (k) {
+    if (!(k in S.progress.onboarding)) S.progress.onboarding[k] = CRIB_OB_DEFAULTS[k];
+  });
   return S.progress.onboarding;
 }
 
@@ -8452,7 +8464,7 @@ function renderCribProgress() {
   var wrap = document.getElementById("crib-progress");
   if (!wrap) return;
   var rung = (S.progress && S.progress.rung) || 1;
-  for (var i = 1; i <= 3; i++) {
+  for (var i = 1; i <= 4; i++) {
     var dot = wrap.children[i - 1];
     if (!dot) continue;
     dot.classList.toggle("done", rung > i);
@@ -8465,7 +8477,8 @@ function startPrologue() {
   if (S.flags.prologueSeen) return;            // established players never enter (grandfathered)
   var o = cribOb();
   cribShowStage();
-  if (o.offered) { cribReturnMemory(); }       // Rung 3 — came back after the bloom
+  if (S.progress.rung >= 4 && o.offered) { cribNeed(); }  // Rung 4 — resume mid-need, no replay
+  else if (o.offered) { cribReturnMemory(); }  // Rung 3 — came back after the bloom
   else if (o.woke) { cribResumeGesture(); }    // Rung 2 — woke last time, seed still un-offered
   else { cribNotice(); }                       // Rung 1 — fresh
 }
@@ -8687,15 +8700,135 @@ function cribReturnMemory() {
     }
   }
   saveState();
+  /* every nested beat re-checks prologueStep === 3 before speaking — a
+     debug/test bypass straight to cribNeed() must never let a stale Rung-3
+     line stomp the Rung-4 bubble it schedules (same "never traps" law: a
+     later stage always wins over an earlier stage's leftover timer). */
   prologueSetTimeout(function () {
+    if (prologueStep !== 3) return;
     cribSay("You came back... I kept our flower.", "greet", 5000);
   }, 700);
   prologueSetTimeout(function () {
+    if (prologueStep !== 3) return;
     cribSay("...there is more to show you now.", null, 4200);
-    prologueSetTimeout(graduateCrib, 2600);
+    prologueSetTimeout(cribNeed, 2600);
   }, 5400);
-  /* fallback: graduate even if the beats are interrupted */
-  prologueSetTimeout(function () { if (prologueStep === 3) graduateCrib(); }, 14000);
+  /* fallback: move on even if the beats are interrupted */
+  prologueSetTimeout(function () { if (prologueStep === 3) cribNeed(); }, 14000);
+}
+
+/* ---- Rung 4 — THE NEED ---- real scarcity, not a task list: Lulu names
+   three things at once, but this rung only gives the player two care
+   actions (feed her, water the bloom). The third — the sound behind the
+   tree — is named and then deliberately left alone, a Zeigarnik hook for
+   a future rung, not a bug. (game-design critique 2026-07-15, appended to
+   VISION_PROGRESSION_L1_L12.md: "3 visible needs, only 2 actions".) */
+function cribNeed() {
+  if (!prologueActive || prologueStep === 6) return;
+  prologueStep = 4;
+  S.progress.rung = 4;
+  renderCribProgress();
+  var o = cribOb();
+  /* resume path: prologueBloomObjId is a module var, lost on a fresh page
+     load — re-find it from S.objects the same way cribReturnMemory does */
+  if (!prologueBloomObjId) {
+    for (var i = 0; i < S.objects.length; i++) {
+      if (S.objects[i].id === o.bloomObjId || S.objects[i].emoji === "🌸") { prologueBloomObjId = S.objects[i].id; break; }
+    }
+  }
+  if (prologueBloomObjId) {
+    renderObjects();
+    prologueReveal(objectEls[prologueBloomObjId]);
+    cribCue(objectEls[prologueBloomObjId], !o.need2Done);
+  }
+  cribSay("Lulu is a little hungry. Our flower could use water. Something moved again, behind the tree.", null, 6200);
+  saveState();
+  prologueSetTimeout(cribSpawnMatchaCup, 2200);
+  /* never traps: if nobody taps, she quietly tends both herself and the
+     rung still advances — same law as every other crib fallback. */
+  prologueSetTimeout(function () {
+    if (prologueStep !== 4) return;
+    var o2 = cribOb();
+    o2.need1Done = true; o2.need2Done = true;
+    cribCheckNeedsDone();
+  }, 30000);
+}
+
+function cribSpawnMatchaCup() {
+  if (!prologueActive || prologueStep !== 4) return;
+  var o = cribOb();
+  if (o.need1Done) return;
+  /* resume path: the cup persisted in S.objects from a prior session */
+  if (o.matchaCupObjId) {
+    var found = false;
+    for (var i = 0; i < S.objects.length; i++) { if (S.objects[i].id === o.matchaCupObjId) { found = true; break; } }
+    if (!found) o.matchaCupObjId = null;
+  }
+  if (!o.matchaCupObjId) {
+    addObject("🍵", "Warm Matcha", "tree");
+    var obj = S.objects[S.objects.length - 1];
+    o.matchaCupObjId = obj ? obj.id : null;
+  }
+  renderObjects();
+  prologueReveal(objectEls[o.matchaCupObjId]);
+  cribCue(objectEls[o.matchaCupObjId], true);
+  saveState();
+}
+
+function tapMatchaCup(objId) {
+  if (!prologueActive || prologueStep !== 4) return;
+  if (objId !== cribOb().matchaCupObjId) return;
+  cribFeedLulu();
+}
+
+function cribFeedLulu() {
+  if (!prologueActive || prologueStep !== 4) return;
+  var o = cribOb();
+  if (o.need1Done) return;
+  o.need1Done = true;
+  var el = o.matchaCupObjId ? objectEls[o.matchaCupObjId] : null;
+  cribCue(el, false);
+  var g = S.goblins.lulu;
+  if (g) { g.mood = "delighted"; renderGoblins(); }
+  cribSay("Mmm... warm. Thank you.", "matcha", 3600);
+  S.objects = S.objects.filter(function (ob) { return ob.id !== o.matchaCupObjId; });
+  renderObjects();
+  saveState();
+  cribCheckNeedsDone();
+}
+
+function tapBloomWater(objId) {
+  if (!prologueActive || prologueStep !== 4) return;
+  if (objId !== prologueBloomObjId) return;
+  cribWaterBloom();
+}
+
+function cribWaterBloom() {
+  if (!prologueActive || prologueStep !== 4) return;
+  var o = cribOb();
+  if (o.need2Done) return;
+  o.need2Done = true;
+  var el = prologueBloomObjId ? objectEls[prologueBloomObjId] : null;
+  if (el) {
+    cribCue(el, false);
+    el.classList.remove("crib-bloom-pop"); void el.offsetWidth; el.classList.add("crib-bloom-pop");
+  }
+  if (window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(528);
+  cribSay("The flower drank it all up. Look how it leans toward you now.", null, 4200);
+  saveState();
+  cribCheckNeedsDone();
+}
+
+/* both actionable needs met → name the deferred third, then graduate */
+function cribCheckNeedsDone() {
+  var o = cribOb();
+  if (!o.need1Done || !o.need2Done || o.need3Deferred) return;
+  o.need3Deferred = true;
+  saveState();
+  prologueSetTimeout(function () {
+    cribSay("...the sound behind the tree. Later. I promise we'll look.", "goodnight", 5200);
+    prologueSetTimeout(graduateCrib, 3200);
+  }, 1200);
 }
 
 /* GRADUATION — the wider Warren opens for the first time. This is the old
@@ -8777,7 +8910,7 @@ function resetCrib() {
   S.objects = S.objects.filter(function (ob) { return ob.emoji !== "🌰" && ob.emoji !== "🌸"; });
   S.flags.prologueSeen = false;
   S.progress.rung = 1;
-  S.progress.onboarding = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0 };
+  S.progress.onboarding = Object.assign({}, CRIB_OB_DEFAULTS);
   saveState();
 }
 function replayPrologue() {
@@ -8791,14 +8924,17 @@ function advancePrologue() {
   if (prologueStep === 1) cribWake();
   else if (prologueStep === 2 && !cribOb().offered) cribOfferSeed();
   else if (prologueStep === 2 && cribOb().mystery) tapCribMystery();
-  else if (prologueStep === 3) graduateCrib();
+  else if (prologueStep === 3) cribNeed();
+  else if (prologueStep === 4 && !cribOb().need1Done) cribFeedLulu();
+  else if (prologueStep === 4 && !cribOb().need2Done) cribWaterBloom();
   return true;
 }
 function getPrologueState() {
   var seedEl = prologueSeedObjId ? objectEls[prologueSeedObjId] : null;
   var o = cribOb();
   return { active: prologueActive, seen: !!S.flags.prologueSeen, step: prologueStep,
-    rung: S.progress.rung, onboarding: { woke: !!o.woke, offered: !!o.offered, mystery: !!o.mystery, visits: o.visits || 0 },
+    rung: S.progress.rung, onboarding: { woke: !!o.woke, offered: !!o.offered, mystery: !!o.mystery, visits: o.visits || 0,
+      need1Done: !!o.need1Done, need2Done: !!o.need2Done, need3Deferred: !!o.need3Deferred, matchaCupObjId: o.matchaCupObjId || null },
     goblinsShown: prologueGoblinsShown, chipsShown: prologueChipsShown,
     seedObjId: prologueSeedObjId, bloomObjId: prologueBloomObjId,
     seedShown: !!(seedEl && seedEl.classList.contains("prologue-shown")) };
