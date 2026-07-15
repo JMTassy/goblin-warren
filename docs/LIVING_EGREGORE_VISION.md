@@ -88,3 +88,64 @@ reload · teachable · clean.
   **NEEDS_ME** — the next big organ, built as a log-fold or not at all.
 
 *Speak its name. The stamp does the rest.* 🥺🔨
+
+---
+
+## Addendum 2026-07-15 — Wolf, Comma, Lulu Mutations, Glitchling VFX
+
+A CLI-mode design session independently re-derived much of §"math skeleton"
+above via a more detailed categorical-state model, before this document was
+checked. Reconciled here rather than forked into a separate doc — one vision,
+one lineage, same claim-typing discipline.
+
+**Egregore Coherence — refinement candidate.** A `FRAGMENTED → ATTUNED →
+RESONANT → AUTONOMOUS` derived categorical state, from a bounded (12-event /
+7-day) evidence window with time-decay, plus anti-optimization constraints
+(RESONANT+ require ≥2-3 *distinct* event classes, so grinding one trivial
+action can't grind coherence). Offered as a refinement of `E_t` above, under
+the *same binding law*: derived from the event log, never stored mutable.
+**NEEDS_ME**, unchanged. Real gap found in the meantime: `pushReplay()`
+(game.js:560) receipts carry free-text `event` titles with **no evidence-class
+tag** — building either version of `E` needs a small additive `evidenceClass`
+field at a handful of call sites *first*, or the derivation infers intent from
+prose, which rule 5's own "coherence ≠ consistency" principle forbids.
+
+**Comma — already WITNESSED, felt-only.** `detectHarmony()` (game.js:2089)
+already returns `"wandering — the comma smiles"` when no clean interval
+forms — this predates today's session entirely. A tracked numeric `Comma_t`
+stays out of scope; the code's own comment (line 2070) states the law: *"no
+coherence number hides behind the music."*
+
+**Wolf Interval V0 — CANDIDATE, spec verified, smallest slice in this whole
+vision.** The historical meantone wolf fifth (~738.6 cents, sharp) maps to
+zone `[738, 758]` cents — confirmed by computation to sit in a genuine
+47-cent gap in `ORGAN_INTERVALS` with zero collisions against the existing
+table. One new branch inside an already-pure function; zero new state. Ready
+to build on operator go.
+
+**Lulu Mutations (pressure → archetypal shift) — CANDIDATE.** Real existing
+seam: `S.lulu.mode`/`previousMode` + `needs:{energy,curiosity,connection}`
+(game.js:343) already implement a lightweight pressure→shift system — any
+mutation work should *extend* this, not add a parallel state (same
+"merge, don't fork" law as this addendum's own existence). **Hard
+constraint, non-negotiable:** no mutation state, vocabulary, or UI may
+surface before Rung 12 (graduation). Lulu is the crib's anchor, and the crib
+was just repaired (2026-07-15) after a real first-time player bounced —
+*"I get bored because I don't see the step by step progression"* — precisely
+on hidden complexity surfacing too early. This vision's own rule 5 (*"witness
+first, gardener second"*) argues for autonomy emerging late, not early; this
+constraint is that rule applied to the one character every player meets
+first.
+
+**Glitchling VFX V0 — CANDIDATE, contingent on Lulu Mutations.** Well-bounded
+on its own terms: deterministic seeding, accessibility membrane, explicit
+`visual simulation ≠ data corruption` split, needs zero unverified state to
+render. Good reference once Mutations is ruled on — no reason to build the
+skin before the body exists.
+
+### Claim typing (addendum)
+
+- Wolf Interval spec: **CANDIDATE**, architecturally verified — closest to WITNESSED of anything above.
+- Comma (felt fallback): **WITNESSED** (predates this session).
+- Coherence categorical refinement, Lulu Mutations, Glitchling VFX: **NEEDS_ME**.
+- The Rung-12 exposure constraint on Lulu Mutations: **law**, not proposal — same weight as the six locked design rules above.
