@@ -35,7 +35,7 @@ Every level requires three layers:
    artificial agents is being formed?
 
 Example: player fantasy *"My Goblin noticed my signal and helped me"* ·
-mechanic *MARK strengthens a visible trace; Bram follows his local rule* ·
+mechanic *Trace strengthens a visible signal; Bram follows his local rule* ·
 AI objective *indirect influence and delegation differ from direct
 control.*
 
@@ -102,7 +102,7 @@ Forward promise "Now we can enter the Warren together."
 | 0 | Adoption — meet Bram, inspect traits, choose to bring him in, learn one thing he's good at and one he can't do alone | Different agents have different capabilities and limits | "Bram is good at carrying and repairing." "He does not always know what I want." | *(none yet — no models, prompts, context windows, orchestration, training)* |
 | 1 | The Dying Fire — player drags kindling, blows the ember, cares for the fire directly; Bram observes warmth, later carries the heavy log | Human and agent contribute different capabilities | "I could make the flame grow." "Bram could carry what I could not." | complementary action |
 | 2 | Clear Request — several objects visible (wet wood, dry wood, a decorative branch); player must show Bram which matters; a vague signal produces hesitation or safe non-action | An agent needs a clear target | "Bram needs to know which one I mean." | instruction, prompt, target |
-| 3 | Observation & Delegation — the first true MARK sequence: player marks dry wood → signal visible → Bram notices → evaluates by his local rule → acts | The player modifies what an agent notices rather than controlling every movement | "I did not move Bram. I helped him notice the right thing." | attention, context, agentic action |
+| 3 | Observation & Delegation — the first true Trace sequence: player traces dry wood → signal visible → Bram notices → evaluates by his local rule → acts | The player modifies what an agent notices rather than controlling every movement | "I did not move Bram. I helped him notice the right thing." | attention, context, agentic action |
 | 4 | Verify the Result — Bram repairs a shelter but one support is still loose; player inspects, tests, decides | Agent output must be checked; completion animation ≠ correctness | "Bram finished, but I still need to check." | verification, evaluation, test, receipt |
 | 5 | Correction Loop — player identifies what's wrong, gives a more precise correction; result → inspection → feedback → revised action → reinspection | Feedback improves the next attempt | "I showed Bram what needed changing. He tried again differently." | feedback loop, iteration, refinement |
 | 6 | Memory Boundary — Bram remembers some shared facts but not everything; player distinguishes what he currently sees / was explicitly told / was stored / was forgotten | Memory is bounded, selective, and should not be assumed | "Bram cannot remember something unless it was kept." | working context, memory, persistence |
@@ -130,7 +130,7 @@ Forward promise "Now we can enter the Warren together."
   the design-token pass fixed its visual coherence, but the mechanic
   itself already matches the corrected emotional arc (embodied action →
   shared success → forward promise) reasonably well; a future pass should
-  make the "carry the heavy log" limitation and "MARK the right wood"
+  make the "carry the heavy log" limitation and "Trace the right wood"
   delegation beat (Levels 2-3) explicit rather than implied.
 
 ## What this corrects

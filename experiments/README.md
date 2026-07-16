@@ -76,7 +76,7 @@ the adoption-and-AI spine after the design pass drifted toward treating the
 fire as the game's premise rather than its first shared task.
 
 `ADOPTION_LOOP_ASSET_SPEC.md` is the intimate, adoption-scoped asset list
-(Bram's states, the fire's states, the lantern, MARK-trace intensities,
+(Bram's states, the fire's states, the lantern, Trace intensities,
 interaction icons, path states) — deliberately smaller and less systemic
 than the specializations sheet below; the two must not be merged.
 

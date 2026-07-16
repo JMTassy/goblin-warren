@@ -45,7 +45,7 @@ particle-only rendering currently in place.
 | Asset | Role | Notes |
 |---|---|---|
 | **Brindille (twig)** | player-placed kindling, "direct care" beat | Small single-pixel-width stick, placed at the hearth by the player's own action (not delegated) — the "I placed the twig" moment in the corrected emotional arc. |
-| **Grosse bûche (big log)** | the object Bram carries | Same log asset as "Bram carrying a log" above, but also needs a static/idle-on-ground variant (visible before Bram picks it up) so the MARK-and-delegate beat (Level 2-3) has something concrete to mark. |
+| **Grosse bûche (big log)** | the object Bram carries | Same log asset as "Bram carrying a log" above, but also needs a static/idle-on-ground variant (visible before Bram picks it up) so the Trace-and-delegate beat (Level 2-3) has something concrete to leave a trace on. |
 
 ## Lantern
 
@@ -54,16 +54,23 @@ particle-only rendering currently in place.
 | **Lantern, unlit** | before the fire ignites | Dim/grey lantern silhouette at the Warren's entrance path, no light-pool. |
 | **Lantern, lit** | on ignition (`S.lit === true`) | Warm `--glow`/`--gold` light-pool, matching the existing hearth light-pool logic in `draw()` — this is the "forward promise" asset: *"Now we can enter the Warren together."* Not yet built; the current fire scene ends at the hearth, not at a lit path forward. |
 
-## MARK trace — intensities
+## Trace — intensities
+
+<!-- Renamed from "MARK" (Design Sheet v0.3 adopts "Trace"; see the
+     stigmergy/environmental-trace framing there — decay, reinforcement,
+     connection between traces is a richer spec than MARK originally had).
+     Not to be confused with S.mark in first-fire-v2.html, an unrelated
+     post-ignition memory-persistence flag (the "I'll keep this one" ember
+     mark) -- different mechanism, same English word, kept as-is. -->
 
 For Level 3 (Observation & Delegation), a visible signal the player leaves
 on an object so Bram notices it without being directly moved there.
 
 | Asset | Intensity | Notes |
 |---|---|---|
-| **MARK trace, weak** | just marked / decaying | Faint outline pixel-ring, low alpha, on the marked object (e.g. the dry-wood pile from Level 2). |
-| **MARK trace, medium** | held attention | Brighter ring, slight pulse. |
-| **MARK trace, strong** | about to trigger Bram's notice-and-act | Full-brightness ring, matches `--glow-hot`, timed pulse synced to Bram's `curious` pose delta so his noticing reads as caused by the trace, not coincidence. |
+| **Trace, weak** | just traced / decaying | Faint outline pixel-ring, low alpha, on the traced object (e.g. the dry-wood pile from Level 2). |
+| **Trace, medium** | held attention | Brighter ring, slight pulse. |
+| **Trace, strong** | about to trigger Bram's notice-and-act | Full-brightness ring, matches `--glow-hot`, timed pulse synced to Bram's `curious` pose delta so his noticing reads as caused by the trace, not coincidence. |
 
 ## Interaction icons
 
@@ -89,7 +96,7 @@ particles, the rub-to-heat mechanic.
 
 **Net-new, named here for the first time**: Bram carrying a log, the
 static big-log-on-ground object, the twig placement object, the lit/unlit
-lantern pair, the dark/lit path pair, MARK-trace intensities, and the
+lantern pair, the dark/lit path pair, Trace intensities, and the
 drag-hand / breath interaction icons. These are the assets Levels 2-3
 (clear request, delegation) and the "forward promise" beat need — none of
 them exist yet in the current build.
