@@ -488,6 +488,13 @@ function mergeDefaults(loaded) {
 }
 
 function loadState() {
+  /* witness affordance: index.html?newgame=1 wipes the save before load, so a
+     single URL hands the operator a guaranteed-fresh game (no private tab). */
+  try {
+    if (typeof location !== "undefined" && /[?&]newgame=1/.test(location.search)) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch (e) { /* no location/storage: fine */ }
   var raw = null;
   try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
   if (!raw) return { state: makeState(), fresh: true };
@@ -8125,7 +8132,9 @@ function wireInput() {
   if (prologueSkip) prologueSkip.addEventListener("click", function (e) {
     e.stopPropagation();
     ensureAudio(); resumeAudio();
-    skipPrologue();
+    skipPrologue(true);   /* Mario law: skipping the crib skips the CRIB, not the Worlds —
+                             the player lands in World 1, never the rung-12 dump.
+                             (WARREN_DEBUG.skipPrologue stays full for the harnesses.) */
   });
 
   /* The Warren as instrument: any touch, anywhere, rings a Solfeggio tone.
@@ -9064,7 +9073,7 @@ function graduateCrib(fullReveal) {
 function finishPrologue() { graduateCrib(true); }
 
 /* a skip is a snap: graduate immediately, revealing the whole Warren now */
-function skipPrologue() {
+function skipPrologue(staged) {
   if (!prologueActive) return;
   /* make sure a bloom (or at least the seed) exists so nothing looks empty */
   var o = cribOb();
@@ -9072,7 +9081,7 @@ function skipPrologue() {
     if (!prologueSeedObjId) { addObject("🌰", "A Seed, Yours", "tree"); var obj = S.objects[S.objects.length - 1]; prologueSeedObjId = obj ? obj.id : null; }
   }
   renderObjects();
-  graduateCrib(true);   // skip = "I've done this before" → the full Warren, rung 12
+  graduateCrib(!staged);   /* button skip → staged World 1 · debug/legacy skip → full rung 12 */
 }
 
 /* ---- debug/test hooks (kept stable for the harness) ---- */

@@ -409,6 +409,27 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
     skip.cribGone && skip.crewVisible && skip.chipsVisible && skip.seen,
     JSON.stringify(skip));
 
+  // ---- The skip BUTTON obeys Mario law: skip the crib, land in World 1 —
+  // never the rung-12 dump (witness #5: an operator replaying the crib
+  // taps skip, and skipping the tutorial must not skip the progression).
+  await page.evaluate(() => window.WARREN_DEBUG.wipe());
+  await page.goto('file:///home/user/goblin-warren/index.html?newgame=1'); // also proves ?newgame=1 wipes
+  await page.waitForTimeout(1400);
+  const g7b = await page.evaluate(({ visSrc }) => {
+    const vis = eval('(' + visSrc + ')');
+    const btn = document.getElementById('prologue-skip');
+    const wasCrib = document.getElementById('app').classList.contains('crib-active');
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return { wasCrib, world: window.WARREN_DEBUG.getWorld(),
+      zazVisible: vis('goblin-zaz'), pipHidden: !vis('goblin-pip'),
+      levelHidden: !vis('level-chip'),
+      cribGone: !document.getElementById('app').classList.contains('crib-active') };
+  }, { visSrc: vises });
+  log('G7b_skip_button_lands_world1_not_dump',
+    g7b.wasCrib && g7b.cribGone && g7b.world.staged && g7b.world.world === 1 && g7b.world.rung === 5 &&
+    g7b.zazVisible && g7b.pipHidden && g7b.levelHidden,
+    JSON.stringify(g7b));
+
   log('G8_no_page_errors', errs.length === 0, errs.join(' | ') || 'clean');
 
   await b.close();
