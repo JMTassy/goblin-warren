@@ -316,7 +316,8 @@ function makeState() {
             needs: { energy: 70, curiosity: 70, connection: 55 },
             lastVisitAt: null, accessories: [], inCave: false,
             counts: { talk: 0, rest: 0, explore: 0, give: 0, requestsYes: 0 },
-            pendingRequest: null, requestsDone: [], chat: [] },
+            pendingRequest: null, requestsDone: [], chat: [],
+            careRush: { active: false, startedAt: null, endsAt: null, taps: 0, bestScore: 0, lastScore: null, completedAt: null } },
     activeProposal: null,
     objects: [],
     replay: [],
@@ -355,7 +356,13 @@ function makeState() {
        the persistent visual effects that survive reload. Neither touches the
        HELEN OS governed ledger — game-local ZOL only. */
     quizState: { rewardPaid: {} },
-    villageState: { unlockedEffects: [] }
+    villageState: { unlockedEffects: [] },
+    /* LOCAL AI NPC PREVIEW V0 — tiny emotional memory, game-validated only. */
+    npcMemory: {
+      lulu: { last_interaction: null, shared_creation: null, player_preference: null, unresolved_question: null, relationship_tone: "new" },
+      zaz: { last_interaction: null, shared_creation: null, player_preference: null, unresolved_question: null, relationship_tone: "new" }
+    },
+    npcTelemetry: []
   };
 }
 
@@ -402,6 +409,8 @@ function mergeDefaults(loaded) {
     out.lulu = Object.assign({}, d.lulu, loaded.lulu || {});
     out.lulu.needs = Object.assign({}, d.lulu.needs, (loaded.lulu && loaded.lulu.needs) || {});
     out.lulu.counts = Object.assign({}, d.lulu.counts, (loaded.lulu && loaded.lulu.counts) || {});
+    out.lulu.careRush = Object.assign({}, d.lulu.careRush, (loaded.lulu && loaded.lulu.careRush) || {});
+    if (out.lulu.careRush.active && out.lulu.careRush.endsAt && out.lulu.careRush.endsAt <= Date.now()) out.lulu.careRush.active = false;
     out.lulu.accessories = Array.isArray(loaded.lulu && loaded.lulu.accessories) ? loaded.lulu.accessories : [];
     out.lulu.requestsDone = Array.isArray(loaded.lulu && loaded.lulu.requestsDone) ? loaded.lulu.requestsDone : [];
     out.lulu.chat = Array.isArray(loaded.lulu && loaded.lulu.chat) ? loaded.lulu.chat.slice(-12) : [];
@@ -434,8 +443,26 @@ function mergeDefaults(loaded) {
     out.villageState = (loaded.villageState && Array.isArray(loaded.villageState.unlockedEffects))
       ? { unlockedEffects: loaded.villageState.unlockedEffects.slice() }
       : { unlockedEffects: [] };
+    out.npcMemory = mergeNPCMemory(loaded.npcMemory);
+    out.npcTelemetry = Array.isArray(loaded.npcTelemetry) ? loaded.npcTelemetry.slice(-20) : [];
   } catch (e) { return d; }
   return out;
+}
+
+function defaultNPCMemory() {
+  return {
+    lulu: { last_interaction: null, shared_creation: null, player_preference: null, unresolved_question: null, relationship_tone: "new" },
+    zaz: { last_interaction: null, shared_creation: null, player_preference: null, unresolved_question: null, relationship_tone: "new" }
+  };
+}
+
+function mergeNPCMemory(loaded) {
+  var base = defaultNPCMemory();
+  if (!loaded || typeof loaded !== "object") return base;
+  ["lulu", "zaz"].forEach(function (id) {
+    if (loaded[id] && typeof loaded[id] === "object") base[id] = Object.assign({}, base[id], loaded[id]);
+  });
+  return base;
 }
 
 function loadState() {
@@ -458,6 +485,8 @@ var isFreshBoot = loaded.fresh;
    Wonder Cache never reads undefined. */
 if (!S.collectibles || !Array.isArray(S.collectibles.found)) S.collectibles = { unlocked: [], found: [] };
 if (!Array.isArray(S.collectibles.unlocked)) S.collectibles.unlocked = S.collectibles.found.slice();
+if (!S.npcMemory) S.npcMemory = defaultNPCMemory();
+if (!Array.isArray(S.npcTelemetry)) S.npcTelemetry = [];
 
 function saveState() {
   S.lastSavedAt = Date.now();
@@ -1515,41 +1544,124 @@ function answerLuluRequest(answer) {
   return true;
 }
 
-function careLulu(kind) {
+var LULU_CARE_RUSH_MS = 10000;
+var luluCareRushTimer = null;
+
+function luluCareRushScore() {
+  var n = S.lulu.needs;
+  return Math.round((n.energy + n.curiosity + n.connection) / 3);
+}
+
+function luluCareRushRemainingMs() {
+  var r = S.lulu.careRush || {};
+  if (!r.active || !r.endsAt) return 0;
+  return Math.max(0, r.endsAt - Date.now());
+}
+
+function scheduleLuluCareRushTick() {
+  clearInterval(luluCareRushTimer);
+  if (!S.lulu.careRush || !S.lulu.careRush.active) return;
+  luluCareRushTimer = setInterval(function () {
+    if (!S.lulu.careRush || !S.lulu.careRush.active) { clearInterval(luluCareRushTimer); return; }
+    if (luluCareRushRemainingMs() <= 0) finishLuluCareRush();
+    else renderLuluCare("lulu");
+  }, 120);
+}
+
+function startLuluCareRush() {
+  var r = S.lulu.careRush;
+  if (!r) S.lulu.careRush = r = {};
+  if (r.active) return false;
+  r.active = true;
+  r.startedAt = Date.now();
+  r.endsAt = r.startedAt + LULU_CARE_RUSH_MS;
+  r.taps = 0;
+  r.lastScore = null;
+  r.completedAt = null;
+  r.startNeeds = Object.assign({}, S.lulu.needs);
+  S.lulu.inCave = false;
+  showBubble("lulu", "TEN SECONDS. Optimize me chaotically.", 2600);
+  Sound.chirp();
+  saveState();
+  scheduleLuluCareRushTick();
+  renderLuluCare("lulu");
+  return true;
+}
+
+function finishLuluCareRush() {
+  var r = S.lulu.careRush;
+  if (!r || !r.active) return false;
+  r.active = false;
+  r.endsAt = null;
+  r.completedAt = Date.now();
+  r.lastScore = luluCareRushScore();
+  r.bestScore = Math.max(r.bestScore || 0, r.lastScore);
+  var perfect = r.lastScore >= 100;
+  var line = perfect
+    ? "PERFECT CARE CHAOS. I am one hundred percent goblin."
+    : "Care Rush: " + r.lastScore + "% harmony. My buttons remember your panic.";
+  showBubble("lulu", line, 4200);
+  pushReplay("lulu", "Care Rush", "care-rush", line + " (" + (r.taps || 0) + " taps)", line);
+  checkLuluAccessories();
+  applyLuluMood();
+  saveState();
+  clearInterval(luluCareRushTimer);
+  renderLuluCare("lulu");
+  renderReplayStrip();
+  return true;
+}
+
+function careLulu(kind, opts) {
+  opts = opts || {};
   var g = S.goblins.lulu, n = S.lulu.needs;
   if (!g) return false;
+  var rushing = !!(S.lulu.careRush && S.lulu.careRush.active);
+  if (rushing && luluCareRushRemainingMs() <= 0) { finishLuluCareRush(); return false; }
   var line = "";
   if (kind === "talk") {
-    n.connection += 8; n.curiosity += 2;
+    n.connection += rushing ? 11 : 8;
+    n.curiosity += rushing ? 3 : 2;
+    if (rushing) n.energy -= 1;
     S.lulu.counts.talk++;
     if (S.lulu.inCave) { S.lulu.inCave = false; n.connection += 6; line = "You found me. I was being extremely mysterious."; }
     else line = pick(["I found a thing. It found me first.", "Ask me about the rock. ASK ME.", "Today I thought about doors. Conclusion: yes."]);
   } else if (kind === "rest") {
-    n.energy += 16;
+    n.energy += rushing ? 20 : 16;
+    if (rushing) { n.curiosity -= 2; n.connection += 1; }
     S.lulu.counts.rest++;
     g.resting = true; g.task = "resting rebelliously";
     line = "Resting is a rebellion. I am VERY rebellious right now.";
   } else if (kind === "explore") {
-    if (n.energy < 15) { showBubble("lulu", "I am horizontally strategic right now.", 3200); return false; }
-    n.curiosity += 12; n.energy -= 8;
+    if (!rushing && n.energy < 15) { showBubble("lulu", "I am horizontally strategic right now.", 3200); return false; }
+    n.curiosity += rushing ? 17 : 12;
+    n.energy -= rushing ? 9 : 8;
+    if (rushing) n.connection += 1;
     S.lulu.counts.explore++;
     line = pick(["A side quest! For me?", "I already have a map out.", "If I am not back in five minutes, wait longer."]);
     dropParticle(g, "🗺️", true);
   } else if (kind === "give") {
     var o = GIVE_OUTCOMES[(S.lulu.counts.give + S.lulu.counts.talk) % GIVE_OUTCOMES.length];
-    n.curiosity += o.curiosity; n.connection += o.connection;
+    n.curiosity += rushing ? Math.max(5, o.curiosity - 1) : o.curiosity;
+    n.connection += rushing ? o.connection + 4 : o.connection;
     S.lulu.counts.give++;
     line = o.line;
     dropParticle(g, "🎁", true);
   } else return false;
 
   clampLuluNeeds();
-  showBubble("lulu", line, 4000);
-  pushReplay("lulu", "Care: " + kind, "care-" + kind, line, line);
+  if (rushing) {
+    S.lulu.careRush.taps = (S.lulu.careRush.taps || 0) + 1;
+    S.lulu.careRush.lastScore = luluCareRushScore();
+    showBubble("lulu", "+" + kind.toUpperCase() + " · " + S.lulu.careRush.lastScore + "%", 850);
+  } else {
+    showBubble("lulu", line, 4000);
+    pushReplay("lulu", "Care: " + kind, "care-" + kind, line, line);
+  }
   Sound.squeak("lulu");
   checkLuluAccessories();
   applyLuluMood();
   saveState();
+  if (rushing && luluCareRushRemainingMs() <= 0) finishLuluCareRush();
   return true;
 }
 
@@ -1652,31 +1764,128 @@ function luluRemoteEnabled() {
   try { return sessionStorage.getItem("warren_remote_experimental") === "true"; } catch (e) { return false; }
 }
 
-function luluLocalReply(msg, done) {
-  var fallback = function () { done(luluOfflineReply(msg), false); };
+function warrenOllamaModel() {
   try {
-    var didRespond = false;
-    var timer = setTimeout(function () {
-      if (!didRespond) { didRespond = true; fallback(); }
-    }, 4000);
-    fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: luluBuildPrompt(msg), stream: false })
-    }).then(function (r) {
-      if (!r.ok) throw new Error("ollama http " + r.status);
-      return r.json();
-    }).then(function (j) {
-      if (didRespond) return;
-      didRespond = true; clearTimeout(timer);
-      var txt = ((j && j.response) || "").replace(/[{}\[\]]/g, "").slice(0, 240).trim();
-      if (txt) done(txt, true); else fallback();
-    }).catch(function () {
-      if (didRespond) return;
-      didRespond = true; clearTimeout(timer);
-      fallback();
-    });
-  } catch (e) { fallback(); }
+    var qsModel = new URLSearchParams(location.search || "").get("warren_ollama_model");
+    return qsModel || sessionStorage.getItem("warren_ollama_model") || "gemma4-moq:4.0";
+  } catch (e) { return "gemma4-moq:4.0"; }
+}
+
+function warrenOllamaTimeoutMs() {
+  try {
+    var qsTimeout = new URLSearchParams(location.search || "").get("warren_ollama_timeout_ms");
+    var raw = parseInt(qsTimeout || sessionStorage.getItem("warren_ollama_timeout_ms") || "", 10);
+    return raw >= 1000 && raw <= 30000 ? raw : 8000;
+  } catch (e) { return 8000; }
+}
+
+function warrenNPCModelConfig() {
+  try {
+    var qs = new URLSearchParams(location.search || "");
+    return {
+      endpoint: qs.get("warren_npc_endpoint") || sessionStorage.getItem("warren_npc_endpoint") || undefined,
+      model: warrenOllamaModel(),
+      timeout_ms: warrenOllamaTimeoutMs()
+    };
+  } catch (e) {
+    return { model: "gemma4-moq:4.0", timeout_ms: 8000 };
+  }
+}
+
+function warrenNPCMemoryFor(id) {
+  if (!S.npcMemory) S.npcMemory = defaultNPCMemory();
+  if (!S.npcMemory[id]) S.npcMemory[id] = defaultNPCMemory()[id] || defaultNPCMemory().lulu;
+  return S.npcMemory[id];
+}
+
+function recordNPCTelemetry(id, response) {
+  S.npcTelemetry = S.npcTelemetry || [];
+  S.npcTelemetry.push({
+    at: Date.now(),
+    npc: id,
+    source: response && response.source || "fallback",
+    reason: response && response.fallback_reason || (response && response.telemetry && response.telemetry.reason) || null,
+    latency_ms: response && response.latency_ms || 0
+  });
+  if (S.npcTelemetry.length > 20) S.npcTelemetry = S.npcTelemetry.slice(-20);
+}
+
+function visibleNPCObjects() {
+  var names = ["tree", "first_seed"];
+  if (warrenNPCMemoryFor("lulu").shared_creation === "first_bloom") names.push("first_bloom");
+  S.objects.slice(-3).forEach(function (o) {
+    if (o && o.sign) names.push(String(o.sign).slice(0, 24));
+  });
+  return names.slice(0, 6);
+}
+
+function rememberNPCEvent(id, event) {
+  var mem = warrenNPCMemoryFor(id);
+  if (event && event.type) mem.last_interaction = event.type;
+  if (event && event.type === "offer_seed") mem.shared_creation = "first_bloom";
+  if (event && event.type === "player_chat" && /flower|bloom|seed/i.test(event.text || "")) mem.player_preference = "flowers_and_seeds";
+  if (event && event.type === "curiosity") mem.unresolved_question = "what_the_seed_wants";
+  if (id === "lulu" && mem.shared_creation) mem.relationship_tone = "bonded";
+}
+
+function persistNPCMemoryCandidate(id, candidate) {
+  if (!candidate || !candidate.kind || !candidate.value) return false;
+  var mem = warrenNPCMemoryFor(id);
+  if (candidate.kind === "shared_creation" && candidate.value === "first_bloom") {
+    mem.shared_creation = "first_bloom";
+  } else if (candidate.kind === "relationship_tone") {
+    mem.relationship_tone = candidate.value.slice(0, 40);
+  } else if (candidate.kind === "unresolved_question") {
+    mem.unresolved_question = candidate.value.slice(0, 60);
+  } else if (candidate.kind === "player_preference") {
+    mem.player_preference = candidate.value.slice(0, 60);
+  } else if (candidate.kind === "last_interaction") {
+    mem.last_interaction = candidate.value.slice(0, 60);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+function buildNPCRequest(id, event) {
+  var g = S.goblins[id] || {};
+  var context = window.WarrenNPCContextBuilder ? window.WarrenNPCContextBuilder.buildContext({
+    npc_id: id,
+    state: S,
+    memory: warrenNPCMemoryFor(id),
+    rung: Math.min(3, S.progress.level || 1),
+    scene: "rungs-1-3-preview",
+    visible_objects: visibleNPCObjects(),
+    known_player_actions: event && event.type ? [event.type] : [],
+    current_mood: id === "lulu" ? luluMood().id : (g.mood || "curious"),
+    player_event: event || { type: "notice" }
+  }) : null;
+  return { npc_id: id, context: context, model_config: warrenNPCModelConfig() };
+}
+
+function requestNPCResponse(id, event, fallback, done) {
+  fallback = fallback || luluOfflineReply("");
+  rememberNPCEvent(id, event || { type: "notice" });
+  if (!window.WarrenNPCGateway || !window.WarrenNPCContextBuilder) {
+    done(fallback, false, { source: "fallback", fallback_reason: "gateway_missing" });
+    return;
+  }
+  window.WarrenNPCGateway.respond(buildNPCRequest(id, event)).then(function (response) {
+    recordNPCTelemetry(id, response);
+    if (response && response.memory_candidate) persistNPCMemoryCandidate(id, response.memory_candidate);
+    done((response && response.speech) || fallback, response && response.source === "model", response);
+    renderNPCDebugPanel();
+  }).catch(function () {
+    var response = { source: "fallback", fallback_reason: "gateway_error", speech: fallback };
+    recordNPCTelemetry(id, response);
+    done(fallback, false, response);
+    renderNPCDebugPanel();
+  });
+}
+
+function luluLocalReply(msg, done) {
+  var fallback = luluOfflineReply(msg);
+  requestNPCResponse("lulu", { type: "player_chat", text: msg }, fallback, done);
 }
 
 function luluLiveReply(msg, done) {
@@ -4682,6 +4891,27 @@ function showBubble(goblinId, text, duration) {
   bubbleTimers[goblinId] = setTimeout(function () { if (b.parentNode) b.remove(); }, duration || 3200);
 }
 
+function npcDebugEnabled() {
+  try {
+    var qs = new URLSearchParams(location.search || "");
+    return qs.get("warren_npc_debug") === "true" || sessionStorage.getItem("warren_npc_debug") === "true";
+  } catch (e) { return false; }
+}
+
+function renderNPCDebugPanel() {
+  var existing = document.getElementById("npc-debug-panel");
+  if (!npcDebugEnabled()) { if (existing) existing.remove(); return; }
+  var panel = existing || document.createElement("div");
+  panel.id = "npc-debug-panel";
+  panel.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:9999;max-width:320px;max-height:42vh;overflow:auto;background:rgba(10,8,18,.92);border:1px solid rgba(155,227,109,.5);border-radius:10px;padding:10px;color:#efe9ff;font:11px/1.35 ui-monospace,monospace;box-shadow:0 8px 24px rgba(0,0,0,.45)";
+  var mem = S.npcMemory || {};
+  var tel = (S.npcTelemetry || []).slice(-5).map(function (t) {
+    return t.npc + " " + t.source + " " + (t.latency_ms || 0) + "ms" + (t.reason ? " " + t.reason : "");
+  });
+  panel.textContent = "NPC DEBUG\nmodel=" + warrenOllamaModel() + "\nmem=" + JSON.stringify(mem) + "\ntelemetry=\n" + tel.join("\n");
+  if (!existing) document.body.appendChild(panel);
+}
+
 function renderTopbar() {
   var treeText = document.getElementById("tree-text");
   var glyph = document.getElementById("tree-glyph");
@@ -5124,11 +5354,26 @@ function renderLuluCare(id) {
   if (!host) return;
   if (id !== "lulu") { host.classList.add("hidden"); host.innerHTML = ""; return; }
   host.classList.remove("hidden");
+  if (S.lulu.careRush && S.lulu.careRush.active && luluCareRushRemainingMs() <= 0) finishLuluCareRush();
   var n = S.lulu.needs;
   var m = luluMood();
   var acc = luluAccessoryEmojis();
+  var rush = S.lulu.careRush || {};
+  var rushActive = !!rush.active;
+  var rushRemaining = Math.ceil(luluCareRushRemainingMs() / 1000);
+  var rushScore = luluCareRushScore();
+  var rushHtml = rushActive
+    ? '<div class="care-rush active"><div class="care-rush-top"><b>⚡ CARE RUSH</b><span>' + rushRemaining + 's</span></div>' +
+        '<div class="care-rush-meter"><i style="width:' + rushScore + '%"></i></div>' +
+        '<div class="care-rush-note">tap fast: REST→energy · EXPLORE→curiosity · TALK/GIVE→connection</div></div>'
+    : '<div class="care-rush"><div class="care-rush-top"><b>⚡ CARE RUSH</b><span>' +
+        (rush.lastScore === null || rush.lastScore === undefined ? '10s' : 'last ' + rush.lastScore + '% · best ' + (rush.bestScore || rush.lastScore) + '%') +
+        '</span></div>' +
+        '<button id="care-rush-start">START 10s OPTIMIZE</button>' +
+        '<div class="care-rush-note">goal: push every line to 100 before time bites.</div></div>';
 
   var html =
+    rushHtml +
     needBarHTML("energy", "🌙", "ENERGY", n.energy) +
     needBarHTML("curiosity", "✨", "CURIOSITY", n.curiosity) +
     needBarHTML("connection", "💜", "CONNECTION", n.connection) +
@@ -5137,10 +5382,10 @@ function renderLuluCare(id) {
     '<div class="care-note">📌 today’s note: “' + luluTodaysNote() + '”</div>' +
     '<div class="care-zol">🫙 ZOL JAR · ' + S.learning.zolBalance + '</div>' +
     '<div class="care-actions">' +
-      '<button class="care-btn talk" data-care="talk">💬<b>TALK</b></button>' +
-      '<button class="care-btn rest" data-care="rest">🛌<b>REST</b></button>' +
-      '<button class="care-btn explore" data-care="explore">🔍<b>EXPLORE</b></button>' +
-      '<button class="care-btn give" data-care="give">🎁<b>GIVE</b></button>' +
+      '<button class="care-btn talk" data-care="talk">💬<b>TALK</b><small>+LINK</small></button>' +
+      '<button class="care-btn rest" data-care="rest">🛌<b>REST</b><small>+ENERGY</small></button>' +
+      '<button class="care-btn explore" data-care="explore">🔍<b>EXPLORE</b><small>+CURIOUS</small></button>' +
+      '<button class="care-btn give" data-care="give">🎁<b>GIVE</b><small>+LINK</small></button>' +
     '</div>' +
     /* live conversation — type to Lulu, she answers */
     '<div id="lulu-chat">' +
@@ -5164,6 +5409,13 @@ function renderLuluCare(id) {
       '</div></div>';
   }
   host.innerHTML = html;
+
+  var rushStart = document.getElementById("care-rush-start");
+  if (rushStart) rushStart.addEventListener("click", function (e) {
+    e.stopPropagation();
+    ensureAudio(); resumeAudio();
+    startLuluCareRush();
+  });
 
   host.querySelectorAll("[data-care]").forEach(function (btn) {
     btn.addEventListener("click", function (e) {
@@ -5630,6 +5882,47 @@ function checkTreeParty() {
 }
 
 var everBooped = false;
+function npcZazDebugEnabled() {
+  try {
+    var qs = new URLSearchParams(location.search || "");
+    return npcDebugEnabled() || qs.get("warren_npc_zaz_debug") === "true" || sessionStorage.getItem("warren_npc_zaz_debug") === "true";
+  } catch (e) { return false; }
+}
+
+function npcHasPersona(id) {
+  return !!(window.WarrenNPCPersonas && window.WarrenNPCPersonas.personas && window.WarrenNPCPersonas.personas[id]);
+}
+
+function npcLiveBoopEnabled(id) {
+  if (id === "lulu") return true;
+  if (id === "zaz") return npcZazDebugEnabled();
+  return npcDebugEnabled() && npcHasPersona(id);
+}
+
+function deterministicNPCPreviewReward(id) {
+  if (id !== "lulu") return false;
+  var mem = warrenNPCMemoryFor("lulu");
+  if (mem.shared_creation === "first_bloom") return false;
+  mem.shared_creation = "first_bloom";
+  mem.relationship_tone = "bonded";
+  addObject("🌸", "First Bloom", "garden");
+  pushReplay("Lulu", "First Bloom", "npc-preview", "a first bloom opened beside Lulu.", "first_bloom");
+  try { Sound.bloom(); } catch (e) {}
+  renderObjects();
+  renderReplayStrip();
+  return true;
+}
+
+function maybeLiveNPCBoop(id, fallbackLine) {
+  if (!npcLiveBoopEnabled(id)) return false;
+  deterministicNPCPreviewReward(id);
+  requestNPCResponse(id, { type: id === "lulu" ? "offer_seed" : "inspect_seed" }, fallbackLine, function (line, live) {
+    if (line && line !== fallbackLine) showBubble(id, line, live ? 5200 : 3600);
+    saveState();
+  });
+  return true;
+}
+
 function doBoop(id) {
   var now = Date.now();
   everBooped = true;
@@ -5663,7 +5956,9 @@ function doBoop(id) {
     if (roll < 0.06) boopBack(id);
     else if (roll < 0.18) rareReaction(id);
     else {
-      showBubble(id, pick(BOOP_LINES[id] || BOOP_LINES.lulu));
+      var boopLine = pick(BOOP_LINES[id] || BOOP_LINES.lulu);
+      showBubble(id, boopLine);
+      maybeLiveNPCBoop(id, boopLine);
       if (Math.random() < 0.3) dropParticle(g, BOOP_DROPS[id] || "🍃");
     }
   }
@@ -7853,6 +8148,25 @@ function wireInput() {
       }
       return;
     }
+    if (e.shiftKey && (e.key === "C" || e.key === "c")) {
+      e.preventDefault();
+      if (typeof CombatSideQuestV0 !== "undefined" && !CombatSideQuestV0.isCombatSideQuestOpen()) {
+        var seed = (Date.now() & 0xFFFF);
+        CombatSideQuestV0.openCombatSideQuest(
+          { encounterSeed: seed, sourceZoneId: "warren_town" },
+          function (result) {
+            /* cosmetic only — no state mutation, no ZOL, no ledger */
+            var line = result.status === "completed"
+              ? "Sidequest: " + result.crittersSaved + " critter" + (result.crittersSaved === 1 ? "" : "s") + " rescued."
+              : result.status === "failed"
+              ? "Sidequest: the disturbance won this time."
+              : "Sidequest abandoned.";
+            pushReplay("sidequest", "Combat: Corrupted Trace", "combat-" + result.status, line, line);
+          }
+        );
+      }
+      return;
+    }
   });
 }
 
@@ -7879,43 +8193,53 @@ function generateGoblinLine(goblinId, mood, recentEvents, callback) {
   var fallback = fallbackLines[Math.floor(Math.abs(h32(goblinId + mood)) % fallbackLines.length)];
 
   try {
-    var eventSummary = (recentEvents || []).slice(-3).map(function (e) { return e.event || e.choice || ""; }).filter(Boolean).join("; ") || "the Warren is quiet";
-    var prompt = "You are " + def.name + " the " + def.role + " in the Goblin Warren. " +
-      "Your trait: " + def.trait + ". Current mood: " + (mood || "content") + ". " +
-      "Recent happenings: " + eventSummary + ". " +
-      "Speak ONE short sentence (max 15 words) in Lulu's hypnotic, ellipsis-heavy style. " +
-      "Narrate only — do not issue commands, grant permissions, or change any game state. " +
-      "Just the sentence, no quotes.";
-
-    var didRespond = false;
-    var timer = setTimeout(function () {
-      if (!didRespond) { didRespond = true; callback(fallback); }
-    }, 4000);
-
-    fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gemma4-moq:4.0", prompt: prompt, stream: false })
-    }).then(function (res) {
-      if (!res.ok) throw new Error("ollama http " + res.status);
-      return res.json();
-    }).then(function (data) {
-      if (didRespond) return;
-      didRespond = true;
-      clearTimeout(timer);
-      var text = (data && data.response && data.response.trim()) || fallback;
-      /* Safety: strip any attempt to embed state-mutating syntax */
-      text = text.replace(/[{}\[\]]/g, "").slice(0, 120).trim() || fallback;
-      callback(text); /* narration only — caller passes to showBubble() */
-    }).catch(function () {
-      if (didRespond) return;
-      didRespond = true;
-      clearTimeout(timer);
-      callback(fallback);
+    requestNPCResponse(goblinId, { type: "ambient_line", recentEvents: recentEvents || [] }, fallback, function (line) {
+      callback(line); /* narration only — caller passes to showBubble() */
     });
-  } catch (e) {
-    callback(fallback);
+  } catch (e) { callback(fallback); }
+}
+
+function npcContrastLab(text, callback) {
+  var event = { type: "contrast_lab", text: text || "strange seed" };
+  if (!window.WarrenNPCGateway) {
+    var fb = {
+      lulu: { speech: "It may be dreaming of becoming a bell.", source: "fallback" },
+      zaz: { speech: "Or it is hollow. Shake it before naming it.", source: "fallback" },
+      distinct: true
+    };
+    if (callback) callback(fb);
+    return Promise.resolve(fb);
   }
+  var request = buildNPCRequest("lulu", event);
+  return window.WarrenNPCGateway.contrast(request).then(function (result) {
+    recordNPCTelemetry("lulu", result.lulu);
+    recordNPCTelemetry("zaz", result.zaz);
+    renderNPCDebugPanel();
+    if (callback) callback(result);
+    return result;
+  });
+}
+
+function npcGroupLab(text, callback) {
+  var ids = ["lulu", "zaz", "pip", "nib"];
+  if (S.goblins.tink || npcDebugEnabled()) ids.push("tink");
+  var event = { type: "group_lab", text: text || "strange seed" };
+  var jobs = ids.map(function (id) {
+    if (!window.WarrenNPCGateway) {
+      return Promise.resolve({ id: id, response: { speech: id + " notices the seed differently.", source: "fallback" } });
+    }
+    return window.WarrenNPCGateway.respond(buildNPCRequest(id, event)).then(function (response) {
+      recordNPCTelemetry(id, response);
+      return { id: id, response: response };
+    });
+  });
+  return Promise.all(jobs).then(function (rows) {
+    var out = {};
+    rows.forEach(function (row) { out[row.id] = row.response; });
+    renderNPCDebugPanel();
+    if (callback) callback(out);
+    return out;
+  });
 }
 
 /* Exported test surface for verify.js gate */
@@ -8079,6 +8403,10 @@ window.WARREN_DEBUG = {
   luluSay: function (m) { luluSay(m); },
   luluOfflineReply: function (m) { return luluOfflineReply(m); },
   getLuluChat: function () { return S.lulu.chat; },
+  getNPCMemory: function () { return JSON.parse(JSON.stringify(S.npcMemory || {})); },
+  getNPCTelemetry: function () { return (S.npcTelemetry || []).slice(); },
+  npcContrastLab: function (text, cb) { return npcContrastLab(text, cb); },
+  npcGroupLab: function (text, cb) { return npcGroupLab(text, cb); },
   teach: function (id, text) { return teachGoblin(id, text); },
   sealTeaching: function () { return sealTeaching(); },
   dismissTeaching: function () { return dismissTeaching(); },
@@ -8088,6 +8416,9 @@ window.WARREN_DEBUG = {
   getLulu: function () { return S.lulu; },
   luluMood: function () { return luluMood(); },
   careLulu: function (kind) { return careLulu(kind); },
+  startLuluCareRush: function () { return startLuluCareRush(); },
+  finishLuluCareRush: function () { return finishLuluCareRush(); },
+  getLuluCareRush: function () { return Object.assign({ score: luluCareRushScore(), remainingMs: luluCareRushRemainingMs() }, S.lulu.careRush || {}); },
   setLuluNeeds: function (o) { Object.assign(S.lulu.needs, o || {}); clampLuluNeeds(); applyLuluMood(); saveState(); return S.lulu.needs; },
   luluAbsence: function (mins) { return luluAbsenceMessage(mins); },
   forceReunion: function (ms) { return luluReunion(ms || 3600000); },

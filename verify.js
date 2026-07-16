@@ -83,7 +83,8 @@ gate("G1_all_assets_present_nonzero",
 /* -----------------------------------------------------------------------
    G2: NO CDN URLS IN CODE — cloudfront must not appear in any code file
 ----------------------------------------------------------------------- */
-var CODE_FILES = ["game.js", "style.css", "index.html", "v2.html", "v3.html", "logic.js"];
+var CODE_FILES = ["game.js", "style.css", "index.html", "v2.html", "v3.html", "logic.js",
+  "npc/personas.js", "npc/response-schema.js", "npc/context-builder.js", "npc/model-adapter.js", "npc/npc-gateway.js"];
 var cdnFoundIn = [];
 CODE_FILES.forEach(function (f) {
   var abs = path.join(REPO, f);
@@ -162,13 +163,18 @@ gate("G7_generateGoblinLine_exists_ui_zone",
   genFnExists ? "found at char " + genFnIdx + ", WARREN_DEBUG at " + debugIdx : "function not found");
 
 /* -----------------------------------------------------------------------
-   G8: GEMMA SEAM — generateGoblinLine uses Ollama endpoint and correct model
+   G8: LOCAL NPC ARCHITECTURE — model provider details live in adapter,
+       not in game state/progression code.
 ----------------------------------------------------------------------- */
-var hasOllama  = gameJs.indexOf("http://localhost:11434/api/generate") !== -1;
-var hasModel   = gameJs.indexOf("gemma4-moq:4.0") !== -1;
-var hasTimeout = gameJs.indexOf("4000") !== -1; /* 4s timeout */
-gate("G8_gemma_seam_correct", hasOllama && hasModel,
-  "ollama=" + hasOllama + " model=gemma4-moq:4.0=" + hasModel);
+var adapterJs = "";
+var gatewayJs = "";
+try { adapterJs = fs.readFileSync(path.join(REPO, "npc/model-adapter.js"), "utf8"); } catch (e) {}
+try { gatewayJs = fs.readFileSync(path.join(REPO, "npc/npc-gateway.js"), "utf8"); } catch (e) {}
+var hasOllamaAdapter = adapterJs.indexOf("http://localhost:11434/api/chat") !== -1;
+var hasConfigurableModel = adapterJs.indexOf("warren_npc_") !== -1 && adapterJs.indexOf("warren_ollama_") !== -1;
+var gameUsesGateway = gameJs.indexOf("WarrenNPCGateway.respond") !== -1;
+gate("G8_local_npc_adapter_gateway_correct", hasOllamaAdapter && hasConfigurableModel && gameUsesGateway,
+  "adapter_ollama=" + hasOllamaAdapter + " configurable_model=" + hasConfigurableModel + " game_gateway=" + gameUsesGateway);
 
 /* -----------------------------------------------------------------------
    G9: FALLBACK CONTRACT — on failure generateGoblinLine returns a template line
@@ -181,11 +187,11 @@ if (genFnIdx !== -1) {
   genFnBody = gameJs.slice(genFnIdx, genFnIdx + 2500);
 }
 var hasFallbackInCatch   = genFnBody.indexOf("callback(fallback)") !== -1;
-var hasFallbackInTimeout = genFnBody.indexOf("callback(fallback)") !== -1 &&
-                           genFnBody.indexOf("setTimeout") !== -1;
+var hasFallbackInTimeout = gatewayJs.indexOf("fallbackCandidate") !== -1 &&
+                           adapterJs.indexOf("AbortController") !== -1;
 gate("G9_fallback_on_failure",
   hasFallbackInCatch && hasFallbackInTimeout,
-  "catch fallback=" + hasFallbackInCatch + " timeout fallback=" + hasFallbackInTimeout);
+  "generate catch fallback=" + hasFallbackInCatch + " gateway timeout fallback=" + hasFallbackInTimeout);
 
 /* -----------------------------------------------------------------------
    G10: STATE ISOLATION — generateGoblinLine's return value (via callback)
@@ -240,7 +246,8 @@ gate("G12_docs_catalog_intact_and_augmented",
    v2.html / v3.html are standalone legacy experimental pages, never loaded
    by the canonical entry — they are the "explicit non-local experimental
    surface" the ruling permits. G13 asserts that isolation holds. */
-var codeFilesG13 = ["game.js", "logic.js", "index.html", "style.css"];
+var codeFilesG13 = ["game.js", "logic.js", "index.html", "style.css",
+  "npc/personas.js", "npc/response-schema.js", "npc/context-builder.js", "npc/model-adapter.js", "npc/npc-gateway.js"];
 var remoteViolations = [];
 codeFilesG13.forEach(function (f) {
   var src = "";
@@ -262,6 +269,42 @@ gate("G13_no_remote_runtime_calls_by_default",
   "remote refs=" + remoteViolations.length + " (all anthropic=" + onlyAnthropic +
   ") guarded=" + guardPresent + " default-off=" + defaultIsFalse +
   " v2/v3 isolated=" + canonicalIsolated);
+
+/* -----------------------------------------------------------------------
+   G14: COMBAT SIDEQUEST SELFTEST — pure-sim gates pass in Node (no DOM)
+----------------------------------------------------------------------- */
+var combatSelftest = (function () {
+  try {
+    var capi = require(path.join(REPO, "combat_sidequest_v0.js"));
+    var T = capi.__test;
+    if (!T || capi.SCHEMA !== "COMBAT_SIDEQUEST_V0") return "missing __test or SCHEMA";
+    if (capi.isCombatSideQuestOpen()) return "started open";
+    var st = T.buildEncounter({ encounterSeed: 42, difficultyPreset: "normal" });
+    if (st.schema !== "COMBAT_SIDEQUEST_V0" || st.phase !== "portal") return "bad initial state";
+    if (T.countAliveCritters(st) < 3) return "no critters";
+    // force fight, attack, verify damage
+    st.phase = "fight";
+    st.player.x = st.enemy.x - 20; st.player.y = st.enemy.y;
+    st.player.facing = 1; st.player.attackCd = 0;
+    var hp0 = st.enemy.hp;
+    if (!T.tryPlayerAttack(st)) return "attack missed";
+    if (st.enemy.hp !== hp0 - 1) return "damage wrong";
+    // kill → completed
+    st.enemy.hp = 1; st.player.attackCd = 0;
+    st.player.x = st.enemy.x - 18;
+    T.tryPlayerAttack(st);
+    if (st.status !== "completed") return "no completed status";
+    if (st.rewardTraceId !== "combat_trace_critter_rescue_v0") return "wrong rewardTraceId";
+    // fail path
+    var st2 = T.buildEncounter({ encounterSeed: 7 });
+    st2.phase = "fight";
+    st2.critters.forEach(function (c) { c.alive = false; });
+    T.finishFight(st2, "failed");
+    if (st2.status !== "failed" || st2.rewardTraceId !== null) return "fail path broken";
+    return "ok";
+  } catch (e) { return "exception: " + e.message; }
+})();
+gate("G14_combat_sidequest_selftest", combatSelftest === "ok", combatSelftest);
 
 /* -----------------------------------------------------------------------
    Summary
