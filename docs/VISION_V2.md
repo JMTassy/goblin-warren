@@ -146,6 +146,7 @@ everything transforms, nothing skips the gate.)
 |---|---|---|
 | Stigmergy exploration | Traces with strength/decay/reinforcement; player verbs MARK·BRIDGE·LISTEN·DAMPEN | CANDIDATE → sharpens P3/P4 |
 | Collective-Intelligence MVP | 2 zones · 3 goblins · 3 needs · 2 actions; task-specific outcomes, **no master score** | CANDIDATE → its Day-1 shape *is* Rung 4, already built |
+| Day-1 sandbox (`origin/claude/day1-sim`, 2026-07-16) | MARK vs INTERVENE sim in 3 standalone files (`day1_sim.js/_test.js/.html`); **46/46 verified on this seat**; teaches P4 in isolation, touches nothing in game.js. Animation pass exists only unpushed on the other seat (REPORTED). Commit author violates sole-authorship law — needs amend before any merge. Merge/keep-as-sandbox = NEEDS_ME. | CANDIDATE (verified sim) → P4's test-bench |
 | Daily core loop L1/L2 | observe→act→release→keep/compost→verdict; Keep-vs-Compost as strategy | CANDIDATE → enters only as rung-situations, never a parallel game |
 | Chaos-magic egregore deep-dive | Comma as drift-pressure; bosses as integration events; servitor lifecycle | CANDIDATE → poetry for P5 / late rungs |
 | Wolf Interval V0 | zone `[738,758]¢`, computation-verified collision-free; one pure branch | CANDIDATE (verified) → P5's felt edge, ready on go |
