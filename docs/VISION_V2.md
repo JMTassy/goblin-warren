@@ -158,6 +158,7 @@ everything transforms, nothing skips the gate.)
 | Match-3 | "the first toy after the crib," never rung content | CANDIDATE |
 | Combat Sidequest V0 (`origin/claude/day1-sim`/`combat-v0`, 2026-07-16) | isolated encounter module + selftest; **26/26 verified on this seat**; not wired into the Warren | CANDIDATE (verified module) |
 | Day-1 playtest battery (2026-07-16) | 5 observation probes + claim ladder R0–R6; fun/comprehension = HOLD_FOR_OPERATOR until 2+ child sessions; *"INTERVENE = agency, MARK = influence"* is the protected sentence | Process — adopted into §9's witness discipline; the child playtest is the Day-1 sandbox's witness gate, exactly as the operator's thumb is the crib's |
+| Grok swarm on Day-1 (2026-07-16) | Top finding **CONFIRMED on this seat**: `runDay(state, [])` → Bram repairs the root with zero player input — MARK is optional, influence lesson undermined. P0 fix (release-gate Bram) awaits operator GO on the day1 lane; `day1_swarm.js` tool itself unpushed (REPORTED) | WITNESSED (finding) / REPORTED (tool) → day1 lane's next build |
 
 ---
 
