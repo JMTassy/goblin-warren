@@ -8494,10 +8494,10 @@ function worldToggle(el, on, celebrate, staggerIdx) {
   if (on) {
     if (el.classList.contains("world-hidden")) {
       el.classList.remove("world-hidden");
-      if (celebrate) {                       /* Artist-goblin law: cascade, don't bulk-fade */
+      if (celebrate) {                       /* witness #6: one thing at a time — let each arrival breathe */
         el.classList.remove("prologue-reveal"); void el.offsetWidth;
-        setTimeout(function () { el.classList.add("prologue-reveal"); }, (staggerIdx || 0) * 110);
-        setTimeout(function () { el.classList.remove("prologue-reveal"); }, 2400 + (staggerIdx || 0) * 110);
+        setTimeout(function () { el.classList.add("prologue-reveal"); }, (staggerIdx || 0) * 700);
+        setTimeout(function () { el.classList.remove("prologue-reveal"); }, 2400 + (staggerIdx || 0) * 700);
       }
     }
   } else el.classList.add("world-hidden");
@@ -8540,6 +8540,90 @@ function startWorldAmbient(w) {
   }
   GOBLIN_DEFS.forEach(function (d, i) { if (goblinRevealed(d.id)) scheduleGoblinTick(d.id, 1600 + i * 700); });
 }
+/* ── WORLD 1 · THE HEARTH ─────────────────────────────────────────────
+   Witness #6 (2026-07-16): "I was more hooked when you asked me to make
+   a fire or something... than now just tap. It's not clear."
+   An embodied care quest: the hearth is cold, and you RUB it warm —
+   friction, not taps, the same gesture language the seed-offer proved.
+   Works on every device, zero permissions. Membrane: +1 sap, a receipt,
+   a warmed Lulu — no ZOL, no territory, no admission. */
+var hearthHeat = 0;
+function spawnHearth() {
+  if (!stagedActive() || currentWorld() !== 1) return;
+  if (S.flags.hearthLit) return;
+  var existing = null;
+  for (var i = 0; i < S.objects.length; i++) {
+    if (S.objects[i].sign === "A Cold Hearth") { existing = S.objects[i]; break; }
+  }
+  if (!existing) {
+    addObject("🪵", "A Cold Hearth", "garden");
+    existing = S.objects[S.objects.length - 1];
+    renderObjects();
+    showBubble("lulu", "...the hearth is cold. Rub the wood — quick, quick — make it remember fire.", 5600, true);
+  } else {
+    renderObjects();
+  }
+  var el = objectEls[existing.id];
+  if (el) { prologueReveal(el); cribCue(el, true); wireHearthRub(el, existing.id); }
+  saveState();
+}
+function wireHearthRub(el, objId) {
+  if (!el || el._hearthWired) return;
+  el._hearthWired = true;
+  el.style.touchAction = "none";
+  var last = null;
+  el.addEventListener("pointerdown", function (e) { e.stopPropagation(); last = { x: e.clientX, y: e.clientY }; });
+  el.addEventListener("pointermove", function (e) {
+    if (!last || S.flags.hearthLit) return;
+    var dx = e.clientX - last.x, dy = e.clientY - last.y;
+    last = { x: e.clientX, y: e.clientY };
+    hearthRubFriction(Math.sqrt(dx * dx + dy * dy), objId);
+  });
+  el.addEventListener("pointerup", function () { last = null; });
+  el.addEventListener("pointerleave", function () { last = null; });
+}
+function hearthRubFriction(d, objId) {
+  if (S.flags.hearthLit || !d || d < 2) return;
+  hearthHeat += d;
+  var el = objectEls[objId];
+  if (el) {
+    /* the wood visibly warms as you work — heat is FELT, not a meter */
+    var glow = Math.min(1, hearthHeat / 480);
+    el.style.filter = "drop-shadow(0 0 " + (glow * 14) + "px rgba(255," + Math.round(140 + glow * 80) + ",60," + (0.25 + glow * 0.6) + "))";
+    if (Math.floor(hearthHeat / 120) > Math.floor((hearthHeat - d) / 120)) {
+      flashClass(el, "booped", 300);
+      if (window.Sound && Sound.chirp) Sound.chirp();
+    }
+  }
+  if (hearthHeat >= 480) kindleHearth(objId);
+}
+function kindleHearth(objId) {
+  if (S.flags.hearthLit) return;
+  S.flags.hearthLit = true;
+  var obj = null;
+  for (var i = 0; i < S.objects.length; i++) { if (S.objects[i].id === objId) { obj = S.objects[i]; break; } }
+  if (obj) { obj.emoji = "🔥"; obj.sign = "Our First Fire"; }
+  var el = objectEls[objId];
+  if (el) {
+    cribCue(el, false);
+    el.style.filter = "";
+    var em = el.querySelector(".wobj-emoji"); if (em) em.textContent = "🔥";
+    var sg = el.querySelector(".wobj-sign"); if (sg) sg.textContent = "Our First Fire";
+    el.classList.remove("crib-bloom-pop"); void el.offsetWidth; el.classList.add("crib-bloom-pop");
+  }
+  if (window.Sound && Sound.bloom) Sound.bloom();
+  if (window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(396);
+  var g = S.goblins.lulu;
+  if (g) { g.mood = "delighted"; renderGoblins(); dropParticle(g, "🔥", true); }
+  showBubble("lulu", "Fire... you MADE it. Warm hands, warm Warren.", 5200, true);
+  luluVoiceLine("relic");
+  earn(0, 1);
+  pushReplay("You", "The first fire", "hearth",
+    "you rubbed a cold hearth into flame — the Warren is warmer", "the fire we made with our hands.");
+  renderReplayStrip();
+  saveState();
+}
+
 var worldAdvanceBusy = false;
 function checkWorldAdvance() {
   if (!stagedActive() || prologueActive || worldAdvanceBusy) return;
@@ -9048,6 +9132,7 @@ function graduateCrib(fullReveal) {
     setTimeout(function () {
       showBubble("lulu", "This is our garden. Zaz tends it... the rest of the Warren still sleeps.", 5600, true);
     }, 2600);
+    setTimeout(spawnHearth, 9000);   /* WORLD 1's embodied quest (witness #6) */
     return;
   }
   /* the ambient goblin ticks, deferred by boot() until the crib graduated */
@@ -9358,6 +9443,8 @@ window.WARREN_DEBUG = {
   getCribState: function () { return getPrologueState(); },
   getRung: function () { return S.progress.rung; },
   getWorld: function () { return { world: currentWorld(), earned: earnedWorld(), rung: S.progress.rung, staged: !!(S.progress && S.progress.worldStaged) }; },
+  rubHearth: function (px) { var o = null; for (var i = 0; i < S.objects.length; i++) if (S.objects[i].sign === "A Cold Hearth") { o = S.objects[i]; break; } if (o) hearthRubFriction(px || 500, o.id); return !!S.flags.hearthLit; },
+  spawnHearth: function () { spawnHearth(); },
   checkWorldAdvance: function () { checkWorldAdvance(); return currentWorld(); },
   getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
 };
@@ -9466,6 +9553,9 @@ function boot() {
   applyLang();
 
   if (!runCrib) {
+    /* WORLD 1's embodied quest persists across sessions until lit */
+    if (stagedActive() && currentWorld() === 1) setTimeout(spawnHearth, 6000);
+
     /* the sky sheds a coin now and then — first one comes a little sooner */
     scheduleGoldfall(randi(25000, 55000));
 

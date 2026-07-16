@@ -430,6 +430,43 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
     g7b.zazVisible && g7b.pipHidden && g7b.levelHidden,
     JSON.stringify(g7b));
 
+  // ---- WORLD 1's embodied quest: THE HEARTH (witness #6 — "make a fire",
+  // rubbing/friction, not tapping). Appears in World 1; rubbing kindles it;
+  // the fire persists as a world object; membrane: exactly +1 sap, no ZOL.
+  await page.waitForTimeout(9600); // hearth spawns ~9s after staged graduation
+  const gh1 = await page.evaluate(() => {
+    const before = JSON.parse(JSON.stringify({
+      zol: window.WARREN_DEBUG.getState().learning.zolBalance,
+      sap: window.WARREN_DEBUG.getState().progress.magicSap }));
+    const cold = window.WARREN_DEBUG.getObjects().some(o => o.sign === 'A Cold Hearth');
+    const litEarly = window.WARREN_DEBUG.getState().flags.hearthLit;
+    // rub in strokes, like a thumb would — partial friction does NOT kindle
+    window.WARREN_DEBUG.rubHearth(200);
+    const partial = window.WARREN_DEBUG.getState().flags.hearthLit;
+    window.WARREN_DEBUG.rubHearth(300);
+    const after = { zol: window.WARREN_DEBUG.getState().learning.zolBalance,
+      sap: window.WARREN_DEBUG.getState().progress.magicSap };
+    return { cold, litEarly: !!litEarly, partialNotLit: !partial,
+      lit: window.WARREN_DEBUG.getState().flags.hearthLit,
+      fireObj: window.WARREN_DEBUG.getObjects().some(o => o.emoji === '🔥' && o.sign === 'Our First Fire'),
+      sapDelta: after.sap - before.sap, zolDelta: after.zol - before.zol };
+  });
+  log('GH1_hearth_rub_to_kindle_embodied_not_tap',
+    gh1.cold && !gh1.litEarly && gh1.partialNotLit && gh1.lit && gh1.fireObj &&
+    gh1.sapDelta === 1 && gh1.zolDelta === 0,
+    JSON.stringify(gh1));
+  // the fire survives a reload — care persists, like the bloom.
+  // (plain URL: reloading ?newgame=1 would re-wipe the save by design)
+  await page.goto('file:///home/user/goblin-warren/index.html');
+  await page.waitForTimeout(1400);
+  const gh2 = await page.evaluate(() => ({
+    lit: window.WARREN_DEBUG.getState().flags.hearthLit,
+    fireObj: window.WARREN_DEBUG.getObjects().some(o => o.emoji === '🔥'),
+    world: window.WARREN_DEBUG.getWorld() }));
+  log('GH2_first_fire_persists_reload',
+    gh2.lit && gh2.fireObj && gh2.world.world === 1,
+    JSON.stringify(gh2));
+
   log('G8_no_page_errors', errs.length === 0, errs.join(' | ') || 'clean');
 
   await b.close();
