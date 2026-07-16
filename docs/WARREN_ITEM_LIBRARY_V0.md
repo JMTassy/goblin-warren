@@ -6,8 +6,8 @@
      (World Objects & Buildings / Decor & FX panels). Concept art ⊬ shipped
      asset: the Warren renders ORIGINAL emoji/procedural glyphs (a technique),
      never embeds these renders (IP-safe rule + no-external-assets law).
-     Names are original. IMG_7465 not yet visible to the drafting seat —
-     slot left open as Library E below. -->
+     Names are original. IMG_7465 arrived 2026-07-16 (Library E) along with
+     IMG_7483 (Library F) — catalog now 75 items across six libraries. -->
 
 A placeable catalog for the Warren's existing object systems. Each row maps a
 concept item to: **glyph** (emoji, the technique — not borrowed art) ·
@@ -103,10 +103,60 @@ one glyph for two meanings.
 | `sparkle_warren` | ✨ | Warren Sparkle | tree | deco | — |
 | `zol_mote` | 🪙 | ZOL Mote | forge | deco | — |
 
-## Library E — (IMG_7465, pending)
+## Library E — Crafts, Crew & Provisions (from IMG_7465 · received 2026-07-16)
 
-Not yet visible to the drafting seat. Re-send `IMG_7465` and I'll extract it into
-the same schema below this line.
+The long-open slot, finally delivered. Five working goblins, five stations,
+five provisions — a village's hands, benches, and pantry.
+
+| id | glyph | name | zone | kind | line |
+|---|---|---|---|---|---|
+| `gob_stewmaster` | 👨‍🍳 | The Stewmaster | forge | npc | "Taste it? It tastes you first." |
+| `gob_twinsting` | 🗡️ | Twinsting | gate | npc | "Two knives. Zero plans." |
+| `gob_ironshell` | 🛡️ | Ironshell | spire | npc | "The armor squeaks. It's singing." |
+| `gob_bonewhisper` | 💀 | Bonewhisper | gate | npc | "The skulls agree with me. Always." |
+| `gob_lampkeeper` | 🏮 | The Lampkeeper | tree | npc | "I carry the light. The light carries me." |
+| `hut_hearthhome` | 🛖 | Hearth-Home | garden | deco | — |
+| `bench_bubblework` | ⚗️ | Bubblework Bench | forge | line | "Green means done. Purple means run." |
+| `bench_bonewright` | 🦴 | Bonewright Table | gate | deco | — |
+| `cauldron_evercook` | 🍯 | The Evercook | forge | line | "It has never been empty. Nobody remembers filling it." |
+| `crate_sporecrate` | 🍄 | Spore Crate | nursery | line | "Do not open indoors. Or outdoors." |
+| `board_butcherblock` | 🔪 | Butcher's Block | forge | deco | — |
+| `map_hidehide` | 🗺️ | The Hide-Hide Map | gate | relic | — |
+| `bowl_bogberries` | 🫐 | Bog-Berry Bowl | garden | deco | — |
+| `hoard_gleampile` | 🪙 | Gleam-Pile | spire | relic | — |
+| `splash_gloop` | 🟢 | Gloop | nursery | line | "It waved. Wave back. Slowly." |
+
+## Library F — Diggers, Sleepers & Dangerous Furniture (from IMG_7483 · received 2026-07-16)
+
+Miners and watchers, camp structures, and things that only pretend to be loot.
+(The sheet arrived twice — the two copies are identical.)
+
+| id | glyph | name | zone | kind | line |
+|---|---|---|---|---|---|
+| `gob_lampline` | ⛏️ | Lampline the Miner | spire | npc | "Down is just up, for later." |
+| `gob_shardseer` | 💎 | Shardseer | tree | npc | "The crystal hums. I hum back. We're friends." |
+| `gob_spearwall` | 🔱 | Spearwall | spire | npc | "I stand where standing matters." |
+| `gob_napper` | 😴 | The Deep Napper | garden | critter | "Do not wake. Warmth in progress." |
+| `fence_boneline` | 🦴 | The Bone-Line Fence | gate | deco | — |
+| `tent_hidehall` | ⛺ | Hide-Hall | garden | deco | — |
+| `altar_glowshrine` | 🕯️ | The Glow-Shrine | gate | relic | — |
+| `pile_oldquarrels` | ⚔️ | Old Quarrels | spire | line | "Every blade here lost an argument." |
+| `chest_biter` | 🧰 | The Biter | forge | line | "It's not a chest. Say hello anyway." |
+| `hoard_bonegold` | 💰 | Bone-Gold Hoard | spire | relic | — |
+| `jug_ooze` | 🏺 | The Weeping Jug | nursery | line | "It leaks on purpose. It's expressive." |
+| `burrow_dusty` | 🕳️ | Dusty Door | gate | deco | — |
+
+## Key-art references (not items — mood canon, received 2026-07-16)
+
+- **IMG_7482 — "The Fire and the Lantern"**: a goblin kindles a night fire, a
+  lantern in hand, a second pair of eyes watching from the dark, teal traces
+  glowing in the roots. This is the *Tactile First* law as a single painting —
+  both lanes' fire openings (the Warren's HEARTH, day1's Dying Fire) share
+  this exact mood target. Note the watcher: the deferred third wish, painted.
+- **IMG_7466 — Match-and-Transform poster**: concept art for the parked
+  Match-3 CANDIDATE ("the first toy after the crib" — swap→match→transform,
+  goblin reactions, village growth). Stays parked; the poster is its brief
+  when its turn comes.
 
 ---
 
