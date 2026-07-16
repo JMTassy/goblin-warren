@@ -36,7 +36,22 @@ objective: *indirect influence and delegation differ from direct control.*
 |---|---|
 | **Intensity** | weak / medium / strong (see `ADOPTION_LOOP_ASSET_SPEC.md`'s three visual states). Rises while the player actively reinforces a Trace, decays when left alone. |
 | **Decay** | Traces fade over time unless reinforced (v0.3 §4) — a Trace is a claim about *current* relevance, not a permanent flag. This mirrors the NPC gateway's memory law (`experiments/npc-preview/npc/memory.js`): a signal must be actively kept, not assumed to persist forever. |
-| **Personality-relative reading** | The same Trace means different things to different Goblins. Bram reads **Warning**-flavored traces strongly (material risk, urgency, effort); Lulu reads **novelty/weak-and-interesting** traces strongly (patterns, the unusual). A single object can carry a trace that only one of them finds compelling — this is the mechanical seed of Level 7 specialization, arriving three levels early as a hint, not a lecture. |
+| **Personality-relative reading** | The same Trace means different things to different Goblins. A single object can carry a trace that only one of them finds compelling — this is the mechanical seed of Level 7 specialization, arriving three levels early as a hint, not a lecture. Confirmed flavors so far (from the roster's actual trace-bias data, see below): `warning`, `novel`, `relational`, `resource`, `memory`. |
+
+### Confirmed roster trace biases
+
+| Goblin | Trace bias | Level / scope |
+|---|---|---|
+| **Bram** | `warning` | 0-6, adoption loop |
+| **Lulu** | `relational`, `novel` | 7, adoption spine |
+| **Forgeron** | `warning` | 4-7, specialization sheet |
+| **Moss** (Collecteur) | `resource` | 4-7, specialization sheet |
+| **Keeper** (Chaman) | `warning`, `memory` | 4-7, specialization sheet |
+
+Bram and Forgeron sharing `warning` is not a bug — both are
+practical/repair-flavored characters; the Trace system doesn't need
+unique flavors per Goblin, only enough overlap and divergence that
+routing (Level 7) has real stakes.
 | **Connection** | v0.3 allows traces to be connected to one another (a later, deeper capability — not required for the Level-1/3 opening loop, but worth reserving the data model for). |
 
 ## Minimal data shape (engine-facing, not yet implemented)
@@ -97,9 +112,10 @@ delegate" are both still ahead of the current build, not yet coded.
 
 - Exact decay rate and reinforcement curve (numbers, not just "decays
   over time").
-- Whether Trace flavor is a fixed enum (`warning`, `novelty`, ...) or an
-  open vocabulary Goblins interpret loosely — the fixed-enum approach
-  matches the existing `response-schema.js` philosophy (bounded,
-  validated categories) better than a free-text approach would.
+- Trace flavor should be a **fixed enum**, matching `response-schema.js`'s
+  bounded/validated philosophy. Five values are confirmed by the current
+  roster: `warning`, `novel`, `relational`, `resource`, `memory`. Treat
+  this as the working enum until a sixth Goblin's art demands otherwise —
+  don't let it grow silently per-character.
 - How "connection between traces" (v0.3 §4) should work mechanically, if
   and when it's needed beyond Level 3.

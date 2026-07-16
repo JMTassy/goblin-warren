@@ -1,0 +1,20 @@
+{
+  "title": "Goblin Warren",
+  "version": "0.3",
+  "style": "stylized painterly, warm firelight, soft magical glows, deep plum shadows",
+  "note": "As-received manifest from the art generation session. See SPECIALIZATIONS_RESOURCES_STRUCTURES.md for the reconciled naming (Bram//Repairer -> Forgeron; Wisp/Pip dropped as redundant with Sheet 1's Bram). JSON internal ids (e.g. moss_guardian) do not perfectly match the sheet's printed labels (Keeper//Guardian) -- printed labels are treated as ground truth.",
+  "core_systems": ["tactile interaction", "trace signaling", "embodied delegation", "stigmergic coordination"],
+  "characters": {
+    "bram_repairer": {"role": "Repairer", "trace_bias": ["warning"], "traits": ["diligent", "calm", "practical"], "reconciled_as": "Forgeron (Level 4-7 specialist) -- NOT the adoption-loop Bram"},
+    "lulu_explorer": {"role": "Explorer", "trace_bias": ["relational", "novel"], "traits": ["curious", "playful"], "reconciled_as": "Lulu (Level 7 second companion) -- first visual design"},
+    "hooded_carrier": {"role": "Carrier", "trace_bias": ["resource"], "traits": ["steady", "social", "route-focused"], "reconciled_as": "Moss (Collecteur/eclaireur, Level 4-7 specialist)"},
+    "moss_guardian": {"role": "Guardian/Shaman", "trace_bias": ["warning", "memory"], "traits": ["protective", "ritualistic"], "reconciled_as": "Keeper (Chaman, Level 4-7 specialist)"},
+    "sleeping_wisp": {"role": "Dormant resident", "state": "asleep", "reconciled_as": "DROPPED -- redundant with Bram asleep (Sheet 1)"},
+    "reaching_pip": {"role": "Early helper", "state": "requesting assistance", "reconciled_as": "DROPPED -- redundant with Bram awake/reaching (Sheet 1)"},
+    "log_carrier": {"role": "Delegated action state", "state": "carrying fuel", "reconciled_as": "reference only -- Bram carrying a log is already Sheet 1 scope"}
+  },
+  "fire_progression": ["ember_state", "small_flame", "strong_fire", "lantern_off", "lantern_on"],
+  "trace_assets": ["trace_gate", "memory_shrine", "crystal_node"],
+  "resource_assets": ["loot_barrel", "slime_barrel", "meat_cage", "berry_bush", "mushroom_patch", "blood_tokens"],
+  "hazard_assets": ["spike_trap", "weapon_pile", "slime_vat"]
+}
