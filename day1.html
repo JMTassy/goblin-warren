@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Day 1 — MARK versus INTERVENE</title>
+<!--
+  Thin shell only. No AI jargon on the surface.
+  authority=false · claim=NO_CLAIM · experience before terminology
+-->
+<style>
+  :root {
+    --bg: #0c1410;
+    --panel: #142018;
+    --ink: #e8f0e4;
+    --dim: #8aa090;
+    --gold: #e6b84a;
+    --green: #6ecf7a;
+    --warn: #e07a6a;
+    --pulse: #a8d858;
+    --edge: #2a4030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 system-ui, sans-serif; padding: 16px; max-width: 720px; margin-inline: auto;
+  }
+  h1 { font-size: 1.15rem; color: var(--gold); margin: 0 0 4px; }
+  .sub { color: var(--dim); font-size: 0.85rem; margin-bottom: 16px; }
+  .law { font-size: 0.75rem; color: var(--dim); border: 1px dashed var(--edge);
+    padding: 8px 10px; border-radius: 8px; margin-bottom: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .card {
+    flex: 1 1 140px; background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 10px; padding: 10px 12px; min-height: 72px;
+  }
+  .card h2 { margin: 0 0 6px; font-size: 0.8rem; color: var(--gold); letter-spacing: 0.04em; }
+  .need {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 8px 10px; margin: 6px 0; background: #0e1812;
+    border: 1px solid var(--edge); border-radius: 8px; cursor: pointer;
+  }
+  .need.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .need.resolved { opacity: 0.45; text-decoration: line-through; cursor: default; }
+  .need .zone { font-size: 0.7rem; color: var(--dim); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  button {
+    background: #1e3a28; color: var(--ink); border: 1px solid var(--edge);
+    border-radius: 8px; padding: 10px 14px; font: 600 0.9rem system-ui; cursor: pointer;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: #2c4d24; border-color: #3f6b33; color: #e6f0c8; }
+  button.warn { background: #3a2820; border-color: #6a4030; }
+  .meter { font-size: 0.85rem; color: var(--dim); margin-bottom: 8px; }
+  .stage {
+    position: relative; height: 160px; background: #0a120e; border: 1px solid var(--edge);
+    border-radius: 12px; overflow: hidden; margin: 12px 0;
+  }
+  .zone-box {
+    position: absolute; top: 12px; bottom: 12px; width: 42%; border-radius: 10px;
+    border: 1px solid var(--edge); padding: 8px; font-size: 0.75rem;
+  }
+  .zone-box.garden { left: 8%; background: #143020; }
+  .zone-box.archive { right: 8%; background: #201810; }
+  .agent {
+    position: absolute; bottom: 20px; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    transition: left 0.45s ease, transform 0.3s ease; border: 2px solid var(--edge);
+  }
+  .agent.bram { background: #3a4a38; left: 18%; }
+  .agent.lulu { background: #4a3a58; left: 28%; }
+  .agent.moving { transform: scale(1.08); border-color: var(--pulse); }
+  .trace-pulse {
+    position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--warn); opacity: 0; pointer-events: none;
+  }
+  .trace-pulse.on {
+    animation: pulse 0.7s ease-out;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(0.6); box-shadow: 0 0 0 0 rgba(224,122,106,0.7); }
+    100% { opacity: 0; transform: scale(2.2); box-shadow: 0 0 0 18px rgba(224,122,106,0); }
+  }
+  .feed {
+    background: #0a120e; border: 1px solid var(--edge); border-radius: 10px;
+    padding: 10px; font-size: 0.8rem; max-height: 180px; overflow: auto;
+    font-family: ui-monospace, monospace;
+  }
+  .feed .line { margin: 3px 0; color: var(--dim); }
+  .feed .line.hi { color: var(--pulse); }
+  .feed .line.fix { color: var(--green); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .presets button { font-size: 0.8rem; padding: 8px 10px; }
+</style>
+</head>
+<body>
+  <h1>Day 1 — Help the Garden</h1>
+  <p class="sub">You can do <strong>two</strong> things today. Mark a problem so Bram can find it — or fix one yourself.</p>
+  <div class="law">No systems log required. Watch the stage. (Sandbox · not a full campaign.)</div>
+
+  <div class="meter" id="meter">Actions left: 2</div>
+
+  <div class="stage" id="stage" aria-label="Garden and Archive">
+    <div class="zone-box garden"><strong>Garden</strong><br/>seedlings · root</div>
+    <div class="zone-box archive"><strong>Archive</strong><br/>fading memory</div>
+    <div class="agent bram" id="bram" title="Bram">🛠️</div>
+    <div class="agent lulu" id="lulu" title="Lulu">🔍</div>
+    <div class="trace-pulse" id="pulse"></div>
+  </div>
+
+  <div class="row">
+    <div class="card" style="flex:2">
+      <h2>NEEDS</h2>
+      <div id="needs"></div>
+    </div>
+    <div class="card">
+      <h2>WHO'S HERE</h2>
+      <div id="who">
+        <div><strong>Lulu</strong> — curious, watches shiny things</div>
+        <div style="margin-top:6px"><strong>Bram</strong> — fixes what looks dangerous</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="primary" id="btnMark" disabled>Mark it</button>
+    <button type="button" class="warn" id="btnIntervene" disabled>Fix it myself</button>
+    <button type="button" id="btnUndo" disabled>Undo pick</button>
+    <button type="button" id="btnRun" disabled>End the day →</button>
+    <button type="button" id="btnReset">Start over</button>
+  </div>
+
+  <div class="presets">
+    <button type="button" id="pathA" title="Spec Path A">Try path: Mark root + fix seedlings</button>
+    <button type="button" id="pathB" title="Spec Path B">Try path: Fix root + fix seedlings</button>
+  </div>
+
+  <h2 style="font-size:0.85rem;color:var(--gold);margin:16px 0 6px">What happened</h2>
+  <div class="feed" id="feed"><div class="line">Morning. Nothing done yet.</div></div>
+
+  <script src="day1_sim.js"></script>
+  <script>
+(function () {
+  "use strict";
+  var S = window.Day1Sim;
+  if (!S) {
+    document.getElementById("feed").textContent = "day1_sim.js failed to load.";
+    return;
+  }
+
+  var base = S.makeInitialState();
+  var picks = []; // up to 2 actions
+  var selectedNeed = null;
+  var lastResult = null;
+
+  var labels = {
+    dry_seedlings: "Dry seedlings",
+    cracked_root: "Cracked root",
+    fading_memory: "Fading memory",
+  };
+  var zoneOf = {
+    dry_seedlings: "Garden",
+    cracked_root: "Garden",
+    fading_memory: "Archive",
+  };
+
+  function remaining() {
+    return S.MAX_ACTIONS - picks.length;
+  }
+
+  function renderNeeds() {
+    var el = document.getElementById("needs");
+    var state = lastResult || base;
+    var ids = ["dry_seedlings", "cracked_root", "fading_memory"];
+    el.innerHTML = ids.map(function (id) {
+      var n = state.needs[id];
+      var cls = "need" + (n.resolved ? " resolved" : "") + (selectedNeed === id ? " selected" : "");
+      var str = "";
+      Object.keys(state.traces).forEach(function (tid) {
+        var t = state.traces[tid];
+        if (t.needId === id) str = " · signal " + t.strength;
+      });
+      return (
+        '<div class="' + cls + '" data-id="' + id + '">' +
+        "<span><strong>" + labels[id] + "</strong>" +
+        '<div class="zone">' + zoneOf[id] + str + "</div></span>" +
+        "<span>" + (n.resolved ? "✓" : "·") + "</span></div>"
+      );
+    }).join("");
+    el.querySelectorAll(".need").forEach(function (node) {
+      node.addEventListener("click", function () {
+        if (lastResult) return;
+        var id = node.getAttribute("data-id");
+        if (base.needs[id] && !/* use current */ false) {
+          var cur = (lastResult || base).needs[id];
+          if (cur.resolved) return;
+        }
+        // resolve against planned state: simulate picks so far
+        var preview = S.runDay(base, picks);
+        if (preview.needs[id].resolved) return;
+        selectedNeed = id;
+        render();
+      });
+    });
+  }
+
+  function renderMeter() {
+    document.getElementById("meter").textContent =
+      lastResult
+        ? "Day ended. Actions used: " + picks.length + "/2"
+        : "Actions left: " + remaining() + " · queued: " + picks.length;
+  }
+
+  function renderAgents() {
+    var bram = document.getElementById("bram");
+    var lulu = document.getElementById("lulu");
+    bram.classList.remove("moving");
+    lulu.classList.remove("moving");
+    bram.style.left = "18%";
+    lulu.style.left = "28%";
+    if (!lastResult) return;
+    if (lastResult.bramPath && lastResult.bramPath.indexOf("cracked_root") >= 0) {
+      bram.style.left = "22%";
+      bram.classList.add("moving");
+    }
+    if (lastResult.luluMood === "alert") {
+      lulu.style.left = "32%";
+      lulu.classList.add("moving");
+    }
+  }
+
+  function humanLine(ev) {
+    switch (ev.kind) {
+      case "MARK_PULSE":
+        return "You mark the " + labels[ev.needId] + ". A pulse runs through the ground.";
+      case "TRACE_STRENGTHEN":
+        return "The danger-sign near " + labels[ev.needId] + " grows clearer (signal " + ev.strength + ").";
+      case "INTERVENE":
+        return "You fix the " + labels[ev.needId] + " yourself. It is done.";
+      case "LULU_REACT":
+        return "Lulu's ears perk — something shiny shifted.";
+      case "LULU_WATCH":
+        return "Lulu watches. She does not fix anything.";
+      case "LULU_WAIT":
+        return "Lulu waits.";
+      case "BRAM_NOTICE":
+        return "Bram notices the strong danger-sign.";
+      case "BRAM_PATH":
+        return "Bram changes path toward the " + labels[ev.needId] + ".";
+      case "BRAM_REPAIR_START":
+        return "Bram starts the repair.";
+      case "BRAM_REPAIR_COMPLETE":
+        return "Bram finishes repairing the " + labels[ev.needId] + ".";
+      case "BRAM_IDLE":
+        return "Bram finds no danger-sign left to follow. He rests.";
+      default:
+        return ev.kind;
+    }
+  }
+
+  function renderFeed() {
+    var feed = document.getElementById("feed");
+    if (!lastResult) {
+      if (!picks.length) {
+        feed.innerHTML = '<div class="line">Morning. Nothing done yet. Pick a need, then Mark or Fix.</div>';
+        return;
+      }
+      feed.innerHTML = picks.map(function (a, i) {
+        return '<div class="line">Queued ' + (i + 1) + ": " + a.verb + " → " + labels[a.target] + "</div>";
+      }).join("");
+      return;
+    }
+    feed.innerHTML = lastResult.events.map(function (ev) {
+      var cls = "line";
+      if (ev.kind === "MARK_PULSE" || ev.kind === "TRACE_STRENGTHEN") cls += " hi";
+      if (ev.kind === "BRAM_REPAIR_COMPLETE" || ev.kind === "INTERVENE") cls += " fix";
+      return '<div class="' + cls + '">' + humanLine(ev) + "</div>";
+    }).join("");
+  }
+
+  function flashPulse() {
+    var p = document.getElementById("pulse");
+    p.style.left = "24%";
+    p.style.top = "40%";
+    p.classList.remove("on");
+    void p.offsetWidth;
+    p.classList.add("on");
+  }
+
+  function renderButtons() {
+    var hasSel = !!selectedNeed && !lastResult;
+    document.getElementById("btnMark").disabled = !hasSel || remaining() <= 0;
+    document.getElementById("btnIntervene").disabled = !hasSel || remaining() <= 0;
+    document.getElementById("btnUndo").disabled = !picks.length || !!lastResult;
+    document.getElementById("btnRun").disabled = picks.length === 0 || !!lastResult;
+  }
+
+  function render() {
+    renderMeter();
+    renderNeeds();
+    renderAgents();
+    renderFeed();
+    renderButtons();
+  }
+
+  function queue(verb) {
+    if (!selectedNeed || lastResult || remaining() <= 0) return;
+    picks.push({ verb: verb, target: selectedNeed });
+    if (verb === "MARK") flashPulse();
+    selectedNeed = null;
+    render();
+  }
+
+  document.getElementById("btnMark").onclick = function () { queue("MARK"); };
+  document.getElementById("btnIntervene").onclick = function () { queue("INTERVENE"); };
+  document.getElementById("btnUndo").onclick = function () {
+    if (lastResult) return;
+    picks.pop();
+    render();
+  };
+  document.getElementById("btnRun").onclick = function () {
+    if (!picks.length || lastResult) return;
+    lastResult = S.runDay(base, picks);
+    render();
+  };
+  document.getElementById("btnReset").onclick = function () {
+    base = S.makeInitialState();
+    picks = [];
+    selectedNeed = null;
+    lastResult = null;
+    render();
+  };
+  document.getElementById("pathA").onclick = function () {
+    base = S.makeInitialState();
+    picks = S.pathAActions();
+    selectedNeed = null;
+    lastResult = S.runDay(base, picks);
+    flashPulse();
+    render();
+  };
+  document.getElementById("pathB").onclick = function () {
+    base = S.makeInitialState();
+    picks = S.pathBActions();
+    selectedNeed = null;
+    lastResult = S.runDay(base, picks);
+    render();
+  };
+
+  render();
+})();
+  </script>
+</body>
+</html>
