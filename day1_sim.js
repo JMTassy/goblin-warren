@@ -17,6 +17,10 @@
 var SCHEMA = "DAY1_SIM_V0";
 var MAX_ACTIONS = 2;
 var MARK_DELTA = 1; // integer strength units — no floats, no rng
+// P0: Bram only acts when a garden warning is loud enough.
+// Initial cracked_root warning strength is BELOW this; MARK raises it over the line.
+// Empty day / no MARK ⇒ no free repair (MARK = influence).
+var BRAM_ACT_THRESHOLD = 3;
 
 /** @returns {object} fresh initial state (never mutated by runDay) */
 function makeInitialState() {
@@ -41,7 +45,7 @@ function makeInitialState() {
         name: "Bram",
         role: "repairer",
         zone: "garden",
-        // observes warning traces only; repairs strongest unresolved warning
+        // warning traces only; strongest with strength >= BRAM_ACT_THRESHOLD
       },
     },
     needs: {
@@ -71,6 +75,7 @@ function makeInitialState() {
         id: "cracked_root_warning",
         needId: "cracked_root",
         type: "warning",
+        // below BRAM_ACT_THRESHOLD until MARK (P0 — no free Bram)
         strength: 2,
         zone: "garden",
       },
@@ -220,8 +225,10 @@ function releaseAgents(s) {
     });
   }
 
-  // Bram: warning traces only, strongest, repair if need unresolved
+  // Bram: warning traces only, strongest ABOVE threshold, repair if unresolved.
+  // P0: strength < BRAM_ACT_THRESHOLD ⇒ idle (no free autopilot).
   var best = null;
+  var loudestFaint = null;
   for (var j = 0; j < tids.length; j++) {
     var w = s.traces[tids[j]];
     if (w.type !== "warning") continue;
@@ -229,18 +236,45 @@ function releaseAgents(s) {
     if (!need || need.resolved) continue;
     // Day 1: Bram only acts in Garden (his zone) — Archive memory is not his
     if (need.zone !== s.agents.bram.zone) continue;
-    if (!best || w.strength > best.strength ||
-        (w.strength === best.strength && w.id < best.id)) {
+    if (w.strength < BRAM_ACT_THRESHOLD) {
+      if (
+        !loudestFaint ||
+        w.strength > loudestFaint.strength ||
+        (w.strength === loudestFaint.strength && w.id < loudestFaint.id)
+      ) {
+        loudestFaint = w;
+      }
+      continue;
+    }
+    if (
+      !best ||
+      w.strength > best.strength ||
+      (w.strength === best.strength && w.id < best.id)
+    ) {
       best = w;
     }
   }
 
   if (!best) {
     s.bramPath = "idle";
+    if (loudestFaint) {
+      pushEvent(s, {
+        kind: "BRAM_SIGNAL_FAINT",
+        who: "bram",
+        needId: loudestFaint.needId,
+        traceId: loudestFaint.id,
+        strength: loudestFaint.strength,
+        threshold: BRAM_ACT_THRESHOLD,
+        detail: "warning too quiet — needs a clearer mark",
+        ui: "bram_idle",
+      });
+    }
     pushEvent(s, {
       kind: "BRAM_IDLE",
       who: "bram",
-      detail: "no visible garden warning to follow",
+      detail: loudestFaint
+        ? "heard a faint warning but did not act"
+        : "no visible garden warning to follow",
       ui: "bram_idle",
     });
     return;
@@ -353,6 +387,7 @@ var api = {
   SCHEMA: SCHEMA,
   MAX_ACTIONS: MAX_ACTIONS,
   MARK_DELTA: MARK_DELTA,
+  BRAM_ACT_THRESHOLD: BRAM_ACT_THRESHOLD,
   makeInitialState: makeInitialState,
   runDay: runDay,
   summarize: summarize,

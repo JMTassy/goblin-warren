@@ -188,16 +188,34 @@ ok(
 ok(src.indexOf("combat_sidequest") === -1, "11. no combat import");
 ok(src.indexOf("game.js") === -1, "11. no game.js coupling");
 
-// 12. HTML shell loads with zero actions — structural: empty runDay
+// 12. HTML shell / empty day — valid; P0: no free Bram
 var idle = sim.runDay(s0, []);
 ok(Array.isArray(idle.events), "12. zero-action day still produces state");
-ok(idle.needs.dry_seedlings.resolved === false, "12. zero-action leaves needs open (except if Bram auto?)");
-// With zero player actions, cracked_root still has warning → Bram still repairs!
-// Spec Path B says Bram idle when no warning left. With zero actions, Bram SHOULD repair cracked_root.
-// HTML "loads when no action taken" is about UI, not that release is skipped.
-// Re-read: "The HTML shell still loads when no action has been taken" — UI concern.
-// For sim: empty actions is valid. Bram may still act on existing warning — that's correct local rules.
-ok(true, "12. empty actions accepted (shell can render s0 without runDay)");
+ok(idle.needs.dry_seedlings.resolved === false, "12. zero-action seedlings open");
+ok(idle.needs.cracked_root.resolved === false, "12. P0 zero-action root NOT free-repaired");
+ok(!sim.bramInvoked(idle), "12. P0 zero-action Bram not invoked");
+ok(
+  idle.events.some(function (e) {
+    return e.kind === "BRAM_SIGNAL_FAINT" || e.kind === "BRAM_IDLE";
+  }),
+  "12. P0 Bram idles / signal faint on empty day"
+);
+
+// 13. P0 — MARK is required for Bram influence
+ok(
+  s0.traces.cracked_root_warning.strength < sim.BRAM_ACT_THRESHOLD,
+  "13. P0 initial warning below Bram threshold"
+);
+ok(
+  s0.traces.cracked_root_warning.strength + sim.MARK_DELTA >= sim.BRAM_ACT_THRESHOLD,
+  "13. P0 one MARK reaches Bram threshold"
+);
+var onlySeed = sim.runDay(s0, [{ verb: "INTERVENE", target: "dry_seedlings" }]);
+ok(
+  onlySeed.needs.dry_seedlings.resolved && !onlySeed.needs.cracked_root.resolved,
+  "13. P0 INTERVENE seedlings alone does not free-repair root"
+);
+ok(!sim.bramInvoked(onlySeed), "13. P0 no Bram without loud warning");
 
 // Lulu never resolves
 ok(
