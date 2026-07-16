@@ -3322,3 +3322,8 @@ html, body {
   100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,236,170,0)); }
 }
 .wobject.quiz-effect-pulse .wobj-emoji { animation: quizEffectPulse 1.1s ease-out; }
+
+/* ── THE WORLDS (Mario law, witness #4) — staged reveal ─────────────────
+   .world-hidden fences everything a staged player has not yet earned.
+   !important because chips/goblins carry their own display rules. */
+.world-hidden { display: none !important; }

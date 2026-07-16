@@ -186,27 +186,84 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
 
   // water the bloom (need 2): the SAME persistent flower, not a new object —
   // both needs met now triggers the deferred-third beat, then graduation.
+  // MARIO LAW (witness #4): the earned graduation opens WORLD 1 only —
+  // Lulu + Zaz, tree + garden, currency/zol chips. NOT the rung-12 dump.
   await page.evaluate(() => window.WARREN_DEBUG.advancePrologue());
   await page.waitForTimeout(4800); // deferred-third line (1.2s) + graduate (3.2s) + buffer
-  const g4f = await page.evaluate(({ chips, otherGoblins, visSrc, dotsSrc }) => {
+  const g4f = await page.evaluate(({ visSrc, dotsSrc }) => {
     const vis = eval('(' + visSrc + ')');
     const app = document.getElementById('app');
     const st = window.WARREN_DEBUG.getCribState();
     const dots = eval('(' + dotsSrc + ')')();
+    const idle = document.getElementById('sheet-idle');
     return {
       need2: st.onboarding.need2Done, need3Deferred: st.onboarding.need3Deferred,
       graduated: !app.classList.contains('crib-active') && !app.classList.contains('prologue-active'),
-      seen: st.seen, rung: st.rung,
-      crewVisible: otherGoblins.every(id => vis('goblin-' + id)),
-      chipsVisible: chips.every(vis), barsBack: vis('topbar') && vis('bottombar'),
+      seen: st.seen, world: window.WARREN_DEBUG.getWorld(),
+      zazVisible: vis('goblin-zaz'), pipHidden: !vis('goblin-pip'), nibHidden: !vis('goblin-nib'),
+      gardenVisible: vis('zone-garden'), forgeHidden: !vis('zone-forge'), nurseryHidden: !vis('zone-nursery'),
+      walletVisible: vis('zol-wallet'), riddleHidden: !vis('riddle-chip'),
+      levelHidden: !vis('level-chip'), signalHidden: !vis('signal-indicator'),
+      noBossQuest: !idle || idle.textContent.indexOf('Raâm') === -1,
+      barsBack: vis('topbar') && vis('bottombar'),
       bloomPersists: window.WARREN_DEBUG.getObjects().some(o => o.emoji === '🌸'),
       progressHidden: dots && dots.hidden
     };
-  }, { chips: CHIPS, otherGoblins: OTHER_GOBLINS, visSrc: vises, dotsSrc });
-  log('G4f_third_need_deferred_then_graduates_progress_hides',
-    g4f.need2 && g4f.need3Deferred && g4f.graduated && g4f.seen && g4f.rung === 12 &&
-    g4f.crewVisible && g4f.chipsVisible && g4f.barsBack && g4f.bloomPersists && g4f.progressHidden,
+  }, { visSrc: vises, dotsSrc });
+  log('G4f_earned_graduation_opens_world1_not_rung12',
+    g4f.need2 && g4f.need3Deferred && g4f.graduated && g4f.seen &&
+    g4f.world.staged && g4f.world.world === 1 && g4f.world.rung === 5 &&
+    g4f.zazVisible && g4f.pipHidden && g4f.nibHidden &&
+    g4f.gardenVisible && g4f.forgeHidden && g4f.nurseryHidden &&
+    g4f.walletVisible && g4f.riddleHidden && g4f.levelHidden && g4f.signalHidden &&
+    g4f.noBossQuest && g4f.barsBack && g4f.bloomPersists && g4f.progressHidden,
     JSON.stringify(g4f));
+
+  // ---- The Worlds advance one at a time, milestone-gated, bosses last ----
+  // Even with EVERY milestone pre-earned, one check = one world (ceremony).
+  const gw = await page.evaluate(() => {
+    const S = window.WARREN_DEBUG.getState();
+    S.quizState = S.quizState || {}; S.quizState.rewardPaid = { q1: true, q2: true, q3: true, q4: true };
+    S.flags.quizRight = 5; S.flags.proposalsResolved = 2;
+    const seq = [];
+    seq.push(window.WARREN_DEBUG.checkWorldAdvance());
+    return { seq, world: window.WARREN_DEBUG.getWorld() };
+  });
+  log('GW1_one_world_per_beat', gw.seq[0] === 2 && gw.world.rung === 7 && gw.world.earned === 4,
+    JSON.stringify(gw));
+  await page.waitForTimeout(1700); // ceremony cooldown between advances
+  const gw2 = await page.evaluate(({ visSrc }) => {
+    const vis = eval('(' + visSrc + ')');
+    return { pipVisible: vis('goblin-pip'), forgeVisible: vis('zone-forge'), riddleVisible: vis('riddle-chip'),
+      nibStillHidden: !vis('goblin-nib'), levelStillHidden: !vis('level-chip') };
+  }, { visSrc: vises });
+  log('GW2_world2_reveals_pip_forge_riddle_only',
+    gw2.pipVisible && gw2.forgeVisible && gw2.riddleVisible && gw2.nibStillHidden && gw2.levelStillHidden,
+    JSON.stringify(gw2));
+  await page.evaluate(() => window.WARREN_DEBUG.checkWorldAdvance());
+  await page.waitForTimeout(1700);
+  const gw3 = await page.evaluate(({ visSrc }) => {
+    const vis = eval('(' + visSrc + ')');
+    const idle = document.getElementById('sheet-idle');
+    return { world: window.WARREN_DEBUG.getWorld(), nibVisible: vis('goblin-nib'),
+      nurseryVisible: vis('zone-nursery'), gateVisible: vis('zone-gate'), signalVisible: vis('signal-indicator'),
+      questsBack: !!idle && idle.textContent.indexOf('QUESTS') !== -1,
+      levelStillHidden: !vis('level-chip') };
+  }, { visSrc: vises });
+  log('GW3_world3_opens_governance_not_bosses',
+    gw3.world.world === 3 && gw3.world.rung === 9 && gw3.nibVisible && gw3.nurseryVisible &&
+    gw3.gateVisible && gw3.signalVisible && gw3.questsBack && gw3.levelStillHidden,
+    JSON.stringify(gw3));
+  await page.evaluate(() => window.WARREN_DEBUG.checkWorldAdvance());
+  await page.waitForTimeout(1700);
+  const gw4 = await page.evaluate(({ visSrc }) => {
+    const vis = eval('(' + visSrc + ')');
+    return { world: window.WARREN_DEBUG.getWorld(), levelVisible: vis('level-chip'),
+      templeVisible: vis('temple') };
+  }, { visSrc: vises });
+  log('GW4_world4_opens_levels_and_bosses_last',
+    gw4.world.world === 4 && gw4.world.rung === 11 && gw4.levelVisible && gw4.templeVisible,
+    JSON.stringify(gw4));
 
   // ---- Resume safety: a genuine reload mid-Rung-4 (need named, matcha cup
   // spawned, neither need met yet) must land back in the SAME beat, not
@@ -268,7 +325,32 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
   await page.evaluate(() => window.WARREN_DEBUG.advancePrologue()); // water -> graduates
   await page.waitForTimeout(4800);
 
-  // ---- Grandfather: an established save gets the full Warren, no crib ------
+  // ---- Staged save persists its world across a real reload ---------------
+  // (the save on disk here is G4c's fresh staged graduation = World 1: the
+  // grandfather belt must NOT bump a worldStaged save to rung 12)
+  await page.reload();
+  await page.waitForTimeout(1200);
+  const g5a = await page.evaluate(({ visSrc }) => {
+    const vis = eval('(' + visSrc + ')');
+    const app = document.getElementById('app');
+    return {
+      noCrib: !app.classList.contains('crib-active') && !app.classList.contains('prologue-active'),
+      world: window.WARREN_DEBUG.getWorld(),
+      zazVisible: vis('goblin-zaz'), pipStillHidden: !vis('goblin-pip'),
+      nurseryStillHidden: !vis('zone-nursery'), levelStillHidden: !vis('level-chip')
+    };
+  }, { visSrc: vises });
+  log('G5a_staged_world1_survives_reload_not_bumped_to_12',
+    g5a.noCrib && g5a.world.staged && g5a.world.rung === 5 && g5a.world.world === 1 &&
+    g5a.zazVisible && g5a.pipStillHidden && g5a.nurseryStillHidden && g5a.levelStillHidden,
+    JSON.stringify(g5a));
+
+  // ---- Grandfather: a PRE-Worlds save (prologueSeen, no worldStaged) gets
+  // EXACTLY today's full Warren at rung 12 — zero behavior change ----------
+  await page.evaluate(() => window.WARREN_DEBUG.wipe());
+  await page.reload();
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.WARREN_DEBUG.setPrologueSeen(true));
   await page.reload();
   await page.waitForTimeout(1200);
   const g5 = await page.evaluate(({ chips, otherGoblins, otherZones, visSrc }) => {

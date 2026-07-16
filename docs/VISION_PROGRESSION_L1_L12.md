@@ -86,13 +86,26 @@ roughly 90 seconds instead of 0.
 **Same day, later pass: Rung 4 (THE NEED) is now built** (`cribNeed()` /
 `cribFeedLulu()` / `cribWaterBloom()` / `cribCheckNeedsDone()`,
 `game.js`) — `cribReturnMemory()`'s tail now leads into it instead of
-straight into `graduateCrib()`. Graduation is delayed further, and — more
-importantly — the delay is no longer empty stalling: it is a real,
-scarcity-shaped decision (2 actions for 3 named needs). The gap is **not
-fully closed** — Rungs 5–11 remain 100% unbuilt, and the failure mode is
-still reachable a few minutes further in than before — but the pattern
-that closes it (one rung, one real mechanic, shipped and witnessed before
-the next) has now been proven twice, not once.
+straight into `graduateCrib()`.
+
+**2026-07-16 — the gap is CLOSED at the staging level (witness #4).** The
+operator played the full arc and hit the dump exactly as predicted ("we go
+direct to level 12! I want a progression like MARIO or POKEMON — does not
+start with end boss"). Built the same day: **THE WORLDS** — earned
+graduation opens **World 1** only (Lulu + Zaz, tree + garden, the lantern
+quiz, matcha), and Worlds 2/3/4 (rungs 7/9/11) unlock through each prior
+world's own loop: 2 lantern answers → World 2 (Pip, forge, the Moth,
+goldfall, replay strip) → 3 Moth riddles → World 3 (Nib, remaining zones,
+signals/proposals, verdicts, wanderer, quests) → 2 governed proposals →
+World 4 (level travel, temple/serpent/relics, **bosses — last**). Rung 12
+remains "everything," reached only by skip or grandfathered saves — zero
+behavior change for existing players (`worldStaged` flag + load-belt).
+Gated by `progression-gates.js` G4f/GW1–GW4/G5a, 19/19. Trigger values
+were corrected by an adversarial audit before shipping (a boops-based gate
+was measured as a 5-second accidental skip and removed; a sap-based gate
+let bosses spawn before proposals existed and was removed). The bespoke
+Rung 5–11 *story beats* (her first question, the second voice's arrival
+scene, …) remain PLANNED — the staging that contains them is BUILT.
 
 ## Game-design critique (2026-07-15) — supersedes the ladder above for Rung 4+
 

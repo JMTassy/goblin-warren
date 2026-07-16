@@ -366,7 +366,7 @@ function makeState() {
        rung 12 / onboarding-complete at load, so established players get
        EXACTLY today's Warren (see the loadState belt below). */
     progress: { level: 1, levelsUnlocked: [1], glowOrbs: 0, magicSap: 0, spireUnlocked: false, tinkUnlocked: false, crownDefeats: 0, raamDefeats: 0, serenDefeats: 0,
-                rung: 1, onboarding: { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
+                rung: 1, worldStaged: false, onboarding: { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
                 matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false } },
     settings: { muted: false },
     territories: { owned: [], building: null },
@@ -534,7 +534,9 @@ if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
     : { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
         matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false };
 }
-if (_graduated && S.progress.rung < 12) S.progress.rung = 12;
+/* pre-Worlds saves (no worldStaged flag) grandfather to the full Warren;
+   a save that graduated through the staged path keeps its earned world. */
+if (_graduated && !S.progress.worldStaged && S.progress.rung < 12) S.progress.rung = 12;
 
 function saveState() {
   S.lastSavedAt = Date.now();
@@ -1432,6 +1434,7 @@ function councilPositions() {
 
 var councilTimer = null;
 function maybeStartCouncil() {
+  if (stagedActive() && currentWorld() < 3) return;  // Worlds gate: council is World-3 governance
   if (S.council.done || S.council.stage !== "IDLE") return;
   if (S.learning.geraldQuest.stage !== "T5A_RESOLVED") return;
   if (S.activeProposal || quizOpen) { clearTimeout(councilTimer); councilTimer = setTimeout(maybeStartCouncil, 15000); return; }
@@ -2000,6 +2003,7 @@ function warrenHumor(buckets) {
 }
 
 function applyWarrenHumor(buckets) {
+  if (stagedActive() && currentWorld() < 2) return;  // Worlds gate: World 1 returns stay gentle (Warden audit)
   var h = warrenHumor(buckets);
   /* the greeting holds the Tree's voice for a while — renderTopbar honors
      it until it expires, so re-renders can't stomp the moment */
@@ -2252,6 +2256,8 @@ function openOrgan() {
 var serpentEl = null;
 
 function renderSerpent() {
+  if (stagedActive() && currentWorld() < 4) { if (serpentEl) serpentEl.classList.add("world-hidden"); return; }
+  if (serpentEl) serpentEl.classList.remove("world-hidden");
   var world = document.getElementById("world");
   if (!world) return;
   var h = serpentHeight();
@@ -2381,6 +2387,7 @@ function todayVerdict() {
 var verdictScrollEl = null;
 
 function spawnVerdictScroll() {
+  if (stagedActive() && currentWorld() < 3) return;  // Worlds gate: the daily verdict is World-3 governance
   if (todayVerdict() || verdictScrollEl || dvPickedIndex == null) return;
   var world = document.getElementById("world");
   if (!world) return;
@@ -2625,6 +2632,7 @@ function playVerdictResultMotion(inner, chosenStamp) {
 var wandererEl = null, wandererTimer = null;
 
 function spawnWanderer() {
+  if (stagedActive() && currentWorld() < 3) return;  // Worlds gate: the wanderer knocks in World 3
   if (S.adopted || wandererEl) return;
   var world = document.getElementById("world");
   if (!world) return;
@@ -3965,6 +3973,7 @@ function moveGoblinToZone(g, zoneId) {
 
 var goblinTimers = {};
 function scheduleGoblinTick(id, delay) {
+  if (!goblinRevealed(id)) return;   // Worlds gate: unmet goblins don't chatter (Warden audit)
   clearTimeout(goblinTimers[id]);
   goblinTimers[id] = setTimeout(function () { tickGoblin(id); }, delay);
 }
@@ -4173,6 +4182,7 @@ function scheduleNextSignal(delayMs) {
   mainSignalTimer = setTimeout(fireAmbientSignal, delayMs);
 }
 function fireAmbientSignal() {
+  if (stagedActive() && currentWorld() < 3) return;  // Worlds gate: governance is World-3 content
   if (S.activeProposal) { scheduleNextSignal(randi(20000, 40000)); return; }
   var type = pickSignalType();
   var signal = createSignal(type);
@@ -4205,6 +4215,7 @@ function resolveGeraldT5aProposal(choice) {
   S.activeProposal = null;
   S.world.currentSignal = null;
   S.flags.firstProposalResolved = true;
+  S.flags.proposalsResolved = (S.flags.proposalsResolved || 0) + 1; // Worlds gate: govern twice → World 4
 
   /* Play audio and update display. */
   Sound.proposalAccepted();
@@ -4355,6 +4366,7 @@ function resolveProposal(choice) {
   S.activeProposal = null;
   S.world.currentSignal = null;
   S.flags.firstProposalResolved = true;
+  S.flags.proposalsResolved = (S.flags.proposalsResolved || 0) + 1; // Worlds gate: govern twice → World 4
   if (!quizOpen) renderSheetIdle(); // clear the spent proposal card
   var el = document.getElementById("signal-text");
   if (el) el.textContent = "quiet";
@@ -4395,6 +4407,7 @@ function fireArcFollowUp() {
 --------------------------------------------------------------------- */
 
 function bootScriptedArc() {
+  if (stagedActive() && currentWorld() < 3) return;  // Worlds gate: the bug + Gerald's proposal open World 3
   setTimeout(function () {
     if (S.flags.greeted) return;
     S.flags.greeted = true;
@@ -4714,6 +4727,7 @@ function checkCollectibleUnlocks() {
 
 var collectibleEls = {};
 function renderCollectibles() {
+  if (stagedActive() && currentWorld() < 4) return;  // Worlds gate: relics are World-4 wonder
   var layer = document.getElementById("objects-layer");
   if (!layer) return;
   checkCollectibleUnlocks();
@@ -5070,8 +5084,12 @@ function renderReplayStrip() {
 function renderSheetIdle() {
   var idle = document.getElementById("sheet-idle");
   idle.classList.remove("hidden");
-  idle.innerHTML = questsMarkup();
-  wireQuestGateRow();
+  if (stagedActive() && currentWorld() < 3) {   // Worlds gate: same law as renderQuests (choke point, not caller)
+    idle.textContent = "Tap a goblin to see what they're thinking.";
+  } else {
+    idle.innerHTML = questsMarkup();
+    wireQuestGateRow();
+  }
   document.getElementById("sheet-goblin").classList.add("hidden");
   document.getElementById("sheet-proposal").classList.add("hidden");
   document.getElementById("sheet-quiz").classList.add("hidden");
@@ -5617,6 +5635,10 @@ function renderAll() {
   renderBreath();
   renderSerpent();
   if (S.activeProposal) renderSheetProposal();
+  /* Worlds: re-assert the staged reveal (idempotent) and check whether
+     play has earned the next world — the one growth choke point. */
+  applyWorldReveal(false);
+  checkWorldAdvance();
 }
 
 /* ---------------------------------------------------------------------
@@ -5958,7 +5980,12 @@ function questsMarkup() {
 
 function renderQuests() {
   var idle = document.getElementById("sheet-idle");
-  if (idle && !idle.classList.contains("hidden")) { idle.innerHTML = questsMarkup(); wireQuestGateRow(); }
+  if (!idle || idle.classList.contains("hidden")) return;
+  if (stagedActive() && currentWorld() < 3) {   // Worlds gate: no boss checklist in Worlds 1-2 (witness #4)
+    idle.textContent = "Tap a goblin to see what they're thinking.";
+    return;
+  }
+  idle.innerHTML = questsMarkup(); wireQuestGateRow();
 }
 
 /* ---------------------------------------------------------------------
@@ -6134,6 +6161,7 @@ var RAAM_GIGGLES = [
 ];
 
 function scheduleRaam(delay) {
+  if (stagedActive() && currentWorld() < 4) return;  // Worlds gate: bosses are World-4 (Mario law)
   clearTimeout(raamTimer);
   raamTimer = setTimeout(spawnRaam, delay);
 }
@@ -6281,6 +6309,7 @@ var SEREN_WHISPERS = [
 ];
 
 function scheduleSeren(delay) {
+  if (stagedActive() && currentWorld() < 4) return;  // Worlds gate
   clearTimeout(serenTimer);
   serenTimer = setTimeout(spawnSeren, delay);
 }
@@ -6368,6 +6397,7 @@ var CROWN_CLAIMS = [
 var CROWN_OBJECTIONS = ["No crown here!", "Compost it!", "The Garden says no.", "Show your receipts!", "Booooo!"];
 
 function scheduleCrown(delay) {
+  if (stagedActive() && currentWorld() < 4) return;  // Worlds gate
   clearTimeout(crownTimer);
   crownTimer = setTimeout(spawnCrown, delay);
 }
@@ -6437,6 +6467,7 @@ var mothEl = null, mothTimer = null, mothDespawnTimer = null;
 var quizOpen = false, currentQuiz = null;
 
 function scheduleMoth(delay) {
+  if (stagedActive() && currentWorld() < 2) return;  // Worlds gate: the Moth arrives with World 2
   clearTimeout(mothTimer);
   mothTimer = setTimeout(spawnMoth, delay);
 }
@@ -7370,6 +7401,7 @@ function onTapGoblin(id) {
 var goldfallEl = null, goldfallTimer = null, goldfallMissTimer = null;
 
 function scheduleGoldfall(delay) {
+  if (stagedActive() && currentWorld() < 2) return;  // Worlds gate
   clearTimeout(goldfallTimer);
   goldfallTimer = setTimeout(spawnGoldfall, delay == null ? randi(45000, 100000) : delay);
 }
@@ -7444,7 +7476,7 @@ function scheduleMatchaCraving(delay) {
 
 function spawnMatchaCraving() {
   if (matchaGoblinId) { scheduleMatchaCraving(randi(70000, 120000)); return; } /* one craving at a time */
-  var ids = Object.keys(S.goblins);
+  var ids = Object.keys(S.goblins).filter(goblinRevealed);  // Worlds gate: hidden goblins can't ask (Warden audit)
   if (!ids.length) { scheduleMatchaCraving(randi(70000, 120000)); return; }
   matchaGoblinId = pick(ids);
   matchaHeld = false;
@@ -8398,6 +8430,126 @@ var prologueSeedObjId = null;
 var prologueBloomObjId = null;
 var PROLOGUE_CHIPS = ["signal-indicator", "riddle-chip", "level-chip", "currency", "zol-wallet"];
 
+/* =====================================================================
+   THE WORLDS — Mario law (operator witness #4, 2026-07-16: "we go direct
+   to level 12! I want a progression like MARIO or POKEMON — does not
+   start with end boss"). Graduating the crib no longer reveals the whole
+   Warren. It opens WORLD 1, and the rest unlocks in three more staged
+   reveals driven by play milestones — bosses last. Worlds 1-4 map to
+   rungs 5/7/9/11; rung 12 stays "everything" (grandfathered saves and
+   skip land there, byte-for-byte today's Warren, zero behavior change).
+   memory = function(event_log): the earned world is DERIVED from
+   milestones already tracked in S — no new mutable progress counter.
+===================================================================== */
+var WORLD_RUNGS = [5, 7, 9, 11];
+var WORLD_TABLE = {
+  1: { goblins: ["lulu", "zaz"], zones: ["tree", "garden"],    chips: ["currency", "zol-wallet"], strip: false },
+  2: { goblins: ["pip"],         zones: ["forge"],             chips: ["riddle-chip"],            strip: true  },
+  3: { goblins: ["nib"],         zones: ["nursery", "gate"],   chips: ["signal-indicator"],       strip: true  },
+  4: { goblins: [],              zones: ["spire"],             chips: ["level-chip"],             strip: true  }
+};
+var WORLD_LINES = {
+  2: "Someone heard your riddles... Pip woke up. The forge is warm now.",
+  3: "The Warren trusts you with its choices now. Nib is stirring... listen for signals.",
+  4: "The far paths are open. Big things live out there. We go together."
+};
+function stagedActive() { return !!(S && S.progress && S.progress.worldStaged && S.progress.rung < 12); }
+function currentWorld() {
+  if (!stagedActive()) return 4;               // rung 12 / grandfathered / skip = everything
+  var r = S.progress.rung;
+  return r >= 11 ? 4 : r >= 9 ? 3 : r >= 7 ? 2 : 1;
+}
+function worldAtLeast(n) { return currentWorld() >= n; }
+function goblinRevealed(id) {
+  if (!stagedActive()) return true;
+  var w = currentWorld();
+  if (w >= 4) return true;
+  for (var i = 1; i <= w; i++) if (WORLD_TABLE[i].goblins.indexOf(id) !== -1) return true;
+  return GOBLIN_DEFS.every(function (d) { return d.id !== id; }); // kin/extras stay visible
+}
+/* the milestone fold — which world has the play EARNED? (pure, derived).
+   Economist-goblin law (audit 2026-07-16): each gate measures the PRIOR
+   world's own loop — never the free toy (boops ≈ 5s accidental skip,
+   measured), never a later world's currency (sap collides with the
+   Spire's >=10 and mints pre-World-3). */
+function earnedWorld() {
+  var paid = (S.quizState && S.quizState.rewardPaid) ? Object.keys(S.quizState.rewardPaid).length : 0;
+  var w = 1;
+  if (paid >= 2) w = 2;                            // World-1 loop: two of Lulu's lantern questions
+  if (w >= 2 && ((S.flags.quizRight || 0) >= 3 || paid >= 4)) w = 3;   // World-2 loop: the Moth's riddles
+  if (w >= 3 && (S.flags.proposalsResolved || 0) >= 2) w = 4;          // World-3 loop: govern twice, then the far paths
+  return w;
+}
+function worldToggle(el, on, celebrate, staggerIdx) {
+  if (!el) return;
+  if (on) {
+    if (el.classList.contains("world-hidden")) {
+      el.classList.remove("world-hidden");
+      if (celebrate) {                       /* Artist-goblin law: cascade, don't bulk-fade */
+        el.classList.remove("prologue-reveal"); void el.offsetWidth;
+        setTimeout(function () { el.classList.add("prologue-reveal"); }, (staggerIdx || 0) * 110);
+        setTimeout(function () { el.classList.remove("prologue-reveal"); }, 2400 + (staggerIdx || 0) * 110);
+      }
+    }
+  } else el.classList.add("world-hidden");
+}
+function applyWorldReveal(celebrate) {
+  if (!S.flags.prologueSeen || prologueActive) return;   // the crib stages its own scene
+  var w = currentWorld(), full = w >= 4, k = 0;
+  var show = { g: {}, z: {}, c: {}, strip: false };
+  for (var i = 1; i <= Math.min(w, 4); i++) {
+    WORLD_TABLE[i].goblins.forEach(function (g) { show.g[g] = true; });
+    WORLD_TABLE[i].zones.forEach(function (z) { show.z[z] = true; });
+    WORLD_TABLE[i].chips.forEach(function (c) { show.c[c] = true; });
+    if (WORLD_TABLE[i].strip) show.strip = true;
+  }
+  GOBLIN_DEFS.forEach(function (d) { worldToggle(goblinEls[d.id], full || !!show.g[d.id], celebrate, k++); });
+  ZONES.forEach(function (z) { worldToggle(document.getElementById("zone-" + z.id), full || !!show.z[z.id], celebrate, k++); });
+  PROLOGUE_CHIPS.forEach(function (id) { worldToggle(document.getElementById(id), full || !!show.c[id], celebrate, k++); });
+  worldToggle(document.getElementById("replay-strip"), full || show.strip, false, 0);
+  worldToggle(document.getElementById("temple"), full, false, 0);       // temple/serpent = World 4
+  if (typeof serpentEl !== "undefined" && serpentEl) worldToggle(serpentEl, full, false, 0);
+  renderQuests();
+}
+/* ambient organs come alive with their world — called on advance AND from
+   graduateCrib's staged path; boot's schedulers are entry-guarded instead */
+function startWorldAmbient(w) {
+  if (w === 2) { scheduleMoth(randi(6000, 14000)); scheduleGoldfall(randi(20000, 45000)); }
+  if (w === 3) {
+    bootScriptedArc();                                   // the bug, then Gerald's proposal
+    if (!S.adopted) wandererTimer = setTimeout(spawnWanderer, randi(40000, 90000));
+    pickDailyVerdict(utcDateStr(), DV_DILEMMAS.length, function (idx) {
+      dvPickedIndex = idx;
+      if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
+    });
+  }
+  if (w === 4) {
+    scheduleRaam(randi(40000, 90000));
+    if ((S.progress.raamDefeats || 0) >= 1) scheduleSeren(randi(120000, 200000));
+    if (S.progress.spireUnlocked) { ensureTink(); scheduleCrown(randi(30000, 90000)); }
+    renderSerpent(); renderCollectibles();
+  }
+  GOBLIN_DEFS.forEach(function (d, i) { if (goblinRevealed(d.id)) scheduleGoblinTick(d.id, 1600 + i * 700); });
+}
+var worldAdvanceBusy = false;
+function checkWorldAdvance() {
+  if (!stagedActive() || prologueActive || worldAdvanceBusy) return;
+  var cur = currentWorld();
+  if (cur >= 4 || earnedWorld() <= cur) return;
+  var next = cur + 1;                                    // one world per beat, always ceremonial
+  worldAdvanceBusy = true;
+  S.progress.rung = WORLD_RUNGS[next - 1];
+  saveState();
+  applyWorldReveal(true);
+  showBubble("lulu", WORLD_LINES[next], 5600, true);
+  luluVoiceLine("travel");
+  if (window.Sound && Sound.bloom) Sound.bloom();
+  startWorldAmbient(next);
+  pushReplay("The Warren", "World " + next + " opened", "world-open",
+    "The Warren grew — World " + next + " is awake.", "the paths grew longer.");
+  setTimeout(function () { worldAdvanceBusy = false; }, 1500);
+}
+
 var CRIB_OB_DEFAULTS = { woke: false, offered: false, mystery: false, seedObjId: null, bloomObjId: null, visits: 0,
   matchaCupObjId: null, need1Done: false, need2Done: false, need3Deferred: false };
 function cribOb() {
@@ -8667,6 +8819,10 @@ function cribMystery() {
 }
 
 function tapCribMystery() {
+  if (prologueActive && prologueStep === 4) {   /* Rung 4: the third wish, felt and deferred */
+    cribSay("Not now... two hands, three wishes. Later. I promise.", null, 3600);
+    return;
+  }
   if (!prologueActive || prologueStep !== 2 || !cribOb().mystery) return;
   var sh = document.getElementById("crib-mystery");
   if (sh) { flashClass(sh, "booped", 600); cribCue(sh, false); sh.classList.add("hidden"); }
@@ -8741,7 +8897,9 @@ function cribNeed() {
     prologueReveal(objectEls[prologueBloomObjId]);
     cribCue(objectEls[prologueBloomObjId], !o.need2Done);
   }
-  cribSay("Lulu is a little hungry. Our flower could use water. Something moved again, behind the tree.", null, 6200);
+  cribSay("I'm hungry. The flower is thirsty. And... that sound again, behind the tree.", null, 6200);
+  var sh = document.getElementById("crib-mystery");
+  if (sh) { sh.classList.remove("hidden"); sh.classList.add("prologue-shown", "prologue-reveal"); cribCue(sh, false); }
   saveState();
   prologueSetTimeout(cribSpawnMatchaCup, 2200);
   /* never traps: if nobody taps, she quietly tends both herself and the
@@ -8789,7 +8947,9 @@ function cribFeedLulu() {
   var el = o.matchaCupObjId ? objectEls[o.matchaCupObjId] : null;
   cribCue(el, false);
   var g = S.goblins.lulu;
-  if (g) { g.mood = "delighted"; renderGoblins(); }
+  if (g) { g.mood = "delighted"; renderGoblins(); dropParticle(g, "\ud83d\udc9a", true); }
+  if (window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(432);
+  if (goblinEls.lulu) { flashClass(goblinEls.lulu, "crib-bloom-pop", 900); }
   cribSay("Mmm... warm. Thank you.", "matcha", 3600);
   S.objects = S.objects.filter(function (ob) { return ob.id !== o.matchaCupObjId; });
   renderObjects();
@@ -8831,19 +8991,25 @@ function cribCheckNeedsDone() {
   }, 1200);
 }
 
-/* GRADUATION — the wider Warren opens for the first time. This is the old
-   finishPrologue behaviour, now reached ONLY after the bonding arc: reveal
-   the crew, the zones, the chips, restore the bars, and hand off to the
-   ordinary ambient loop deferred by boot(). Sets rung 12 / prologueSeen. */
-function graduateCrib() {
+/* GRADUATION — the Warren opens for the first time. Mario law (witness #4):
+   the EARNED path (finishing the bonding arc) opens WORLD 1 only — Lulu,
+   Zaz, the tree, the garden, the lantern — and the rest of the Warren
+   unlocks world by world through play (checkWorldAdvance). The FULL path
+   (fullReveal=true: skip, old callers) is byte-for-byte the old behavior —
+   everything at once, rung 12 — because skip means "I've done this before". */
+function graduateCrib(fullReveal) {
   if (prologueStep === 6) return;
   prologueClearTimers();
   prologueStep = 6;
   prologueActive = false;
-  /* reveal everything, gently */
-  GOBLIN_DEFS.forEach(function (d) { prologueReveal(goblinEls[d.id]); prologueGoblinsShown++; });
-  ZONES.forEach(function (z) { prologueReveal(document.getElementById("zone-" + z.id)); });
-  PROLOGUE_CHIPS.forEach(function (id) { prologueReveal(document.getElementById(id)); prologueChipsShown++; });
+  var staged = !fullReveal;
+  /* reveal gently — the staged path re-hides the unearned right after */
+  GOBLIN_DEFS.forEach(function (d, i) {
+    setTimeout(function () { prologueReveal(goblinEls[d.id]); }, i * 110);   // Artist law: cascade
+    prologueGoblinsShown++;
+  });
+  ZONES.forEach(function (z, i) { setTimeout(function () { prologueReveal(document.getElementById("zone-" + z.id)); }, 440 + i * 110); });
+  PROLOGUE_CHIPS.forEach(function (id, i) { setTimeout(function () { prologueReveal(document.getElementById(id)); }, 1100 + i * 110); prologueChipsShown++; });
   var app = document.getElementById("app");
   if (app) app.classList.remove("prologue-active", "crib-active");
   if (goblinEls.lulu) goblinEls.lulu.classList.remove("crib-sleeping", "crib-waking", "crib-cue");
@@ -8853,11 +9019,28 @@ function graduateCrib() {
   var prog = document.getElementById("crib-progress"); if (prog) prog.classList.add("hidden");
   S.flags.prologueSeen = true;
   S.flags.greeted = true;              // the crib already greeted; don't double-fire
-  S.progress.rung = 12;
+  if (staged) { S.progress.worldStaged = true; S.progress.rung = 5; }
+  else S.progress.rung = 12;
   var o = cribOb();
   o.woke = true; o.offered = true; o.mystery = true;
   saveState();
   renderGoblins();
+  if (staged) {
+    /* WORLD 1 — a garden, a friend who tends it, a lantern of questions.
+       Quiet on purpose: sparkles, matcha, boops, Lulu's lantern quiz.
+       Everything else waits for its world (startWorldAmbient). */
+    applyWorldReveal(false);
+    GOBLIN_DEFS.forEach(function (d, i) { if (goblinRevealed(d.id)) scheduleGoblinTick(d.id, 1600 + i * 700); });
+    scheduleSparkle();
+    scheduleMatchaCraving(randi(60000, 100000));
+    setTimeout(function () {
+      if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);
+    }, 12000);
+    setTimeout(function () {
+      showBubble("lulu", "This is our garden. Zaz tends it... the rest of the Warren still sleeps.", 5600, true);
+    }, 2600);
+    return;
+  }
   /* the ambient goblin ticks, deferred by boot() until the crib graduated */
   GOBLIN_DEFS.forEach(function (d, i) { scheduleGoblinTick(d.id, 1600 + i * 700); });
   if (S.progress.spireUnlocked) { ensureTink(); scheduleCrown(randi(30000, 90000)); }
@@ -8877,8 +9060,8 @@ function graduateCrib() {
     if (!todayVerdict()) setTimeout(spawnVerdictScroll, 4000);
   });
 }
-/* finishPrologue kept as an alias so any old caller still graduates cleanly */
-function finishPrologue() { graduateCrib(); }
+/* finishPrologue kept as an alias so any old caller still graduates cleanly (full) */
+function finishPrologue() { graduateCrib(true); }
 
 /* a skip is a snap: graduate immediately, revealing the whole Warren now */
 function skipPrologue() {
@@ -8889,7 +9072,7 @@ function skipPrologue() {
     if (!prologueSeedObjId) { addObject("🌰", "A Seed, Yours", "tree"); var obj = S.objects[S.objects.length - 1]; prologueSeedObjId = obj ? obj.id : null; }
   }
   renderObjects();
-  graduateCrib();
+  graduateCrib(true);   // skip = "I've done this before" → the full Warren, rung 12
 }
 
 /* ---- debug/test hooks (kept stable for the harness) ---- */
@@ -9165,6 +9348,8 @@ window.WARREN_DEBUG = {
   getPrologueState: function () { return getPrologueState(); },
   getCribState: function () { return getPrologueState(); },
   getRung: function () { return S.progress.rung; },
+  getWorld: function () { return { world: currentWorld(), earned: earnedWorld(), rung: S.progress.rung, staged: !!(S.progress && S.progress.worldStaged) }; },
+  checkWorldAdvance: function () { checkWorldAdvance(); return currentWorld(); },
   getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
 };
 
