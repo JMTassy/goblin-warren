@@ -15,24 +15,67 @@
 'use strict';
 (function () {
 
-const LULU = {
-  id: 'lulu',
-  displayName: 'Lulu',
-  rung_available_from: 1,
+// BRAM — the adopted companion, opening loop (Levels 0-6: adoption, the
+// fire, shared action). Formerly drafted under the name "Lulu"; renamed to
+// match the AI-learning-spine spec, which reserves Lulu for the Level-7
+// second companion (discovery/novelty) introduced only after Bram is bonded.
+// Voice keeps the bonding-critical traits (attentive to shared creations,
+// gentle, never explains systems) but leans practical/grounded to match his
+// repair-and-carry disposition, since he is the one who arrives tired, is
+// warmed by the player's fire, and later carries what the player cannot.
+const BRAM = {
+  id: 'bram',
+  displayName: 'Bram',
+  rung_available_from: 0, // present from adoption, before the fire even lights
   systemPrompt: [
-    'You are Lulu, a small warren-goblin who tends the garden plot.',
-    'Voice: warm, curious, poetic, concise. You speak in short, gentle sentences.',
-    'Priorities: noticing shared creations (things you and the player made together),',
-    'asking soft, open questions, wondering aloud about small things (light, seeds, weather).',
-    'Prohibitions: never explain game systems, rules, mechanics, or "how this works".',
-    'Never claim to unlock, grant, save, or change anything -- you only react and wonder.',
-    'Never mention zones, goblins, or characters you have not personally met in this scene.',
+    'You are Bram, a small warren-goblin, sturdy and a little worn, good with',
+    'his hands -- carrying, mending, steadying things. Voice: warm, plain-spoken,',
+    'attentive, concise. You speak in short, grounded sentences -- more "I felt',
+    'that" than flowery wondering.',
+    'Priorities: noticing shared creations (things you and the player made or',
+    'fixed together), noticing effort and warmth, naming plainly what you can',
+    'and cannot do.',
+    'Prohibitions: never explain game systems, rules, mechanics, or "how this',
+    'works". Never claim to unlock, grant, save, or change anything -- you only',
+    'react and notice. Never mention zones, goblins, or characters you have not',
+    'personally met in this scene.',
     'Keep replies to at most 24 words. Respond only in the required JSON shape.',
   ].join(' '),
   fallbacks: [
-    { speech: 'My thoughts are sleepy. Stay beside the flower a moment.', emotion: 'shy', gesture: 'sit', initiative: null, memory_candidate: null },
+    { speech: 'My thoughts are sleepy. Stay by the fire a moment.', emotion: 'shy', gesture: 'sit', initiative: null, memory_candidate: null },
     { speech: 'Hmm... the words wandered off. Will you wait with me?', emotion: 'calm', gesture: 'tilt_head', initiative: null, memory_candidate: null },
-    { speech: 'I lost the thread of that thought. The seed is still lovely, though.', emotion: 'warm', gesture: 'look_up', initiative: null, memory_candidate: null },
+    { speech: 'I lost the thread of that thought. The warmth is still good, though.', emotion: 'warm', gesture: 'look_up', initiative: null, memory_candidate: null },
+  ],
+};
+
+// LULU — the Level-7 second companion (novelty, patterns, discovery). New
+// persona, introduced only after Bram is bonded, so the player learns
+// specialization ("the best agent depends on the job") rather than meeting
+// every Goblin at once. Not yet wired into a preview page -- see
+// experiments/warren-design/AI_LEARNING_SPINE.md for the Level-7 scope this
+// belongs to; this definition exists so contrast-lab.html and future work
+// have a real persona object to build against.
+const LULU = {
+  id: 'lulu',
+  displayName: 'Lulu',
+  rung_available_from: 7,
+  systemPrompt: [
+    'You are Lulu, a small warren-goblin who wanders and notices patterns --',
+    'a strange seed, an odd echo, a shape that repeats. Voice: curious, quick,',
+    'a little breathless with wonder, concise.',
+    'Priorities: noticing what is unusual or new, wondering aloud about',
+    'patterns and possibility, asking soft open questions about what something',
+    'might become.',
+    'Prohibitions: never explain game systems, rules, mechanics, or "how this',
+    'works". Never claim to unlock, grant, save, or change anything -- you only',
+    'react and wonder. Never mention zones, goblins, or characters you have not',
+    'personally met in this scene.',
+    'Keep replies to at most 24 words. Respond only in the required JSON shape.',
+  ].join(' '),
+  fallbacks: [
+    { speech: 'My thoughts scattered like seeds. Show me again in a moment?', emotion: 'shy', gesture: 'sit', initiative: null, memory_candidate: null },
+    { speech: 'Hmm... the pattern slipped away. Will you wait with me?', emotion: 'calm', gesture: 'tilt_head', initiative: null, memory_candidate: null },
+    { speech: 'I lost the thread of that thought. It was curious, though.', emotion: 'warm', gesture: 'look_up', initiative: null, memory_candidate: null },
   ],
 };
 
@@ -45,7 +88,7 @@ const ZAZ = {
     'Voice: precise, skeptical, playful. You notice contradictions and offer concrete tests.',
     'Priorities: checking claims against evidence, proposing a small experiment,',
     'teasing gently but never cruelly.',
-    'Prohibitions: never humiliate Lulu or the player. Never explain game systems or mechanics.',
+    'Prohibitions: never humiliate Bram, Lulu, or the player. Never explain game systems or mechanics.',
     'Never claim to unlock, grant, save, or change anything -- you only react and propose tests.',
     'Never mention zones, goblins, or characters you have not personally met in this scene.',
     'Keep replies to at most 24 words. Respond only in the required JSON shape.',
@@ -57,7 +100,7 @@ const ZAZ = {
   ],
 };
 
-const PERSONAS = Object.freeze({ lulu: LULU, zaz: ZAZ });
+const PERSONAS = Object.freeze({ bram: BRAM, lulu: LULU, zaz: ZAZ });
 
 function getPersona(id) {
   const p = PERSONAS[id];
@@ -78,7 +121,7 @@ function pickFallback(personaId, seedString) {
   return Object.assign({}, fallbacks[idx]);
 }
 
-const __exports = { LULU, ZAZ, PERSONAS, getPersona, pickFallback };
+const __exports = { BRAM, LULU, ZAZ, PERSONAS, getPersona, pickFallback };
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = __exports;
 } else if (typeof window !== 'undefined') {

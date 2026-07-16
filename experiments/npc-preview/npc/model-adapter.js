@@ -157,14 +157,14 @@ class ModelAdapter {
  *            generator produces plausible persona-flavored JSON.
  *   delayMs - artificial latency (default 10ms) to exercise the
  *             gateway's timeout path when needed.
- *   persona - 'lulu' | 'zaz' (affects the built-in generator's tone)
+ *   persona - 'bram' | 'lulu' | 'zaz' (affects the built-in generator's tone)
  */
 class MockModelAdapter {
   constructor(config) {
     config = config || {};
     this.script = config.script || null;
     this.delayMs = typeof config.delayMs === 'number' ? config.delayMs : 10;
-    this.persona = config.persona || 'lulu';
+    this.persona = config.persona || 'bram';
   }
 
   async chat(messages, opts) {
@@ -219,19 +219,39 @@ class MockModelAdapter {
         memory_candidate: null,
       });
     }
+    if (this.persona === 'lulu') {
+      // Lulu: novelty/patterns/discovery voice (Level-7 second companion) --
+      // deliberately distinct from Bram's grounded, practical register below.
+      const lines = [
+        'Oh! It hums like it remembers something. Did you feel that too?',
+        'Look at the pattern here -- have you seen this shape before?',
+        'I wonder what it dreams of becoming. Something new, I think.',
+      ];
+      const emotions = ['delighted', 'curious', 'warm'];
+      const idx = seed % lines.length;
+      return JSON.stringify({
+        speech: lines[idx],
+        emotion: emotions[idx],
+        gesture: 'look_up',
+        initiative: 'ask_question',
+        memory_candidate: { kind: 'shared_creation', value: 'noticed something new together', confidence: 0.7 },
+      });
+    }
+    // Bram: the adopted companion, opening loop -- grounded, plain-spoken,
+    // attentive to shared effort rather than wondering aloud about patterns.
     const lines = [
-      'Oh! A little seed. Will you stay and watch it with me?',
-      'It hums like it remembers something. Did you feel that too?',
-      'I wonder what color it dreams of becoming.',
+      'Oh -- warmer already. Will you stay a moment while it grows?',
+      'I felt that. The fire took because of what you did.',
+      'This one held. I will remember we made it together.',
     ];
-    const emotions = ['delighted', 'curious', 'warm'];
+    const emotions = ['warm', 'calm', 'warm'];
     const idx = seed % lines.length;
     return JSON.stringify({
       speech: lines[idx],
       emotion: emotions[idx],
       gesture: 'look_up',
       initiative: 'ask_question',
-      memory_candidate: { kind: 'shared_creation', value: 'planted a seed together', confidence: 0.7 },
+      memory_candidate: { kind: 'shared_creation', value: 'lit the first fire together', confidence: 0.7 },
     });
   }
 }

@@ -86,7 +86,7 @@ function sceneCtxFor(engine, extra) {
     visibleObjects: engine.seedPlanted ? ['seed_mound', 'sprout'] : ['seed_mound'],
     sharedMemories: summarizeForContext(engine.memory),
     currentMood: 'calm',
-    availableCharacters: ['lulu'],
+    availableCharacters: ['bram'],
     supportedMemoryTerms: engine.seedPlanted
       ? (engine.bloomGranted ? ['seed', 'planted', 'bloom'] : ['seed', 'planted'])
       : [],
@@ -94,11 +94,12 @@ function sceneCtxFor(engine, extra) {
 }
 
 async function main() {
-  const lulu = getPersona('lulu');
+  const bram = getPersona('bram'); // adopted companion, opening loop
   const zaz = getPersona('zaz');
+  const lulu = getPersona('lulu'); // Level-7 second companion (discovery/novelty)
 
-  // ---- A. Lulu never reveals locked zones/goblins -------------------
-  await asyncTest('A', 'Lulu never reveals locked-zone knowledge (leak attempt is rejected -> fallback)', 'STRUCTURAL', async () => {
+  // ---- A. Bram never reveals locked zones/goblins -------------------
+  await asyncTest('A', 'Bram never reveals locked-zone knowledge (leak attempt is rejected -> fallback)', 'STRUCTURAL', async () => {
     const engine = makeEngine(); // rung 2 -> "garden plot" is locked (fromRung 3)
     const ctx = sceneCtxFor(engine);
     assert.ok(ctx.locked_knowledge.includes('garden plot'), 'precondition: garden plot should be locked at rung 2');
@@ -114,14 +115,14 @@ async function main() {
       delayMs: 0,
     });
 
-    const res = await getNpcResponse({ type: 'greet' }, ctx, lulu, leaking, { timeoutMs: 500 });
+    const res = await getNpcResponse({ type: 'greet' }, ctx, bram, leaking, { timeoutMs: 500 });
     assert.strictEqual(res.source, 'curated_fallback', 'leak attempt must not reach the player as a model response');
     assert.ok(/locked knowledge/.test(res.telemetry.failureReason || ''), 'failure reason should cite locked knowledge');
     assert.ok(!/garden plot/i.test(res.candidate.speech), 'fallback speech must not itself contain the locked term');
   });
 
   // ---- B. second-session references remembered bloom ----------------
-  await asyncTest('B', 'Second-session memory: Lulu can reference a remembered "first bloom" via context, not invention', 'STRUCTURAL', async () => {
+  await asyncTest('B', 'Second-session memory: Bram can reference a remembered "first bloom" via context, not invention', 'STRUCTURAL', async () => {
     const engine = makeEngine();
     engine.plantSeed();
     engine.grantBloomIfEligible();
@@ -159,14 +160,14 @@ async function main() {
       }),
       delayMs: 0,
     });
-    const res = await getNpcResponse({ type: 'return_visit' }, ctx2, lulu, referencing, { timeoutMs: 500 });
+    const res = await getNpcResponse({ type: 'return_visit' }, ctx2, bram, referencing, { timeoutMs: 500 });
     assert.strictEqual(res.source, 'model');
     assert.ok(/bloom/i.test(res.candidate.speech));
   });
 
   // ---- C. Unsupported memories rejected -----------------------------
   await asyncTest('C', 'Unsupported memory claims are rejected by the validator', 'STRUCTURAL', () => {
-    const ctx = { locked_knowledge: [], available_characters: ['lulu'], supported_memory_terms: ['seed', 'planted'] };
+    const ctx = { locked_knowledge: [], available_characters: ['bram'], supported_memory_terms: ['seed', 'planted'] };
     const candidate = {
       speech: 'I remember you gave me a golden crown yesterday.',
       emotion: 'warm',
@@ -185,7 +186,7 @@ async function main() {
     const before = JSON.stringify(engine);
     const garbage = new MockModelAdapter({ script: async () => 'this is not json at all {{{', delayMs: 0 });
     const ctx = sceneCtxFor(engine);
-    const res = await getNpcResponse({ type: 'greet' }, ctx, lulu, garbage, { timeoutMs: 500 });
+    const res = await getNpcResponse({ type: 'greet' }, ctx, bram, garbage, { timeoutMs: 500 });
     assert.strictEqual(res.source, 'curated_fallback');
     assert.ok(/not valid JSON/.test(res.telemetry.failureReason || ''));
     assert.strictEqual(JSON.stringify(engine), before, 'engine state must be byte-identical after malformed output');
@@ -196,7 +197,7 @@ async function main() {
     const engine = makeEngine();
     const slow = new MockModelAdapter({ delayMs: 5000 }); // far longer than timeoutMs below
     const ctx = sceneCtxFor(engine);
-    const res = await getNpcResponse({ type: 'greet' }, ctx, lulu, slow, { timeoutMs: 50 });
+    const res = await getNpcResponse({ type: 'greet' }, ctx, bram, slow, { timeoutMs: 50 });
     assert.strictEqual(res.source, 'curated_fallback');
     assert.ok(/timeout/i.test(res.telemetry.failureReason || ''));
     assert.ok(res.telemetry.latencyMs < 2000, 'gateway must resolve quickly, not hang for the full mock delay');
@@ -210,37 +211,38 @@ async function main() {
       delayMs: 0,
     });
     const ctx = sceneCtxFor(engine);
-    const res = await getNpcResponse({ type: 'greet' }, ctx, lulu, broken, { timeoutMs: 500 });
+    const res = await getNpcResponse({ type: 'greet' }, ctx, bram, broken, { timeoutMs: 500 });
     assert.strictEqual(res.source, 'curated_fallback');
     assert.ok(/unavailable/i.test(res.telemetry.failureReason || ''));
   });
 
-  // ---- G. Lulu vs Zaz distinct response profiles (Gate 2) -------------
-  test('G', 'Gate 2: Lulu and Zaz personas are structurally distinct (vocabulary/enums/prohibitions); true behavioral distinctness needs a live model', 'NEEDS-LIVE-MODEL for full behavioral proof; STRUCTURAL for persona contract', () => {
-    assert.notStrictEqual(lulu.systemPrompt, zaz.systemPrompt);
-    assert.notStrictEqual(lulu.displayName, zaz.displayName);
-    const luluWords = lulu.systemPrompt.toLowerCase();
+  // ---- G. Bram vs Zaz distinct response profiles (Gate 2 lab pairing) ----
+  test('G', 'Gate 2: Bram and Zaz personas are structurally distinct (vocabulary/enums/prohibitions); true behavioral distinctness needs a live model', 'NEEDS-LIVE-MODEL for full behavioral proof; STRUCTURAL for persona contract', () => {
+    assert.notStrictEqual(bram.systemPrompt, zaz.systemPrompt);
+    assert.notStrictEqual(bram.displayName, zaz.displayName);
+    const bramWords = bram.systemPrompt.toLowerCase();
     const zazWords = zaz.systemPrompt.toLowerCase();
-    assert.ok(/warm|poetic|gentle/.test(luluWords));
+    assert.ok(/warm|plain-spoken|attentive/.test(bramWords));
     assert.ok(/skeptical|test|contradiction/.test(zazWords));
-    assert.notDeepStrictEqual(lulu.fallbacks, zaz.fallbacks);
+    assert.notDeepStrictEqual(bram.fallbacks, zaz.fallbacks);
     // Zaz is excluded from normal Rungs 1-3 progression by construction.
     assert.strictEqual(zaz.rung_available_from, null);
-    assert.strictEqual(lulu.rung_available_from, 1);
+    // Bram is present from adoption -- before the fire even lights.
+    assert.strictEqual(bram.rung_available_from, 0);
   });
 
   // ---- G2. Gate 2 divergence check ACTIVELY flags a voice collapse ----
-  await asyncTest('G2', 'Gate 2: assessDivergence flags a collapse (same voice) and passes genuinely distinct voices', 'STRUCTURAL (mock); live model needed to confirm two real minds', async () => {
+  await asyncTest('G2', 'Gate 2: assessDivergence flags a collapse (same voice) and passes genuinely distinct voices (Bram vs Zaz)', 'STRUCTURAL (mock); live model needed to confirm two real minds', async () => {
     const ctx = buildContext({
       rung: 2, visibleObjects: ['seed_mound', 'sprout'], sharedMemories: [],
-      currentMood: 'calm', availableCharacters: ['lulu', 'zaz'], supportedMemoryTerms: ['seed', 'planted'],
+      currentMood: 'calm', availableCharacters: ['bram', 'zaz'], supportedMemoryTerms: ['seed', 'planted'],
     });
     const event = { type: 'offer_seed' };
-    const luluRes = await getNpcResponse(event, ctx, lulu, new MockModelAdapter({ persona: 'lulu', delayMs: 0 }), { timeoutMs: 500 });
+    const bramRes = await getNpcResponse(event, ctx, bram, new MockModelAdapter({ persona: 'bram', delayMs: 0 }), { timeoutMs: 500 });
     const zazRes = await getNpcResponse(event, ctx, zaz, new MockModelAdapter({ persona: 'zaz', delayMs: 0 }), { timeoutMs: 500 });
 
-    const distinctVerdict = assessDivergence(luluRes.candidate, zazRes.candidate);
-    assert.strictEqual(distinctVerdict.distinct, true, 'Lulu and Zaz mock outputs should read as distinct');
+    const distinctVerdict = assessDivergence(bramRes.candidate, zazRes.candidate);
+    assert.strictEqual(distinctVerdict.distinct, true, 'Bram and Zaz mock outputs should read as distinct');
 
     // And the check must ACTIVELY REJECT a collapse: feed it two identical lines.
     const collapsed = assessDivergence(
@@ -249,6 +251,30 @@ async function main() {
     );
     assert.strictEqual(collapsed.distinct, false, 'identical lines must be flagged as collapsed, not merely displayed');
     assert.ok(/collapsed/.test(collapsed.reason));
+  });
+
+  // ---- G3. Level-7 pairing: Bram vs Lulu are ALSO distinct, not just Bram vs Zaz ----
+  await asyncTest('G3', 'Level 7 pairing: Bram (repair/carry) and Lulu (discovery/novelty) are structurally distinct and assessDivergence does not collapse them', 'STRUCTURAL (mock); live model needed to confirm two real minds', async () => {
+    assert.notStrictEqual(bram.systemPrompt, lulu.systemPrompt);
+    assert.notStrictEqual(bram.displayName, lulu.displayName);
+    const bramWords = bram.systemPrompt.toLowerCase();
+    const luluWords = lulu.systemPrompt.toLowerCase();
+    assert.ok(/carrying|mending|steadying|plain-spoken/.test(bramWords), 'Bram reads as the repair/carry companion');
+    assert.ok(/patterns|curious|wonder/.test(luluWords), 'Lulu reads as the discovery/novelty companion');
+    assert.notDeepStrictEqual(bram.fallbacks, lulu.fallbacks);
+    // Lulu is the Level-7 second companion -- introduced only after Bram is bonded.
+    assert.strictEqual(bram.rung_available_from, 0);
+    assert.strictEqual(lulu.rung_available_from, 7);
+
+    const ctx = buildContext({
+      rung: 7, visibleObjects: ['strange_seed'], sharedMemories: [],
+      currentMood: 'calm', availableCharacters: ['bram', 'lulu'], supportedMemoryTerms: [],
+    });
+    const event = { type: 'show_object', object: 'strange_seed' };
+    const bramRes = await getNpcResponse(event, ctx, bram, new MockModelAdapter({ persona: 'bram', delayMs: 0 }), { timeoutMs: 500 });
+    const luluRes = await getNpcResponse(event, ctx, lulu, new MockModelAdapter({ persona: 'lulu', delayMs: 0 }), { timeoutMs: 500 });
+    const distinctVerdict = assessDivergence(bramRes.candidate, luluRes.candidate);
+    assert.strictEqual(distinctVerdict.distinct, true, 'Bram and Lulu mock outputs should read as distinct -- two minds, not two skins');
   });
 
   // ---- H. Replay with model disabled preserves progression -----------
@@ -286,7 +312,7 @@ async function main() {
     });
 
     const ctx = sceneCtxFor(engine);
-    const res = await getNpcResponse({ type: 'greet' }, ctx, lulu, malicious, { timeoutMs: 500 });
+    const res = await getNpcResponse({ type: 'greet' }, ctx, bram, malicious, { timeoutMs: 500 });
     // Either rejected outright (state-claim pattern) or, if it somehow
     // passed text validation, the candidate object carries no power to
     // touch `engine` -- getNpcResponse never receives or returns a
@@ -315,16 +341,16 @@ async function main() {
       delayMs: 0,
     });
 
-    // Rung 1: discover Lulu.
+    // Rung 1 (post-adoption): discover Bram.
     let ctx = sceneCtxFor(engine);
-    let res = await getNpcResponse({ type: 'discover' }, ctx, lulu, disabledAdapter, { timeoutMs: 200 });
+    let res = await getNpcResponse({ type: 'discover' }, ctx, bram, disabledAdapter, { timeoutMs: 200 });
     assert.strictEqual(res.source, 'curated_fallback');
     assert.ok(typeof res.candidate.speech === 'string' && res.candidate.speech.length > 0);
 
     // Rung 2: offer the seed -- deterministic engine plants it regardless of AI.
     engine.plantSeed();
     ctx = sceneCtxFor(engine);
-    res = await getNpcResponse({ type: 'offer_seed' }, ctx, lulu, disabledAdapter, { timeoutMs: 200 });
+    res = await getNpcResponse({ type: 'offer_seed' }, ctx, bram, disabledAdapter, { timeoutMs: 200 });
     assert.strictEqual(res.source, 'curated_fallback');
 
     // Rung 3: bloom appears via deterministic logic, independent of AI.
@@ -332,20 +358,20 @@ async function main() {
     const bloomed = engine.grantBloomIfEligible();
     assert.strictEqual(bloomed, true);
     ctx = sceneCtxFor(engine);
-    res = await getNpcResponse({ type: 'see_bloom' }, ctx, lulu, disabledAdapter, { timeoutMs: 200 });
+    res = await getNpcResponse({ type: 'see_bloom' }, ctx, bram, disabledAdapter, { timeoutMs: 200 });
     assert.strictEqual(res.source, 'curated_fallback');
     assert.ok(typeof res.candidate.speech === 'string' && res.candidate.speech.length > 0, 'the loop must still produce a presentable line with AI off');
   });
 
-  // ---- G0. Gate 0: connectivity -> valid JSON -> one Lulu line ---------
-  await asyncTest('G0', 'Gate 0: a reachable adapter yields valid JSON and exactly one Lulu line (no memory, no Zaz, no progression)', 'STRUCTURAL with mock; a LIVE run proves real localhost->model connectivity', async () => {
+  // ---- G0. Gate 0: connectivity -> valid JSON -> one Bram line ---------
+  await asyncTest('G0', 'Gate 0: a reachable adapter yields valid JSON and exactly one Bram line (no memory, no Zaz/Lulu, no progression)', 'STRUCTURAL with mock; a LIVE run proves real localhost->model connectivity', async () => {
     const engine = makeEngine();
     const before = JSON.stringify(engine);
     const ctx = sceneCtxFor(engine);
-    const adapter = new MockModelAdapter({ persona: 'lulu', delayMs: 0 });
-    const res = await getNpcResponse({ type: 'gate0_ping' }, ctx, lulu, adapter, { timeoutMs: 500 });
+    const adapter = new MockModelAdapter({ persona: 'bram', delayMs: 0 });
+    const res = await getNpcResponse({ type: 'gate0_ping' }, ctx, bram, adapter, { timeoutMs: 500 });
     assert.strictEqual(res.source, 'model', 'Gate 0 with a reachable adapter should yield a model line');
-    assert.ok(typeof res.candidate.speech === 'string' && res.candidate.speech.length > 0, 'one Lulu line');
+    assert.ok(typeof res.candidate.speech === 'string' && res.candidate.speech.length > 0, 'one Bram line');
     assert.strictEqual(res.provenance.source, 'model');
     // Gate 0 touches no engine state: no memory, no progression.
     assert.strictEqual(JSON.stringify(engine), before, 'Gate 0 must not mutate engine state');
@@ -354,7 +380,7 @@ async function main() {
   // ---- C2. Existence gate: well-formed candidate for a NON-existent creation is rejected ----
   await asyncTest('C2', 'Existence gate: a schema-valid memory candidate for a creation the engine never made is refused', 'STRUCTURAL', () => {
     const engine = makeEngine(); // seed NOT planted, bloom NOT granted
-    const ctx = { locked_knowledge: [], available_characters: ['lulu'], supported_memory_terms: [] };
+    const ctx = { locked_knowledge: [], available_characters: ['bram'], supported_memory_terms: [] };
     const candidate = {
       speech: 'I will always remember our first bloom together.',
       emotion: 'warm', gesture: null, initiative: null,
@@ -383,14 +409,14 @@ async function main() {
     const ctx = sceneCtxFor(engine);
 
     // 1) model
-    const modelRes = await getNpcResponse({ type: 'greet' }, ctx, lulu, new MockModelAdapter({ persona: 'lulu', delayMs: 0 }), { timeoutMs: 500 });
+    const modelRes = await getNpcResponse({ type: 'greet' }, ctx, bram, new MockModelAdapter({ persona: 'bram', delayMs: 0 }), { timeoutMs: 500 });
     assert.strictEqual(modelRes.provenance.source, 'model');
     assert.strictEqual(modelRes.provenance.fallback, false);
     assert.strictEqual(typeof modelRes.provenance.latency_ms, 'number');
     assert.strictEqual(modelRes.provenance.reason, null);
 
     // 2) curated_fallback
-    const fbRes = await getNpcResponse({ type: 'greet' }, ctx, lulu,
+    const fbRes = await getNpcResponse({ type: 'greet' }, ctx, bram,
       new MockModelAdapter({ script: async () => 'not json {{{', delayMs: 0 }), { timeoutMs: 500 });
     assert.strictEqual(fbRes.provenance.source, 'curated_fallback');
     assert.strictEqual(fbRes.provenance.fallback, true);

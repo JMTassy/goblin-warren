@@ -12,7 +12,7 @@
   DEBUG / TEST TOOL ONLY. Zaz is NOT part of the normal Rungs 1-3
   progression (see npc/personas.js: ZAZ.rung_available_from = null).
   This page exists solely to send the SAME player event/context to
-  Lulu and Zaz via two separate gateway calls, side by side, so a
+  Bram and Zaz via two separate gateway calls, side by side, so a
   developer can eyeball that the two personas are measurably distinct
   in tone/vocabulary/behavior -- structurally guaranteed by their
   differing constitutions in personas.js, and (with a live local
@@ -37,10 +37,10 @@
   button:hover{background:#2a350f}
   #results{display:flex;gap:16px;padding:0 12px 20px;flex-wrap:wrap}
   .card{flex:1;min-width:320px;background:#0d1408;border:3px solid var(--moss);padding:14px}
-  .card.lulu{border-color:var(--glow)}
+  .card.bram{border-color:var(--glow)}
   .card.zaz{border-color:var(--zaz)}
   .card h2{margin:0 0 8px;font-size:15px;text-transform:uppercase;letter-spacing:.05em}
-  .card.lulu h2{color:var(--glow)}
+  .card.bram h2{color:var(--glow)}
   .card.zaz h2{color:var(--zaz)}
   .speech{background:var(--bone);color:#141c0e;padding:10px;border-radius:4px;margin-bottom:10px;font-size:13px}
   .tag{display:inline-block;padding:1px 6px;border-radius:2px;font-size:10px;margin-left:6px}
@@ -70,17 +70,17 @@
     <label><input type="checkbox" id="cfgUseMock" checked style="width:auto;display:inline-block"> Use deterministic mock (no live model)</label>
   </div>
   <div class="panel">
-    <button id="btnRun">Send same event to Lulu &amp; Zaz</button>
+    <button id="btnRun">Send same event to Bram &amp; Zaz</button>
     <p class="note" style="max-width:220px">Both calls share the identical playerEvent and sceneCtx. Only the persona differs.</p>
   </div>
 </div>
 
 <div id="results">
-  <div class="card lulu">
-    <h2>Lulu <span id="luluTag"></span></h2>
-    <div class="speech" id="luluSpeech">(not run yet)</div>
-    <div>emotion: <span id="luluEmotion">-</span> &middot; gesture: <span id="luluGesture">-</span> &middot; initiative: <span id="luluInitiative">-</span></div>
-    <pre id="luluDebug"></pre>
+  <div class="card bram">
+    <h2>Bram <span id="bramTag"></span></h2>
+    <div class="speech" id="bramSpeech">(not run yet)</div>
+    <div>emotion: <span id="bramEmotion">-</span> &middot; gesture: <span id="bramGesture">-</span> &middot; initiative: <span id="bramInitiative">-</span></div>
+    <pre id="bramDebug"></pre>
   </div>
   <div class="card zaz">
     <h2>Zaz <span id="zazTag"></span></h2>
@@ -114,7 +114,7 @@ function sceneCtx() {
     visibleObjects: ['seed_mound', 'sprout'],
     sharedMemories: [],
     currentMood: 'calm',
-    availableCharacters: ['lulu', 'zaz'],
+    availableCharacters: ['bram', 'zaz'],
     supportedMemoryTerms: ['seed', 'planted'],
   });
 }
@@ -155,26 +155,26 @@ document.getElementById('btnRun').addEventListener('click', async () => {
   }
 
   const ctx = sceneCtx();
-  const lulu = NPCPreview.personas.getPersona('lulu');
+  const bram = NPCPreview.personas.getPersona('bram');
   const zaz = NPCPreview.personas.getPersona('zaz');
 
-  const [luluResult, zazResult] = await Promise.all([
-    NPCPreview.gateway.getNpcResponse(playerEvent, ctx, lulu, currentAdapter('lulu'), { timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000 }),
+  const [bramResult, zazResult] = await Promise.all([
+    NPCPreview.gateway.getNpcResponse(playerEvent, ctx, bram, currentAdapter('bram'), { timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000 }),
     NPCPreview.gateway.getNpcResponse(playerEvent, ctx, zaz, currentAdapter('zaz'), { timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000 }),
   ]);
 
-  renderCard('lulu', luluResult);
+  renderCard('bram', bramResult);
   renderCard('zaz', zazResult);
 
   // Gate 2's ACTIVE check: not a passive side-by-side. assessDivergence
   // FAILS (flags) when the two voices collapse into one.
-  const verdict = NPCPreview.gateway.assessDivergence(luluResult.candidate, zazResult.candidate);
+  const verdict = NPCPreview.gateway.assessDivergence(bramResult.candidate, zazResult.candidate);
   const el = document.getElementById('distinctCheck');
   el.classList.remove('pass', 'fail');
   if (verdict.distinct) {
     el.classList.add('pass');
     el.textContent = `PASS ("two minds, not two skins"): dissimilarity score ${verdict.score.toFixed(2)}. `
-      + 'Lulu and Zaz gave distinct speech/emotion for the identical stimulus.';
+      + 'Bram and Zaz gave distinct speech/emotion for the identical stimulus.';
   } else {
     el.classList.add('fail');
     el.textContent = `FAIL — voices collapsed: ${verdict.reason}. `

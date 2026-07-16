@@ -12,7 +12,7 @@ token discipline, not which technology renders them.
  │  z-hud   DOM: say-line, hint, meter,       │  <- var(--...) only
  │          buttons, title screen             │
  ├───────────────────────────────────────────┤
- │  z-char  canvas: character(s) — Lulu       │  <- palette read from
+ │  z-char  canvas: character(s) — Bram       │  <- palette read from
  │                                             │     tokens.css at boot
  ├───────────────────────────────────────────┤
  │  z-glyph canvas: glyph-objects — hearth     │
@@ -43,7 +43,7 @@ post-ignite ember-mark (`--ember`).
 
 ## 3. Character layer (`--z-char`)
 
-Lulu, drawn per `SPRITE_SPEC.md`: fixed 10×10 px bounding box, fixed palette
+Bram, drawn per `SPRITE_SPEC.md`: fixed 10×10 px bounding box, fixed palette
 tokens, five named poses (idle/shiver/curious/warm-hands/content) selected by
 existing engine signals. Any future character added to a zone must ship its
 own `SPRITE_SPEC.md`-shaped contract before it earns a place in this layer.

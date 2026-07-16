@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Goblin Warren — Lulu NPC Preview (Local AI, V0 stub)</title>
+<title>Goblin Warren — Bram NPC Preview (Local AI, V0 stub)</title>
 <!--
-  GOBLIN WARREN LOCAL AI NPC PREVIEW V0 -- lulu-preview.html
+  GOBLIN WARREN LOCAL AI NPC PREVIEW V0 -- bram-preview.html
   authority=false . claim=NO_CLAIM . non-sovereign
   LOCAL-ONLY PREVIEW. No deploy target. No production endpoint.
   Not part of V0 canon (index.html / selftest.js are untouched).
@@ -107,7 +107,7 @@
 <div id="gatebar" style="padding:10px 12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
   <b style="color:var(--glow)">GATE:</b>
   <button id="gateSel0" class="gateSel">Gate 0 — Connectivity</button>
-  <button id="gateSel1" class="gateSel" disabled>Gate 1 — Lulu Continuity</button>
+  <button id="gateSel1" class="gateSel" disabled>Gate 1 — Bram Continuity</button>
   <a id="gateSel2" href="zaz-lab.html" class="gateSel" style="text-decoration:none;pointer-events:none;opacity:.4;display:inline-block;padding:7px 13px;border:3px solid var(--ember);background:#1a2410;color:var(--bone)">Gate 2 — Zaz Lab (debug)</a>
   <span id="gateHint" style="font-size:10.5px;color:var(--spore)">Run Gate 0 first. Each gate is provable in isolation before the next unlocks.</span>
 </div>
@@ -115,25 +115,25 @@
 <div id="hud">
   <div class="panel" id="gate0Panel">
     <h3>Gate 0 — Connectivity</h3>
-    <p style="min-height:2.4em">Prove Warren → localhost gateway → local model → <b>valid JSON</b> → one Lulu line. No memory, no Zaz, no progression.</p>
+    <p style="min-height:2.4em">Prove Warren → localhost gateway → local model → <b>valid JSON</b> → one Bram line. No memory, no Zaz, no progression.</p>
     <button id="btnGate0">Run connectivity ping</button>
     <p id="gate0Result" style="font-size:11px;color:var(--spore);min-height:1.4em"></p>
-    <p style="font-size:10.5px;color:#9ab080">Success: one valid Lulu line comes back (source=model). If the endpoint is unreachable you'll see a curated fallback instead, and the debug panel will mark the real cause — the loop never breaks.</p>
+    <p style="font-size:10.5px;color:#9ab080">Success: one valid Bram line comes back (source=model). If the endpoint is unreachable you'll see a curated fallback instead, and the debug panel will mark the real cause — the loop never breaks.</p>
   </div>
 
   <div class="panel" id="gate1Panel" style="display:none">
-    <h3>Gate 1 — Lulu Continuity <span style="font-size:10px;color:#9ab080">(&ldquo;same being twice&rdquo;)</span></h3>
+    <h3>Gate 1 — Bram Continuity <span style="font-size:10px;color:#9ab080">(&ldquo;same being twice&rdquo;)</span></h3>
     <div id="rungTrack">
       <div class="rungDot" data-rung="1"></div>
       <div class="rungDot" data-rung="2"></div>
       <div class="rungDot" data-rung="3"></div>
     </div>
-    <p id="rungLabel" style="min-height:2.4em">Rung 1: You approach the seed mound. Lulu has not noticed you yet.</p>
-    <button id="btnDiscover">Discover Lulu</button>
+    <p id="rungLabel" style="min-height:2.4em">Rung 1: You approach the seed mound. Bram has not noticed you yet.</p>
+    <button id="btnDiscover">Discover Bram</button>
     <button id="btnOfferSeed" disabled>Offer the Seed</button>
     <button id="btnNextVisit" disabled>Simulate Next Visit</button>
     <button id="btnCuriosity" disabled>Wait a moment&hellip; (curiosity beat)</button>
-    <p style="font-size:10.5px;color:#9ab080;margin-top:8px">Success criterion: across two visits Lulu notices the seed, remembers the real First Bloom, and (once) wonders aloud unprompted. Recognition lines are tagged <code>memory_derived</code>, not model-fresh.</p>
+    <p style="font-size:10.5px;color:#9ab080;margin-top:8px">Success criterion: across two visits Bram notices the seed, remembers the real First Bloom, and (once) wonders aloud unprompted. Recognition lines are tagged <code>memory_derived</code>, not model-fresh.</p>
   </div>
 
   <div class="panel">
@@ -150,7 +150,7 @@
     </label>
     <p style="font-size:10.5px;color:var(--spore);margin-top:8px">
       Uncheck to attempt the real endpoint above. If unreachable, timeout,
-      or malformed, the player only ever sees Lulu's in-character fallback —
+      or malformed, the player only ever sees Bram's in-character fallback —
       debug telemetry below marks the real cause.
     </p>
   </div>
@@ -213,7 +213,7 @@ function sceneCtx() {
     ],
     sharedMemories: NPCPreview.memory.summarizeForContext(engine.memory),
     currentMood: engine.bloomGranted ? 'delighted' : 'calm',
-    availableCharacters: ['lulu'],
+    availableCharacters: ['bram'],
     supportedMemoryTerms: [
       ...(engine.seedPlanted ? ['seed', 'planted'] : []),
       ...(engine.bloomGranted ? ['bloom'] : []),
@@ -225,7 +225,7 @@ function currentAdapter() {
   const useMock = document.getElementById('cfgUseMock').checked;
   const timeoutMs = parseInt(document.getElementById('cfgTimeout').value, 10) || 2000;
   if (useMock) {
-    return new NPCPreview.modelAdapter.MockModelAdapter({ persona: 'lulu', delayMs: 220 });
+    return new NPCPreview.modelAdapter.MockModelAdapter({ persona: 'bram', delayMs: 220 });
   }
   return new NPCPreview.modelAdapter.ModelAdapter({
     endpoint: document.getElementById('cfgEndpoint').value,
@@ -263,7 +263,7 @@ async function runTurn(playerEvent, { grantReward } = {}) {
   goblinBody.className = 'goblin-body tilt';
   thinkDots.style.display = 'block';
 
-  const persona = NPCPreview.personas.getPersona('lulu');
+  const persona = NPCPreview.personas.getPersona('bram');
   const ctx = sceneCtx();
   const adapter = currentAdapter();
   const started = performance.now();
@@ -400,13 +400,13 @@ document.getElementById('btnToggleDebug').addEventListener('click', () => {
   p.style.display = p.style.display === 'block' ? 'none' : 'block';
 });
 
-// Gate 0: connectivity only. One Lulu line. No memory, no progression.
+// Gate 0: connectivity only. One Bram line. No memory, no progression.
 document.getElementById('btnGate0').addEventListener('click', async () => {
-  const persona = NPCPreview.personas.getPersona('lulu');
+  const persona = NPCPreview.personas.getPersona('bram');
   // A deliberately minimal, rung-1 context -- nothing to remember, nothing to unlock.
   const ctx = NPCPreview.contextBuilder.buildContext({
     rung: 1, visibleObjects: ['seed_mound'], sharedMemories: [],
-    currentMood: 'calm', availableCharacters: ['lulu'], supportedMemoryTerms: [],
+    currentMood: 'calm', availableCharacters: ['bram'], supportedMemoryTerms: [],
   });
   const adapter = currentAdapter();
   const started = performance.now();
@@ -420,7 +420,7 @@ document.getElementById('btnGate0').addEventListener('click', async () => {
 
   const ok = result.source === 'model';
   document.getElementById('gate0Result').textContent = ok
-    ? `PASS — valid JSON, one Lulu line (source=model, ${Math.round(result.provenance.latency_ms)}ms). Gate 1 unlocked.`
+    ? `PASS — valid JSON, one Bram line (source=model, ${Math.round(result.provenance.latency_ms)}ms). Gate 1 unlocked.`
     : `Fallback shown (${result.telemetry.failureReason}). The loop held. Fix the endpoint or keep the mock checked, then retry. Gate 1 unlocks on a model line OR you may proceed with the mock.`;
   gate0Done = true; // reaching a rendered line (model or fallback) proves the loop; unlock Gate 1.
   document.getElementById('gateSel1').disabled = false;
@@ -429,7 +429,7 @@ document.getElementById('btnGate0').addEventListener('click', async () => {
 document.getElementById('btnDiscover').addEventListener('click', async () => {
   document.getElementById('btnDiscover').disabled = true;
   engine.discovered = true;
-  document.getElementById('rungLabel').textContent = 'Rung 1: Lulu notices you by the seed mound.';
+  document.getElementById('rungLabel').textContent = 'Rung 1: Bram notices you by the seed mound.';
   await runTurn({ type: 'discover' });
   document.getElementById('btnOfferSeed').disabled = false;
 });
@@ -465,7 +465,7 @@ document.getElementById('btnOfferSeed').addEventListener('click', async () => {
 });
 
 document.getElementById('btnNextVisit').addEventListener('click', async () => {
-  document.getElementById('rungLabel').textContent = 'Simulated next visit: Lulu recognises you from memory.';
+  document.getElementById('rungLabel').textContent = 'Simulated next visit: Bram recognises you from memory.';
   engine.visited = true;
   // Recognition is rendered STRAIGHT FROM STORED MEMORY (memory_derived),
   // not a fresh model call -- "same being twice."
@@ -479,7 +479,7 @@ document.getElementById('btnNextVisit').addEventListener('click', async () => {
 });
 
 document.getElementById('btnCuriosity').addEventListener('click', async () => {
-  document.getElementById('rungLabel').textContent = 'A quiet moment passes. Lulu wonders aloud, unprompted.';
+  document.getElementById('rungLabel').textContent = 'A quiet moment passes. Bram wonders aloud, unprompted.';
   await runTurn({ type: 'idle_curiosity_beat' });
 });
 

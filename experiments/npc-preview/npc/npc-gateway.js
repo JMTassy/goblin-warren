@@ -16,7 +16,7 @@
  * anything to game state; the caller (the preview's deterministic
  * engine stub) decides what, if anything, to do with the candidate
  * (see memory.js's promoteCandidate for the one place a memory
- * candidate can become memory, and lulu-preview.html for the one
+ * candidate can become memory, and bram-preview.html for the one
  * place a bloom is granted -- always by deterministic logic, never by
  * this gateway or by adapter output).
  */

@@ -111,10 +111,10 @@ function validate(candidate, ctx) {
 
   // unavailable character mention ---------------------------------
   // Anything referencing a known cast member not in this scene's
-  // available_characters list is rejected (e.g. Zaz naming Lulu-only
-  // NPCs that haven't unlocked, or vice versa, or a name outside the
-  // whole persona roster).
-  const KNOWN_CAST = ['lulu', 'zaz'];
+  // available_characters list is rejected (e.g. Bram naming Lulu before
+  // her Level-7 unlock, or Zaz naming either before they've met, or a
+  // name outside the whole persona roster).
+  const KNOWN_CAST = ['bram', 'lulu', 'zaz'];
   for (const name of KNOWN_CAST) {
     if (availableCharacters.map((c) => String(c).toLowerCase()).includes(name)) continue;
     const re = new RegExp('\\b' + name + '\\b', 'i');

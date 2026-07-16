@@ -8,10 +8,10 @@
   The First Fire — Goblin Warren · Rung 1 intro asset. DESIGN PASS v2.
   authority=false · claim=NO_CLAIM · non-sovereign · session-only · offline (no CDN).
   LAW: the engine decides consequence (fire ignites from friction-heat >= threshold,
-  never from a model). Lulu's lines are curated (source:"curated") and tagged so they
+  never from a model). Bram's lines are curated (source:"curated") and tagged so they
   can later be replaced by the local NPC gateway. Pixel look = technique (low-res
   render + nearest-neighbour upscale), original art. No third-party game content.
-  Minimum bar: Lulu notices + Lulu remembers + Lulu surprises.
+  Minimum bar: Bram notices + Bram remembers + Bram surprises.
 
   v2 changes visuals ONLY. The engine (scratch->heat->ignite->grade->warm loop,
   window.__warren debug hooks, source:"curated" provenance, offline audio,
@@ -133,7 +133,7 @@
   <div id="start">
     <div class="kicker">A Goblin Warren beginning · Rung 1</div>
     <h1 class="title">The First <span class="hot">Fire</span></h1>
-    <p class="lede">It is cold under the hill, and Lulu is small.
+    <p class="lede">It is cold under the hill, and Bram is small.
       No words yet — only your hands. Kneel, take the stones,
       and rub until something wakes.</p>
     <button id="startBtn">Kneel by the stones</button>
@@ -186,7 +186,7 @@ function geo(){
     floorY: Math.round(H*0.72),
     hearthX: Math.round(W*0.5),
     hearthY: Math.round(H*0.72),
-    luluHome: Math.round(W*0.5 - W*0.17),
+    bramHome: Math.round(W*0.5 - W*0.17),
   };
 }
 
@@ -195,10 +195,10 @@ const S = {
   heat:0, grade:0, gradeT:0, stage:"cold", started:false,
   igniting:false, lit:false, rubbing:false, kbRub:false,
   lastX:0, lastY:0, moveAcc:0, idle:0, mark:false,
-  luluX:0, luluTX:0, luluWarm:0, shiver:0, t:0,
+  bramX:0, bramTX:0, bramWarm:0, shiver:0, t:0,
   curiousUntil:-1,
 };
-const G = geo(); S.luluX = G.luluHome; S.luluTX = G.luluHome;
+const G = geo(); S.bramX = G.bramHome; S.bramTX = G.bramHome;
 
 /* ---- particles ---- */
 const P = [];
@@ -254,10 +254,10 @@ function crackleTick(){
   setTimeout(crackleTick, 60+Math.random()*220);
 }
 
-/* ---- Lulu's curated voice (source:"curated" — swappable for the gateway) ---- */
+/* ---- Bram's curated voice (source:"curated" — swappable for the gateway) ---- */
 const sayEl = document.getElementById("say");
 let sayTimer=null, lastLine="";
-function lulu(line, hold){
+function bram(line, hold){
   if(line===lastLine) return;
   lastLine=line;
   // provenance kept for parity with the NPC gateway law:
@@ -285,9 +285,9 @@ const LINES = {
 };
 
 function onStage(prev, next){
-  if(next==="smoke") lulu(LINES.smoke);
-  else if(next==="ember") lulu(LINES.ember);
-  else if(next==="flame") lulu(LINES.flame);
+  if(next==="smoke") bram(LINES.smoke);
+  else if(next==="ember") bram(LINES.ember);
+  else if(next==="flame") bram(LINES.flame);
   else if(next==="fire") ignite();
 }
 
@@ -306,11 +306,11 @@ function ignite(){
     spawn(gg.hearthX,gg.hearthY-2,Math.cos(a)*sp,Math.sin(a)*sp-1.2,
       30+Math.random()*30, Math.random()<.5?PAL.gold:PAL.ember, 1, "spark");
   }
-  lulu("Fire. You made fire.", 4200);
-  // Lulu walks to the hearth, then warms her hands, then remembers.
-  S.luluTX = gg.hearthX - Math.round(W*0.075);
-  setTimeout(()=>{ S.luluWarm=1; }, 1400);
-  setTimeout(()=>{ lulu("I'll keep this one. Our first warmth.", 6000); S.mark=true; afterLit(); }, 3600);
+  bram("Fire. You made fire.", 4200);
+  // Bram walks to the hearth, then warms his hands, then remembers.
+  S.bramTX = gg.hearthX - Math.round(W*0.075);
+  setTimeout(()=>{ S.bramWarm=1; }, 1400);
+  setTimeout(()=>{ bram("I'll keep this one. Our first warmth.", 6000); S.mark=true; afterLit(); }, 3600);
   S.lit=true;
 }
 function afterLit(){
@@ -327,7 +327,7 @@ function beginRub(x,y){
 }
 function noticeSpark(){
   if(firstSpark) return;
-  firstSpark=true; lulu(LINES.spark);
+  firstSpark=true; bram(LINES.spark);
   S.curiousUntil = S.t + 1.6; // curious pose, see SPRITE_SPEC.md
 }
 function moveRub(x,y){
@@ -376,7 +376,7 @@ function begin(){
   document.getElementById("start").classList.add("gone");
   document.getElementById("hint").classList.add("show");
   document.getElementById("meterWrap").classList.add("show");
-  lulu(LINES.cold, 5000);
+  bram(LINES.cold, 5000);
 }
 document.getElementById("startBtn").addEventListener("click", begin);
 document.getElementById("replay").addEventListener("click", ()=>location.reload());
@@ -410,17 +410,17 @@ function update(now){
     const fill=document.getElementById("meterFill");
     const warn = (S.idle>0.9 && S.heat>25 && S.heat<100);
     fill.classList.toggle("warn", warn);
-    if(warn && Math.random()<0.02) lulu(LINES.fading,1600);
+    if(warn && Math.random()<0.02) bram(LINES.fading,1600);
   }
 
   // grade (cold→warm) eases toward target
   S.gradeT = S.lit ? 1 : Math.min(0.55, S.heat/100*0.55);
   S.grade += (S.gradeT - S.grade) * Math.min(1, dt*(S.igniting?2.4:3));
 
-  // Lulu locomotion + shiver
-  S.luluX += (S.luluTX - S.luluX) * Math.min(1, dt*3);
+  // Bram locomotion + shiver
+  S.bramX += (S.bramTX - S.bramX) * Math.min(1, dt*3);
   S.shiver = (!S.lit && S.grade<0.25) ? (reduce?0:1) : 0;
-  if(S.luluWarm>0 && S.luluWarm<1) S.luluWarm=Math.min(1,S.luluWarm+dt*1.5);
+  if(S.bramWarm>0 && S.bramWarm<1) S.bramWarm=Math.min(1,S.bramWarm+dt*1.5);
 
   // particles
   const gg=geo();
@@ -535,8 +535,8 @@ function draw(){
   }
   ctx.globalAlpha=1;
 
-  // ===== z-char: Lulu =====
-  drawLulu(gg);
+  // ===== z-char: Bram =====
+  drawBram(gg);
 
   // remembered ember-mark (persists after lit) — the "I'll keep this one"
   if(S.mark){
@@ -545,11 +545,11 @@ function draw(){
   }
 }
 
-function drawLulu(gg){
+function drawBram(gg){
   // pose selection — see warren-design/SPRITE_SPEC.md
   const curious = !S.lit && S.t < S.curiousUntil;
   const bob = S.lit ? Math.sin(S.t*3)*0.6 : (S.shiver?Math.sin(S.t*30)*0.5:0);
-  const x = Math.round(S.luluX + (S.shiver?Math.round(Math.sin(S.t*33)*0.6):0));
+  const x = Math.round(S.bramX + (S.shiver?Math.round(Math.sin(S.t*33)*0.6):0));
   const y = Math.round(gg.floorY - 10 + bob);
   const warmT = S.grade;
   const body = mixHex(PAL.moss, PAL.mossWarm, Math.min(1,warmT*1.6)); // mossy → lit warm-green
@@ -583,9 +583,9 @@ function drawLulu(gg){
     ctx.fillRect(x+6, y+1, 2,1); ctx.globalAlpha=1;
   }
   // warming hands toward the fire
-  if(S.luluWarm>0){
+  if(S.bramWarm>0){
     ctx.fillStyle=body;
-    const reach=Math.round(2*S.luluWarm);
+    const reach=Math.round(2*S.bramWarm);
     ctx.fillRect(x+5, y+3, reach+1, 1);
     if(rim){ ctx.fillStyle=rgbaHex(PAL.rim,.8); ctx.fillRect(x+5+reach, y+3, 1,1); }
   }

@@ -27,11 +27,11 @@
   --ember:  #ff7a2c;  /* mid-warm accent — sparks, borders, kicker, fire */
   --gold:   #ffd24a;  /* hottest accent — flame tips, hot title word */
   --bone:   #e8dcc0;  /* primary text + lit stone highlight (warm-neutral) */
-  --glow:   #a8d858;  /* Lulu's eye-glow / affirming dialogue color */
+  --glow:   #a8d858;  /* Bram's eye-glow / affirming dialogue color */
 
   /* ===== TEMPERATURE RAMP (secondary stops) =====
      Second color at each end of specific gradients (ceiling, floor,
-     stone, Lulu's fur) so the mix() has a *matched pair* rather than
+     stone, Bram's fur) so the mix() has a *matched pair* rather than
      reusing a primary anchor out of context. Each is named for what it
      mixes with above, so the pairing stays legible in code review. */
   --cold-2:      #0f1c22;  /* ceiling/floor cold stop, pairs with --ember-2 */
@@ -47,7 +47,7 @@
   --flint-cold:  #565e66;  /* the two rubbed flints, cold */
   --flint-warm:  #8a5230;  /* the two rubbed flints, warm */
 
-  /* ===== LULU PALETTE (character layer) =====
+  /* ===== BRAM PALETTE (character layer) =====
      Fixed per SPRITE_SPEC.md. Cold/warm pairs mix on the same `grade`
      as the environment so she warms in lockstep with the room. */
   --moss:      #2f5a3a;  /* body, cold */
@@ -59,7 +59,7 @@
   --ink:       #0a120a;  /* eye socket / outline, constant */
   --glow-hot:  #d8ff9a;  /* eye-glow once fire gives her rim light */
   --breath:    #9fb3ba;  /* cold-breath puff, constant */
-  --rim:       #ffb45a;  /* fire rim-light edge on Lulu, constant */
+  --rim:       #ffb45a;  /* fire rim-light edge on Bram, constant */
 
   /* ===== PARTICLES (glyph-object layer) ===== */
   --amber:  #ffcf6a;  /* spark / fire particle, light */
@@ -131,6 +131,6 @@
      documented fact instead of implicit call order. */
   --z-bg: 0;      /* background wash — sky/ceiling + floor gradient */
   --z-glyph: 10;  /* glyph-objects — hearth stones, embers, mark */
-  --z-char: 20;   /* character layer — Lulu */
+  --z-char: 20;   /* character layer — Bram */
   --z-hud: 30;    /* DOM HUD — say/hint/meter/buttons/title, always on top */
 }

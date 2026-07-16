@@ -1,4 +1,4 @@
-# SPRITE_SPEC.md — canonical Lulu
+# SPRITE_SPEC.md — canonical Bram
 
 ## The pick: canvas pixel sprite (not CSS/emoji/glyph)
 
@@ -17,13 +17,13 @@ Why, against the alternatives:
 - **Not a separate DOM/CSS sprite (div grid, background-image, SVG).** Any DOM
   character layer is a *second* rendering pipeline sitting on top of the canvas,
   at DOM's subpixel/antialiased precision — exactly the two-resolutions problem
-  this whole pass exists to remove. A DOM Lulu would need its own upscaling logic
+  this whole pass exists to remove. A DOM Bram would need its own upscaling logic
   to stay pixel-perfect against a canvas whose internal size changes with `resize()`.
   A canvas sprite is *by construction* the same resolution as the room she stands in.
 - **Offline-safe.** No web font, no image asset, no CDN — just `fillRect` calls,
   consistent with the project's "no build step, no dependencies" law.
 
-The engine already draws Lulu this way (`drawLulu()`); this spec formalizes her
+The engine already draws Bram this way (`drawBram()`); this spec formalizes her
 shape/palette/states as a contract so future assets (new zones, new characters)
 follow the same rule instead of inventing a new technique per scene.
 
@@ -36,7 +36,7 @@ neighbor scaled like everything else in the buffer).
 
 Anchor: all offsets below are relative to a single origin point `(x, y)` — her
 feet-center at the floor line. This is the same anchor the engine already uses
-(`x = luluX`, `y = floorY - 10 + bob`).
+(`x = bramX`, `y = floorY - 10 + bob`).
 
 ```
 col:   -3 -2 -1  0 +1 +2 +3 +4 +5 +6 +7
@@ -51,7 +51,7 @@ row +8  feet (x-3..-2 and x+3..+4)
 row +9  ground contact / shadow row (implicit, no draw)
 ```
 
-(This matches the existing `drawLulu()` rectangles exactly — the spec codifies
+(This matches the existing `drawBram()` rectangles exactly — the spec codifies
 what's already drawn, so adopting it required zero geometry changes, only
 palette-token and pose-state cleanup.)
 
@@ -83,7 +83,7 @@ not a new sprite).
 | **idle** | `!started` or (`started && !lit` and not shivering) | Base pose, no deltas. Slow ambient bob only if lit (`sin(t·3)·0.6`); otherwise still. |
 | **shiver** | `!lit && grade < 0.25` | ±0.6px horizontal jitter at ~33Hz (`sin(t·33)`); cold-breath puff every 3rd tick, alpha .4, `--breath`; **disabled under `prefers-reduced-motion`** (already the case — kept). |
 | **curious** | first spark noticed (existing `firstSpark` flag), held ~1.6s | Ears nudge outward/up +1px each (`y-2` instead of `y-1`), eye glow briefly to `--glow-hot` then back to `--glow`. Purely cosmetic — reads the *existing* flag, adds no new engine state, no new threshold. |
-| **warm-hands** | `luluWarm > 0` (already set 1.4s into `ignite()`) | Existing "reach" stroke toward the fire, band color `body` token, ramps 0→2px over `luluWarm` 0→1; rim spark pixel added once `rim` is true. |
+| **warm-hands** | `bramWarm > 0` (already set 1.4s into `ignite()`) | Existing "reach" stroke toward the fire, band color `body` token, ramps 0→2px over `bramWarm` 0→1; rim spark pixel added once `rim` is true. |
 | **content** | `S.mark === true` (post "I'll keep this one") | Eye glow locked to `--glow-hot`; slow idle bob active (shared with lit-ambient bob); ember-mark pixel drawn at her feet (existing `S.mark` visual, now token-colored `--ember`). |
 
 States are evaluated in the order above and are not mutually exclusive with
@@ -93,7 +93,7 @@ States are evaluated in the order above and are not mutually exclusive with
 
 ## Non-goals
 
-This spec covers Lulu's *first-fire* scene appearance only. It does not define
+This spec covers Bram's *first-fire* scene appearance only. It does not define
 walk cycles, a sprite sheet, or additional NPCs — those get their own spec when
 built, but must reuse this bounding-box convention and `tokens.css` palette
 unless a documented reason says otherwise.

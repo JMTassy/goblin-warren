@@ -51,7 +51,7 @@ function lockedKnowledgeForRung(rung) {
  *     visibleObjects: string[],           // what's physically in the scene
  *     sharedMemories: object[],           // bounded list, most-recent-first
  *     currentMood: string,
- *     availableCharacters: string[],      // who is actually present ('lulu', maybe 'zaz' in lab mode)
+ *     availableCharacters: string[],      // who is actually present ('bram', maybe 'lulu'/'zaz' in lab mode)
  *     supportedMemoryTerms?: string[],    // terms the engine can vouch actually happened
  *     maxMemories?: number,               // bound (default 5)
  *   }
@@ -73,7 +73,7 @@ function buildContext(state) {
     available_gestures: gesturesForRung(rung),
     shared_memories: sharedMemories,
     current_mood: state.currentMood || 'calm',
-    available_characters: Array.isArray(state.availableCharacters) ? state.availableCharacters.slice() : ['lulu'],
+    available_characters: Array.isArray(state.availableCharacters) ? state.availableCharacters.slice() : ['bram'],
     locked_knowledge: lockedKnowledgeForRung(rung),
     supported_memory_terms: Array.isArray(state.supportedMemoryTerms) ? state.supportedMemoryTerms.slice() : [],
   };
