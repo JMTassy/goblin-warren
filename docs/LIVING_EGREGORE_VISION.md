@@ -3,6 +3,10 @@
 <!-- Synthesis by JM Tassy, 2026-07-12: everything sniffed so far, rotted
      together until the new signal emerged. Typed against the build. -->
 
+> **V2 root: `docs/VISION_V2.md` (2026-07-16).** This file remains the
+> detailed egregore/coherence reference; its candidates are inventoried
+> in V2's compost table and enter build only through that gate.
+
 ## The vision, one paragraph
 
 Goblin Warren is not a tamagotchi and not a memory palace. It is a

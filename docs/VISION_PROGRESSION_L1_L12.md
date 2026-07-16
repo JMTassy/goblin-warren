@@ -3,6 +3,10 @@
 <!-- authority=false · claim=NO_CLAIM · non-sovereign · roadmap, not a receipt.
      Garden UX layering only. No Kernel/reducer/admission change. -->
 
+> **V2 root: `docs/VISION_V2.md` (2026-07-16).** This file remains the
+> detailed rung reference; the pillars, intake law, and process
+> constitution now live there.
+
 ## The operator's witness (2026-07-14, verbatim)
 
 > "when I open the homepage, I have all elements coming directly, and I don't
