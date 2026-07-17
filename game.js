@@ -7620,10 +7620,17 @@ function onTapGoblin(id) {
    pocket profits). Missed coins vanish without comment — the sky owes
    nothing. Rare on purpose: a gift, not a faucet.
 --------------------------------------------------------------------- */
-var goldfallEl = null, goldfallTimer = null, goldfallMissTimer = null;
+var goldfallPool = [];                       // the airborne items, oldest first
+var goldfallTimer = null;
+function goldfallCap() { return skyPhraseActive ? 2 : 3; }  // SKY PHRASES: <=2 in the opening, <=3 later
 
 function scheduleGoldfall(delay) {
   if (stagedActive() && prologueActive) return;      // never during the crib
+  if (skyPhraseActive) return;                       // the phrase conductor owns the sky during the opening
+  /* SKY PHRASES (witness #8): a fresh staged World 1-2 session opens with
+     the scripted phrases instead of the random gap — dense, deterministic,
+     never boring. After the opening hands off, this schedule resumes. */
+  if (stagedActive() && currentWorld() <= 2 && !skyOpeningDone) { startSkyPhrases(); return; }
   clearTimeout(goldfallTimer);
   /* freeze soft-progression-v1: in the early worlds the calm rain IS the
      main activity — frequent, slow, one at a time. Later it relaxes back
@@ -7658,10 +7665,10 @@ function skyScaleFreq(step) {
 }
 
 var SKYFALL_TABLE = [
-  { glyph: "🪙", world: 1, weight: 3, fall: 5.5, kind: "zol"    },  // the quicker coin (also the debug pin)
-  { glyph: "🪙", world: 1, weight: 6, fall: 8,   kind: "zol"    },  // slow coins from minute one
-  { glyph: "🔮", world: 1, weight: 3, fall: 10,  kind: "sap"    },  // the gentle violet drop
-  { glyph: "💎", world: 1, weight: 1, fall: 3.6, kind: "zolBig" },  // rare: the special catch
+  { glyph: "🪙", world: 1, weight: 3, fall: 5.5, kind: "zol",    zol: 2 },  // the quicker coin (also the debug pin)
+  { glyph: "🪙", world: 1, weight: 6, fall: 8,   kind: "zol",    zol: 1 },  // slow coins from minute one
+  { glyph: "🔮", world: 1, weight: 3, fall: 10,  kind: "sap"    },          // the gentle violet drop
+  { glyph: "💎", world: 1, weight: 1, fall: 3.6, kind: "zolBig", zol: 5 },  // rare: the special catch
   { glyph: "🪨", world: 2, weight: 2, fall: 7,   kind: "bonk", announce: true }, // the ONE avoid-item, announced
   { glyph: "🍂", world: 2, weight: 2, fall: 12,  kind: "odd"    },  // a drifting leaf. it is a leaf.
   { glyph: "🪰", world: 3, weight: 2, fall: 5,   kind: "odd"    }   // the bog-fly. you'll learn.
@@ -7671,7 +7678,6 @@ var SKYFALL_ODD_LINES = {
   "🪰": "EW. Why. WHY.",
   "🪨": "BONK. That was a rock. We do not catch rocks."
 };
-var goldfallItem = null;
 function pickSkyfallItem() {
   var w = stagedActive() ? currentWorld() : 4;
   var pool = SKYFALL_TABLE.filter(function (it) { return it.world <= w; });
@@ -7681,58 +7687,75 @@ function pickSkyfallItem() {
   for (i = 0; i < pool.length; i++) { roll -= pool[i].weight; if (roll <= 0) return pool[i]; }
   return pool[0];
 }
-function spawnGoldfall(forceGlyph) {
-  if (goldfallEl) { scheduleGoldfall(); return; }
-  if (typeof arrivalStarEl !== "undefined" && arrivalStarEl) { scheduleGoldfall(); return; } // freeze: rain yields to the star
+/* the shared dropper — ambient, debug and phrase spawns all land here.
+   xPct null → random lane (ambient law); a number → the phrase's scripted
+   lane (the opening stays Math.random-free). Returns the pool entry. */
+function spawnGoldfallItem(item, xPct) {
+  if (typeof arrivalStarEl !== "undefined" && arrivalStarEl) return null; // freeze: rain yields to the star
   var world = document.getElementById("world");
-  if (!world) { scheduleGoldfall(); return; }
-  var item = null;
-  if (forceGlyph) {
-    for (var i = 0; i < SKYFALL_TABLE.length; i++) if (SKYFALL_TABLE[i].glyph === forceGlyph) { item = SKYFALL_TABLE[i]; break; }
-  }
-  if (!item) item = pickSkyfallItem();
-  goldfallItem = item;
+  if (!world) return null;
+  if (goldfallPool.length >= goldfallCap()) return null;
   if (item.announce && window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(110);  // the stone announces itself, low
   var el = document.createElement("div");
   el.className = "goldfall";
-  el.innerHTML = '<span class="gf-spin">' + item.glyph + '</span>';   // spin the glyph, not the hitbox (debugger-goblin: rotateY collapsed taps to ~2px)
-  el.style.left = randi(10, 90) + "%";
+  el.innerHTML = '<span class="gf-spin">' + item.glyph + '</span>';   // spin the glyph, not the hitbox (debugger-goblin fix)
+  el.style.left = (xPct == null ? randi(10, 90) : xPct) + "%";
   el.style.top = "-6%";
   el.style.transition = "top " + item.fall + "s linear";  // per-item speed (witness #7)
   world.appendChild(el);
-  goldfallEl = el;
+  var entry = { el: el, item: item, missTimer: null };
+  goldfallPool.push(entry);
   el.addEventListener("pointerdown", function (e) {
     e.stopPropagation();
-    catchGoldfall(e);
+    catchGoldfall(e, el);
   });
   /* let layout settle, then fall — catchable the whole way down */
   requestAnimationFrame(function () {
     requestAnimationFrame(function () { el.style.top = "104%"; });
   });
-  skyRain(true);                        // the rain is HEARD while it falls
-  goldfallMissTimer = setTimeout(function () {
+  skyRain(true);                        // the rain is HEARD while ANY item falls
+  entry.missTimer = setTimeout(function () {
     /* missed: the ground keeps it, silently */
-    if (goldfallEl === el) {
+    var k = goldfallPool.indexOf(entry);
+    if (k !== -1) {
+      goldfallPool.splice(k, 1);
       el.remove();
-      goldfallEl = null;
-      goldfallItem = null;
-      skyRain(false);                   // ...and the crickets return
-      scheduleGoldfall();
+      if (!goldfallPool.length) skyRain(false);   // last one down: the crickets return
+      if (!skyPhraseActive) scheduleGoldfall();
     }
   }, item.fall * 1000 + 700);
+  return entry;
 }
 
-function catchGoldfall(e) {
-  var el = goldfallEl;
-  if (!el) return;
-  var item = goldfallItem || SKYFALL_TABLE[0];
-  goldfallEl = null;
-  goldfallItem = null;
-  clearTimeout(goldfallMissTimer);
+function spawnGoldfall(forceGlyph) {
+  /* debug pins (forceGlyph) stay singleton-guarded — gates/G1: a double
+     debug-spawn must never stack, even though ambient may layer up to the cap. */
+  if (goldfallPool.length && (forceGlyph || goldfallPool.length >= goldfallCap())) { scheduleGoldfall(); return; }
+  var item = null;
+  if (forceGlyph) {
+    for (var i = 0; i < SKYFALL_TABLE.length; i++) if (SKYFALL_TABLE[i].glyph === forceGlyph) { item = SKYFALL_TABLE[i]; break; }
+  }
+  if (!item) item = pickSkyfallItem();
+  if (!spawnGoldfallItem(item, null)) { scheduleGoldfall(); return; }
+}
+
+function catchGoldfall(e, targetEl) {
+  var entry = null, k;
+  if (targetEl) {
+    for (k = 0; k < goldfallPool.length; k++) if (goldfallPool[k].el === targetEl) { entry = goldfallPool.splice(k, 1)[0]; break; }
+  } else if (goldfallPool.length) {
+    entry = goldfallPool.shift();       // debug contract: no target = the OLDEST airborne item
+  }
+  if (!entry) return;
+  var el = entry.el;
+  var item = entry.item || SKYFALL_TABLE[0];
+  clearTimeout(entry.missTimer);
   ensureAudio(); resumeAudio();
   var r = el.getBoundingClientRect();
   if (item.kind === "zol" || item.kind === "zolBig") {
-    var amt = item.kind === "zolBig" ? randi(6, 10) : randi(2, 5);
+    /* SKY PHRASES economy: opening drops carry their own worth (+1/+2/+5);
+       the ambient table keeps the classic randi payouts. */
+    var amt = item.zol != null ? item.zol : (item.kind === "zolBig" ? randi(6, 10) : randi(2, 5));
     S.learning.zolBalance += amt;
     Sound.glingGling(amt);
     Sound.solfaDegree(skyScaleFreq(skyScaleStep)); skyScaleStep++;   /* the catch walks the scale */
@@ -7763,11 +7786,145 @@ function catchGoldfall(e) {
   }
   el.classList.add("caught");
   setTimeout(function () { el.remove(); }, 500);
-  skyRain(false);                       // caught: the sky quiets, the crickets return
+  if (!goldfallPool.length) skyRain(false);   // caught the last one: the sky quiets, the crickets return
   saveState();
   renderTopbar();
   renderReplayStrip();
-  scheduleGoldfall();
+  if (!skyPhraseActive) scheduleGoldfall();
+}
+
+/* ---------------------------------------------------------------------
+   SKY PHRASES — witness #8: "the beginning is too boring." Law: slow
+   unlocks + dense playful moments. A fresh staged World 1-2 session gets a
+   scripted, DETERMINISTIC opening — ordered phrases of drops with scripted
+   lanes, speeds and worth (no Math.random anywhere in here), chained on
+   timers (never rAF math, so a suspended tab resumes cleanly). Guarantees:
+   first gem < 70s of rain · first hazard (the announced stone) > 50s ·
+   never more than 2 items airborne · never an empty sky longer than 4s.
+   After ~5 minutes the conductor bows out and the ambient weighted table
+   (pickSkyfallItem) takes the sky back. Economy: coins +1, fast coins +2,
+   the gem +5 — a perfect-catch opening totals 38 ZOL over 5 minutes
+   (head 18 + two loop passes of 10), inside the reviewed 25-40 band.
+--------------------------------------------------------------------- */
+var SKY_DROP_COIN  = { glyph: "🪙", fall: 6,  kind: "zol",    zol: 1 };  // 🪙 the slow opening coin
+var SKY_DROP_FAST  = { glyph: "🪙", fall: 4,  kind: "zol",    zol: 2 };  // 🪙 the quick one
+var SKY_DROP_GEM   = { glyph: "💎", fall: 5,  kind: "zolBig", zol: 5 };  // 💎 the guaranteed first gem
+var SKY_DROP_STONE = { glyph: "🪨", fall: 7,  kind: "bonk", announce: true }; // 🪨 the announced hazard
+var SKY_DROP_LEAF  = { glyph: "🍂", fall: 10, kind: "odd"    };           // 🍂 it is a leaf
+var SKY_DROP_SAP   = { glyph: "🔮", fall: 9,  kind: "sap"    };           // 🔮 the gentle violet drop
+/* each drop: {delayMs from phrase start, item, x lane %}. restMs = empty-sky
+   pause AFTER the phrase's last item lands (always < 4000). beat = a goblin
+   reacts when the phrase ends. Indexes 0-4 play once (the head); the rest
+   loop as mild variations until the 5-minute handoff. */
+var SKY_LOOP_START = 5;
+var SKY_LEAD_MS = 2500;                 // graduation cascade breathes, then the first coin
+var SKY_OPENING_MS = 300000;            // ~5 min, then the weighted table takes over
+var SKY_PHRASES = [
+  /* P1 — two slow hellos, 900ms apart */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 34 }, { delayMs: 900, item: SKY_DROP_COIN, x: 58 }], restMs: 1500 },
+  /* P2 — three coins, one of them quick; Lulu notices */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 26 }, { delayMs: 1000, item: SKY_DROP_FAST, x: 64 }, { delayMs: 5200, item: SKY_DROP_COIN, x: 46 }], restMs: 1800, beat: true },
+  /* P3 — two coins and the GUARANTEED gem (spawns ~30s in, well under 70s) */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 60 }, { delayMs: 4800, item: SKY_DROP_FAST, x: 30 }, { delayMs: 6200, item: SKY_DROP_GEM, x: 50 }], restMs: 2000 },
+  /* filler — two easy coins so the stone lands past the 50s line */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 40 }, { delayMs: 2600, item: SKY_DROP_COIN, x: 70 }], restMs: 2400 },
+  /* P4 — coin, the ANNOUNCED stone (~52s in, past 50s), coin */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 55 }, { delayMs: 5600, item: SKY_DROP_STONE, x: 35 }, { delayMs: 9800, item: SKY_DROP_COIN, x: 65 }], restMs: 2600 },
+  /* — the loop: mildly varied, still scripted — */
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 44 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_FAST, x: 62 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 30 }, { delayMs: 2400, item: SKY_DROP_COIN, x: 70 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 52 }, { delayMs: 5400, item: SKY_DROP_SAP, x: 24 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 38 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 66 }, { delayMs: 3000, item: SKY_DROP_COIN, x: 28 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 48 }, { delayMs: 4600, item: SKY_DROP_STONE, x: 72 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 20 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 58 }], restMs: 3800 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 50 }], restMs: 3600 }
+];
+var skyPhraseActive = false, skyOpeningDone = false;
+var skyPhraseIdx = 0, skyPhraseStartedAt = 0, skyPhraseTimers = [];
+
+/* how long a phrase holds the sky: its last landing (max delay + fall) */
+function skyPhraseSpan(ph) {
+  var lastEnd = 0, i, e;
+  for (i = 0; i < ph.drops.length; i++) {
+    e = ph.drops[i].delayMs + ph.drops[i].item.fall * 1000;
+    if (e > lastEnd) lastEnd = e;
+  }
+  return lastEnd;
+}
+
+/* the whole opening, simulated on a paper clock — pure, deterministic, no
+   timers, no Date, no random. The gates replay this to prove the laws. */
+function skyPhrasePlan(horizonMs) {
+  var out = [], t = SKY_LEAD_MS, idx = 0, i, d, ph;
+  while (t < (horizonMs || SKY_OPENING_MS)) {
+    ph = SKY_PHRASES[idx];
+    for (i = 0; i < ph.drops.length; i++) {
+      d = ph.drops[i];
+      out.push({ t: t + d.delayMs, land: t + d.delayMs + d.item.fall * 1000,
+        glyph: d.item.glyph, kind: d.item.kind, zol: d.item.zol || 0, x: d.x });
+    }
+    t += skyPhraseSpan(ph) + ph.restMs;
+    idx = idx + 1 < SKY_PHRASES.length ? idx + 1 : SKY_LOOP_START;
+  }
+  return out;
+}
+
+function startSkyPhrases() {
+  if (skyPhraseActive || skyOpeningDone) return;
+  if (stagedActive() && prologueActive) return;      // never during the crib (same law as scheduleGoldfall)
+  skyPhraseActive = true;
+  skyPhraseStartedAt = Date.now();                   // boot zone: the clock reads only for the 5-min handoff
+  skyPhraseIdx = 0;
+  clearTimeout(goldfallTimer);                       // one conductor at a time
+  skyPhraseTimers.push(setTimeout(playSkyPhrase, SKY_LEAD_MS));
+}
+
+function stopSkyPhrases() {
+  skyPhraseActive = false;
+  for (var i = 0; i < skyPhraseTimers.length; i++) clearTimeout(skyPhraseTimers[i]);
+  skyPhraseTimers = [];
+}
+
+function endSkyPhrases() {
+  if (!skyPhraseActive) return;
+  stopSkyPhrases();
+  skyOpeningDone = true;                             // once per session — the sky remembers
+  scheduleGoldfall();                                // hand off to the weighted-random table
+}
+
+function playSkyPhrase() {
+  if (!skyPhraseActive) return;
+  if (stagedActive() && prologueActive) { stopSkyPhrases(); return; }       // the crib reclaimed the stage
+  if (!stagedActive() || currentWorld() > 2) { endSkyPhrases(); return; }   // grown past the opening's worlds
+  if (Date.now() - skyPhraseStartedAt >= SKY_OPENING_MS) { endSkyPhrases(); return; }
+  var ph = SKY_PHRASES[skyPhraseIdx];
+  skyPhraseIdx = skyPhraseIdx + 1 < SKY_PHRASES.length ? skyPhraseIdx + 1 : SKY_LOOP_START;
+  ph.drops.forEach(function (d) {
+    skyPhraseTimers.push(setTimeout(function () { spawnSkyDrop(d); }, d.delayMs));
+  });
+  var span = skyPhraseSpan(ph);
+  if (ph.beat) skyPhraseTimers.push(setTimeout(skyPhraseBeat, span + 300));
+  /* timer-chained: the next phrase books itself off this one's last landing */
+  skyPhraseTimers.push(setTimeout(playSkyPhrase, span + ph.restMs));
+}
+
+function spawnSkyDrop(d) {
+  if (!skyPhraseActive) return;
+  if (stagedActive() && prologueActive) return;      // same entry guards as the ambient path
+  /* arrival stars pause the rain (existing check inside spawnGoldfallItem);
+     the phrase carries on — a skipped drop stays skipped, order holds. */
+  spawnGoldfallItem(d.item, d.x);
+}
+
+/* the P2 reaction beat — a friendly voice notices the generous sky */
+function skyPhraseBeat() {
+  if (!skyPhraseActive) return;
+  var ids = Object.keys(S.goblins).filter(goblinRevealed);
+  showBubble(ids.indexOf("lulu") !== -1 ? "lulu" : (ids[0] || "lulu"),
+    "The sky is *giving* today... catch them, quick-quick!", 3600, true);
 }
 
 /* ---------------------------------------------------------------------
@@ -8047,8 +8204,14 @@ document.addEventListener("visibilitychange", function () {
     }
     /* goldfall ghost-stall: a coin whose element died while hidden would
        block all future rain behind the singleton — reconcile, re-arm */
-    if (goldfallEl && !goldfallEl.isConnected) { goldfallEl = null; goldfallItem = null; skyRain(false); }
-    if (!goldfallEl && S && S.flags && S.flags.prologueSeen) scheduleGoldfall(randi(2000, 6000));
+    /* pool semantics (SKY PHRASES): drop dead entries, quiet the rain if empty */
+    goldfallPool = goldfallPool.filter(function (g) {
+      if (g.el && g.el.isConnected) return true;
+      clearTimeout(g.missTimer);
+      return false;
+    });
+    if (!goldfallPool.length) skyRain(false);
+    if (!goldfallPool.length && !skyPhraseActive && S && S.flags && S.flags.prologueSeen) scheduleGoldfall(randi(2000, 6000));
   } catch (e) { /* never let a resume hook break play */ }
 });
 
@@ -9866,7 +10029,13 @@ window.WARREN_DEBUG = {
   /* goldfall */
   spawnGoldfall: function (glyph) { spawnGoldfall(glyph || "\ud83e\ude99"); },
   catchGoldfall: function () { catchGoldfall(); },
-  goldfallActive: function () { return !!goldfallEl; },
+  goldfallActive: function () { return goldfallPool.length > 0; },
+  /* sky phrases (witness #8) */
+  startSkyPhrases: function () { startSkyPhrases(); return skyPhraseActive; },
+  endSkyPhrases: function () { endSkyPhrases(); },
+  skyPhraseState: function () { return { active: skyPhraseActive, done: skyOpeningDone, idx: skyPhraseIdx, airborne: goldfallPool.length, startedAt: skyPhraseStartedAt }; },
+  skyPhrasePlan: function (ms) { return skyPhrasePlan(ms || SKY_OPENING_MS); },
+  goldfallAirborne: function () { return goldfallPool.map(function (g) { return { glyph: g.item.glyph, left: g.el.style.left, zol: g.item.zol || 0 }; }); },
   /* matcha craving (VISION_V1_28 §3) */
   spawnMatchaCraving: function () { spawnMatchaCraving(); },
   pickUpMatcha: function () { onTapMatchaCup(); },
