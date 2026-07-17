@@ -156,6 +156,13 @@ var GOBLIN_DEFS = [
 var TINK_DEF = { id: "tink", name: "Tink", role: "Tinkerer", trait: "inventive", color: "#d9c46b",
   preference: "spire", aversion: "garden", homeTask: "contraptioning" };
 
+/* BRAM — THE SECOND VOICE (Bonding Ladder Rung 6; operator cast sheet:
+   "BRAM // REPAIRER", trace bias = WARNING). He arrives with World 2 —
+   the forge's world, his home — and stays. Not in GOBLIN_DEFS, same
+   additive discipline as Tink: the core-four save contract is untouched. */
+var BRAM_DEF = { id: "bram", name: "Bram", role: "Repairer", trait: "steady", color: "#a9744c",
+  preference: "forge", aversion: "gate", homeTask: "repairing" };
+
 /* ADOPT A GOBLIN: the six wanderer archetypes, one per return humor — the
    field supplies the mask it currently lacks. Data lives up here because
    mergeDefaults rebuilds an adopted kin at load time. */
@@ -186,7 +193,7 @@ function adoptedDef(a) {
     preference: arch.preference, aversion: arch.aversion, homeTask: arch.homeTask };
 }
 var DEFS_BY_ID = {};
-GOBLIN_DEFS.concat([TINK_DEF]).forEach(function (d) { DEFS_BY_ID[d.id] = d; });
+GOBLIN_DEFS.concat([TINK_DEF, BRAM_DEF]).forEach(function (d) { DEFS_BY_ID[d.id] = d; });
 
 /* Lulu modes — ids are kebab-case per the state contract. */
 var LULU_MODES = [
@@ -355,7 +362,9 @@ function makeState() {
                 a genuinely fresh boot (no save at all). mergeDefaults() and
                 the loadState() belt-and-suspenders below grandfather any
                 pre-existing save to true. */
-             prologueSeen: false },
+             prologueSeen: false,
+             bramArrived: false,   /* BRAM (Rung 6): has the Repairer walked in at World 2? */
+             fauxGemLessons: 0 },  /* FAUX JOYAU: how many times it has been caught (first is free) */
     /* VISION_V1_30 §1 — levels are earned doors, not a free carousel.
        levelsUnlocked holds every chapter id the player has paid the toll
        for; L1 is always free (default [1]).
@@ -424,6 +433,9 @@ function mergeDefaults(loaded) {
     });
     if (loaded.goblins && loaded.goblins.tink) {
       out.goblins.tink = Object.assign({}, makeGoblin(TINK_DEF), loaded.goblins.tink);
+    }
+    if (loaded.goblins && loaded.goblins.bram) {
+      out.goblins.bram = Object.assign({}, makeGoblin(BRAM_DEF), loaded.goblins.bram);
     }
     if (loaded.adopted && loaded.adopted.id && loaded.adopted.name) {
       out.adopted = loaded.adopted;
@@ -5758,9 +5770,10 @@ var BOOP_LINES = {
   pip:  ["Careful. I'm fragile paperwork. 📄", "Filed under: rude. 🗂️", "Mind the manuscript. 📜", "Noted. Twice. ✍️"],
   nib:  ["Sparks! Superb! 🔥", "Again. For science. 🔧", "A bolt broke loose. Progress. 🔩", "Ooh. Percussive. 🥁"],
   zaz:  ["Mmh. Leaf thoughts. 🍃", "Five more minutes. Forever. 😴", "The soil felt that. So did I. 🌱", "Gently. I'm blooming. 🌸"],
-  tink: ["Mind the meshing gears. ⚙️", "I was calibrating that. 📐", "Boop absorbed. Efficiency plus one. 🔧", "Ooh. New input. Noted. 🔧"]
+  tink: ["Mind the meshing gears. ⚙️", "I was calibrating that. 📐", "Boop absorbed. Efficiency plus one. 🔧", "Ooh. New input. Noted. 🔧"],
+  bram: ["Nothing broken. Yet. 🔨", "That wall holds. I checked twice. 🧱", "Boop logged. Structure sound.", "Careful. Load-bearing goblin."]
 };
-var BOOP_DROPS = { lulu: "🍄", pip: "📜", nib: "🔩", zaz: "🌱", tink: "🔧" };
+var BOOP_DROPS = { lulu: "🍄", pip: "📜", nib: "🔩", zaz: "🌱", tink: "🔧", bram: "🔨" };
 
 function dropParticle(g, emoji, fly) {
   var world = document.getElementById("world");
@@ -6018,6 +6031,53 @@ function ensureTink() {
   if (!goblinEls.tink) buildGoblinEl(TINK_DEF);
   renderGoblins();
   scheduleGoblinTick("tink", 1600);
+}
+
+/* ---------------------------------------------------------------------
+   BRAM — THE SECOND VOICE (Rung 6 of the Bonding Ladder). The Repairer
+   arrives when World 2 opens (his forge wakes), and his trace bias is
+   WARNING: he calls announced hazards mid-air and disapproves, gently,
+   of caught rocks. Ambient only — he never blocks, never admits, never
+   spends. Persistence: S.flags.bramArrived (ensureBram at boot when the
+   flag is set and the play has reached World 2). Same additive pattern
+   as Tink — S.goblins pipelines (render, boops, matcha, ticks) pick him
+   up automatically once he exists.
+--------------------------------------------------------------------- */
+var bramLastWarnAt = 0;                 /* warnings >= 20s apart (session-only) */
+function ensureBram() {
+  if (!S.goblins.bram) S.goblins.bram = makeGoblin(BRAM_DEF);
+  if (!goblinEls.bram) buildGoblinEl(BRAM_DEF);
+  renderGoblins();
+  scheduleGoblinTick("bram", 2100);
+}
+function bramArrive() {
+  ensureBram();
+  if (S.flags.bramArrived) return;      /* the beat plays once, ever */
+  S.flags.bramArrived = true;
+  setTimeout(function () {
+    if (goblinEls.bram) {
+      flashClass(goblinEls.bram, "booped", 600);
+      showBubble("bram", "Someone kept a fire alive. Good. I fix things — holler if something cracks.", 6200);
+    }
+  }, 2400);
+  pushReplay("Bram", "A repairer arrived", "arrival",
+    "Bram walked in by the forge, toolbelt first.", "someone steady watches the cracks now.");
+  renderReplayStrip();
+  saveState();
+}
+/* the WARNING bias, part 1 — an announced hazard is mid-air: he ducks and hollers */
+function bramWarnHazard() {
+  if (!S.goblins.bram || !goblinRevealed("bram") || !goblinEls.bram) return;
+  if (Date.now() - bramLastWarnAt < 20000) return;   /* throttle: ambient, not an alarm */
+  bramLastWarnAt = Date.now();
+  flashClass(goblinEls.bram, "booped", 600);
+  showBubble("bram", pick(["Heads! That one's a LIAR.", "Duck! Not treasure!", "That one BITES."]), 3200);
+}
+/* part 2 — a bonk/odd item got caught anyway: one head-shake, one lesson */
+function bramDisapprove() {
+  if (!S.goblins.bram || !goblinRevealed("bram") || !goblinEls.bram) return;
+  flashClass(goblinEls.bram, "booped", 600);
+  showBubble("bram", "We do not catch rocks. We LEARN this.", 3200);
 }
 
 /* VISION_V1_31 §1 — the visible loop's always-first row: the next locked
@@ -7682,6 +7742,7 @@ var SKYFALL_TABLE = [
   { glyph: "🔮", world: 1, weight: 3, fall: 10,  kind: "sap"    },          // the gentle violet drop
   { glyph: "💎", world: 1, weight: 1, fall: 3.6, kind: "zolBig", zol: 5 },  // rare: the special catch
   { glyph: "🪨", world: 2, weight: 2, fall: 7,   kind: "bonk", announce: true }, // the ONE avoid-item, announced
+  { glyph: "🔥", world: 2, weight: 1, fall: 5,   kind: "fauxGem", announce: true }, // THE FAUX JOYAU — glitters wrong, burns true. Never World 1.
   { glyph: "🍂", world: 2, weight: 2, fall: 12,  kind: "odd"    },  // a drifting leaf. it is a leaf.
   { glyph: "🪰", world: 3, weight: 2, fall: 5,   kind: "odd"    }   // the bog-fly. you'll learn.
 ];
@@ -7708,8 +7769,12 @@ function spawnGoldfallItem(item, xPct) {
   if (!world) return null;
   if (goldfallPool.length >= goldfallCap()) return null;
   if (item.announce && window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(110);  // the stone announces itself, low
+  if (item.announce) bramWarnHazard();  // BRAM's WARNING bias: the repairer calls the hazard mid-air (>=20s apart)
   var el = document.createElement("div");
   el.className = "goldfall";
+  /* the faux joyau is recognizable WITHOUT color or sound alone (fairness
+     law, operator-locked): an irregular off-tempo pulse + a smoke wisp. */
+  if (item.kind === "fauxGem") el.className += " faux-gem";
   el.innerHTML = '<span class="gf-spin">' + item.glyph + '</span>';   // spin the glyph, not the hitbox (debugger-goblin fix)
   el.style.left = (xPct == null ? randi(10, 90) : xPct) + "%";
   el.style.top = "-6%";
@@ -7781,11 +7846,42 @@ function catchGoldfall(e, targetEl) {
     Sound.solfaDegree(skyScaleFreq(skyScaleStep)); skyScaleStep++;   /* sap is a true catch too */
     pushReplay("The Sky", "A drop of sap fell", "goldfall-sap",
       "a slow violet drop, caught. +1 sap", "the sky feeds the Warren too.");
+  } else if (item.kind === "fauxGem") {
+    /* THE FAUX JOYAU (operator-locked spec, CORRUPTED_GEM): it looks gem-like
+       and it burns. The FIRST-ever touch is a free lesson — zero loss, coins
+       kept. Every touch after that costs 2 ZOL (never below 0) and leaves a
+       soot mark. Ignored, it vanishes like anything else. A receipt, always. */
+    Sound.solfaBent(skyScaleFreq(skyScaleStep));   /* the flat note: not a true catch */
+    var lessons = S.flags.fauxGemLessons || 0;
+    var voiceF = Object.keys(S.goblins).filter(goblinRevealed);
+    if (lessons === 0) {
+      S.flags.fauxGemLessons = 1;
+      flashClass(document.getElementById("zol-wallet"), "zol-pop", 900);  /* the flash: coins checked, coins kept */
+      if (voiceF.length) showBubble(pick(voiceF), "HOT! ...not a gem. Lesson kept, coins kept.", 3600);
+      if (S.goblins.bram && goblinRevealed("bram") && goblinEls.bram) {
+        flashClass(goblinEls.bram, "booped", 600);
+        setTimeout(function () {
+          if (goblinEls.bram) showBubble("bram", "*fff... fff* — hot. First burn is free. Remember the wobble.", 3600);
+        }, 900);
+      }
+      pushReplay("The Sky", "A faux joyau burned", "faux-gem",
+        "the fire-gem was caught once. BRÛLANT — zero coins lost, first lesson free.",
+        "not everything gem-shaped is a gem.");
+    } else {
+      S.flags.fauxGemLessons = lessons + 1;
+      S.learning.zolBalance = Math.max(0, S.learning.zolBalance - 2);
+      sootMark(r.left + r.width / 2, r.top + r.height / 2);
+      if (voiceF.length) showBubble(pick(voiceF), "hot AND expensive. The sky tests us.", 3600);
+      pushReplay("The Sky", "A faux joyau burned again", "faux-gem",
+        "the fire-gem again. -2 ZOL and a soot mark that fades.",
+        "the sky tests us. we pay tuition.");
+    }
   } else if (item.kind === "bonk") {
     if (window.Sound && Sound.uiClick) Sound.uiClick();
     Sound.solfaBent(skyScaleFreq(skyScaleStep));   /* the flat note: the ladder waits */
     var voice2 = Object.keys(S.goblins).filter(goblinRevealed);
     if (voice2.length) showBubble(pick(voice2), SKYFALL_ODD_LINES["🪨"], 3200);
+    bramDisapprove();                              /* one head-shake from the repairer */
     pushReplay("The Sky", "A rock fell", "skyfall-odd",
       "you caught a rock. bonk. zero coins lost — lesson kept.", "we do not catch rocks.");
   } else {
@@ -7793,6 +7889,7 @@ function catchGoldfall(e, targetEl) {
     Sound.solfaBent(skyScaleFreq(skyScaleStep));   /* the flat note: the ladder waits */
     var voice = Object.keys(S.goblins).filter(goblinRevealed);
     if (voice.length) showBubble(pick(voice), SKYFALL_ODD_LINES[item.glyph] || "...huh.", 3200);
+    bramDisapprove();                              /* one head-shake from the repairer */
     pushReplay("The Sky", "Something odd fell", "skyfall-odd",
       "you caught " + item.glyph + ". it was " + item.glyph + ".", "not everything that falls is treasure.");
   }
@@ -7803,6 +7900,21 @@ function catchGoldfall(e, targetEl) {
   renderTopbar();
   renderReplayStrip();
   if (!skyPhraseActive) scheduleGoldfall();
+}
+
+/* a temporary soot smudge where the faux joyau burned — dark, translucent,
+   gone in ~4s. Pure decoration: it blocks nothing and saves nothing. */
+function sootMark(cx, cy) {
+  var world = document.getElementById("world");
+  if (!world) return;
+  var wr = world.getBoundingClientRect();
+  if (!wr.width || !wr.height) return;
+  var m = document.createElement("div");
+  m.className = "soot-mark";
+  m.style.left = (((cx - wr.left) / wr.width) * 100) + "%";
+  m.style.top = (((cy - wr.top) / wr.height) * 100) + "%";
+  world.appendChild(m);
+  setTimeout(function () { if (m.parentNode) m.remove(); }, 4000);
 }
 
 /* ---------------------------------------------------------------------
@@ -7824,6 +7936,17 @@ var SKY_DROP_GEM   = { glyph: "💎", fall: 5,  kind: "zolBig", zol: 5 };  // �
 var SKY_DROP_STONE = { glyph: "🪨", fall: 7,  kind: "bonk", announce: true }; // 🪨 the announced hazard
 var SKY_DROP_LEAF  = { glyph: "🍂", fall: 10, kind: "odd"    };           // 🍂 it is a leaf
 var SKY_DROP_SAP   = { glyph: "🔮", fall: 9,  kind: "sap"    };           // 🔮 the gentle violet drop
+/* 🔥 the faux joyau, leaf-timed on purpose: fall 10 and zol 0, exactly the
+   leaf it replaces in the loop — the plan's tempo, overlap and 25-40 ZOL
+   economy stay byte-identical (gates S5/S6/S7 untouched by design). */
+var SKY_DROP_FAUX  = { glyph: "🔥", fall: 10, kind: "fauxGem", announce: true };
+/* the fairness ladder: the first deception comes only AFTER the stone is
+   learned — World 1 never sees the faux joyau. In World 1 the same slot
+   falls as the honest leaf (identical timing and worth), so the scripted
+   opening stays deterministic in both worlds. */
+function skyDropForWorld(item, w) {
+  return (item.kind === "fauxGem" && w < 2) ? SKY_DROP_LEAF : item;
+}
 /* each drop: {delayMs from phrase start, item, x lane %}. restMs = empty-sky
    pause AFTER the phrase's last item lands (always < 4000). beat = a goblin
    reacts when the phrase ends. Indexes 0-4 play once (the head); the rest
@@ -7845,14 +7968,14 @@ var SKY_PHRASES = [
   /* — the loop: mildly varied, still scripted — */
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 44 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_FAST, x: 62 }], restMs: 3600 },
-  { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 30 }, { delayMs: 2400, item: SKY_DROP_COIN, x: 70 }], restMs: 3600 },
+  { drops: [{ delayMs: 0, item: SKY_DROP_FAUX, x: 30 }, { delayMs: 2400, item: SKY_DROP_COIN, x: 70 }], restMs: 3600 },  /* W2: the faux joyau (leaf in W1) */
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 52 }, { delayMs: 5400, item: SKY_DROP_SAP, x: 24 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 38 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 66 }, { delayMs: 3000, item: SKY_DROP_COIN, x: 28 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 48 }, { delayMs: 4600, item: SKY_DROP_STONE, x: 72 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 20 }], restMs: 3600 },
   { drops: [{ delayMs: 0, item: SKY_DROP_COIN, x: 58 }], restMs: 3800 },
-  { drops: [{ delayMs: 0, item: SKY_DROP_LEAF, x: 50 }], restMs: 3600 }
+  { drops: [{ delayMs: 0, item: SKY_DROP_FAUX, x: 50 }], restMs: 3600 }   /* W2: the faux joyau again (leaf in W1) */
 ];
 var skyPhraseActive = false, skyOpeningDone = false;
 var skyPhraseIdx = 0, skyPhraseStartedAt = 0, skyPhraseTimers = [];
@@ -7869,14 +7992,16 @@ function skyPhraseSpan(ph) {
 
 /* the whole opening, simulated on a paper clock — pure, deterministic, no
    timers, no Date, no random. The gates replay this to prove the laws. */
-function skyPhrasePlan(horizonMs) {
-  var out = [], t = SKY_LEAD_MS, idx = 0, i, d, ph;
+function skyPhrasePlan(horizonMs, world) {
+  var w = world == null ? 2 : world;    /* default: the opening's full W2 shape */
+  var out = [], t = SKY_LEAD_MS, idx = 0, i, d, ph, it;
   while (t < (horizonMs || SKY_OPENING_MS)) {
     ph = SKY_PHRASES[idx];
     for (i = 0; i < ph.drops.length; i++) {
       d = ph.drops[i];
-      out.push({ t: t + d.delayMs, land: t + d.delayMs + d.item.fall * 1000,
-        glyph: d.item.glyph, kind: d.item.kind, zol: d.item.zol || 0, x: d.x });
+      it = skyDropForWorld(d.item, w);  /* leaf-timed either way: t/land/zol identical */
+      out.push({ t: t + d.delayMs, land: t + d.delayMs + it.fall * 1000,
+        glyph: it.glyph, kind: it.kind, zol: it.zol || 0, x: d.x });
     }
     t += skyPhraseSpan(ph) + ph.restMs;
     idx = idx + 1 < SKY_PHRASES.length ? idx + 1 : SKY_LOOP_START;
@@ -7928,7 +8053,7 @@ function spawnSkyDrop(d) {
   if (stagedActive() && prologueActive) return;      // same entry guards as the ambient path
   /* arrival stars pause the rain (existing check inside spawnGoldfallItem);
      the phrase carries on — a skipped drop stays skipped, order holds. */
-  spawnGoldfallItem(d.item, d.x);
+  spawnGoldfallItem(skyDropForWorld(d.item, currentWorld()), d.x);
 }
 
 /* the P2 reaction beat — a friendly voice notices the generous sky */
@@ -9365,7 +9490,7 @@ function applyWorldReveal(celebrate) {
 /* ambient organs come alive with their world — called on advance AND from
    graduateCrib's staged path; boot's schedulers are entry-guarded instead */
 function startWorldAmbient(w) {
-  if (w === 2) { scheduleMoth(randi(6000, 14000)); scheduleGoldfall(randi(20000, 45000)); }
+  if (w === 2) { scheduleMoth(randi(6000, 14000)); scheduleGoldfall(randi(20000, 45000)); bramArrive(); }
   if (w === 3) {
     bootScriptedArc();                                   // the bug, then Gerald's proposal
     if (!S.adopted) wandererTimer = setTimeout(spawnWanderer, randi(40000, 90000));
@@ -10252,7 +10377,13 @@ window.WARREN_DEBUG = {
   startSkyPhrases: function () { startSkyPhrases(); return skyPhraseActive; },
   endSkyPhrases: function () { endSkyPhrases(); },
   skyPhraseState: function () { return { active: skyPhraseActive, done: skyOpeningDone, idx: skyPhraseIdx, airborne: goldfallPool.length, startedAt: skyPhraseStartedAt }; },
-  skyPhrasePlan: function (ms) { return skyPhrasePlan(ms || SKY_OPENING_MS); },
+  skyPhrasePlan: function (ms, w) { return skyPhrasePlan(ms || SKY_OPENING_MS, w); },
+  /* Bram, the Second Voice (Rung 6) */
+  ensureBram: function () { ensureBram(); },
+  bramArrive: function () { bramArrive(); },
+  getBram: function () { return { inState: !!S.goblins.bram, inDom: !!document.getElementById("goblin-bram"),
+    arrived: !!S.flags.bramArrived, lastWarnAt: bramLastWarnAt, lessons: S.flags.fauxGemLessons || 0 }; },
+  setBramWarnAt: function (t) { bramLastWarnAt = t || 0; },
   goldfallAirborne: function () { return goldfallPool.map(function (g) { return { glyph: g.item.glyph, left: g.el.style.left, zol: g.item.zol || 0 }; }); },
   /* matcha craving (VISION_V1_28 §3) */
   spawnMatchaCraving: function () { spawnMatchaCraving(); },
@@ -10411,6 +10542,8 @@ function boot() {
       ensureTink();
       scheduleCrown(randi(30000, 90000));
     }
+    /* Bram persists: once arrived (World 2), a reload keeps him home */
+    if (S.flags.bramArrived && worldAtLeast(2)) ensureBram();
   }
   /* VISION_PROGRESSION §1 — the crib runs whenever the player has not yet
      graduated the Bonding Ladder (prologueSeen false). Unlike the old
