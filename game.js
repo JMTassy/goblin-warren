@@ -746,6 +746,8 @@ function startAmbient() {
     };
     ambient.birdTimer = setTimeout(visit, 20000);
   }
+
+  startSkyAmbience();   // rain-breath + om drone (opérateur 2026-07-17)
 }
 
 function applyAmbientMute() {
@@ -757,6 +759,64 @@ function applyAmbientMute() {
     if (muted) a.pause();
     else if (k !== "birds") a.play().catch(function () {});
   });
+  if (skyAmb.master) skyAmb.master.gain.value = muted ? 0 : 1;
+}
+
+/* ── SKY AMBIENCE — opérateur, 2026-07-17: "le sound design de pluie
+   accompagne la pluie, et quand la pluie s'arrête les grillons
+   reviennent... boucles hypnotiques ambiantes indian style, type
+   ommmmm léger et doux."
+   Rain patter breathes IN while something falls from the sky and OUT
+   when it is quiet; the bundled cricket loop ducks under the rain and
+   returns after. Underneath, a synthesized om — 136.1 Hz, the
+   traditional Om tuning (wonder, not medicine) — breathes on a slow
+   LFO, barely there. All synth, all local, mute-lawful via one master
+   gain. */
+var skyAmb = { started: false, master: null, rainGain: null, omGain: null };
+function startSkyAmbience() {
+  if (skyAmb.started) return;
+  var ctx = ensureAudio();
+  if (!ctx) return;
+  skyAmb.started = true;
+  var master = ctx.createGain();
+  master.gain.value = ambientAllowed() ? 1 : 0;
+  master.connect(ctx.destination);
+  skyAmb.master = master;
+  /* rain: looped filtered noise, silent until something falls */
+  var len = Math.floor(ctx.sampleRate * 2);
+  var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  var srcN = ctx.createBufferSource();
+  srcN.buffer = buf; srcN.loop = true;
+  var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 500;
+  var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1200;
+  var rg = ctx.createGain(); rg.gain.value = 0;
+  srcN.connect(hp); hp.connect(lp); lp.connect(rg); rg.connect(master);
+  srcN.start();
+  skyAmb.rainGain = rg;
+  /* om: fundamental + soft octave, breathing at ~0.07 Hz */
+  var og = ctx.createGain(); og.gain.value = 0.016;
+  var lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
+  var lfoG = ctx.createGain(); lfoG.gain.value = 0.007;
+  lfo.connect(lfoG); lfoG.connect(og.gain); lfo.start();
+  [[136.1, 1], [272.2, 0.35]].forEach(function (p) {
+    var o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = p[0];
+    var pg = ctx.createGain(); pg.gain.value = 0.9 * p[1];
+    o.connect(pg); pg.connect(og); o.start();
+  });
+  og.connect(master);
+  skyAmb.omGain = og;
+}
+/* rain in ↔ crickets return: called from the skyfall lifecycle */
+function skyRain(on) {
+  if (!skyAmb.started || !skyAmb.rainGain) return;
+  var ctx = actx;
+  if (!ctx) return;
+  skyAmb.rainGain.gain.cancelScheduledValues(ctx.currentTime);
+  skyAmb.rainGain.gain.setValueAtTime(skyAmb.rainGain.gain.value, ctx.currentTime);
+  skyAmb.rainGain.gain.linearRampToValueAtTime(on ? 0.05 : 0, ctx.currentTime + 1.4);
+  if (ambient.nature) ambient.nature.volume = on ? 0.05 : 0.13;   // the crickets duck, then RETURN
 }
 
 function tone(freq, start, dur, type, gain, glideTo) {
@@ -7476,12 +7536,14 @@ function spawnGoldfall(forceGlyph) {
   requestAnimationFrame(function () {
     requestAnimationFrame(function () { el.style.top = "104%"; });
   });
+  skyRain(true);                        // the rain is HEARD while it falls
   goldfallMissTimer = setTimeout(function () {
     /* missed: the ground keeps it, silently */
     if (goldfallEl === el) {
       el.remove();
       goldfallEl = null;
       goldfallItem = null;
+      skyRain(false);                   // ...and the crickets return
       scheduleGoldfall();
     }
   }, item.fall * 1000 + 700);
@@ -7524,6 +7586,7 @@ function catchGoldfall(e) {
   }
   el.classList.add("caught");
   setTimeout(function () { el.remove(); }, 500);
+  skyRain(false);                       // caught: the sky quiets, the crickets return
   saveState();
   renderTopbar();
   renderReplayStrip();
