@@ -116,6 +116,7 @@
     letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:opacity .25s}
   #flash.show{opacity:1}
   #flash.bad{color:var(--ember)}
+  #flash.freeLesson{color:var(--glow)}
 
   /* ===== pulse ring (L1 — the beat, JS-transform-driven every frame) ===== */
   #pulseWrap{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);
@@ -365,6 +366,8 @@ const V = {
   lastN: -1,                // ledger watermark for UI reactions
   retry: false,
   flashT: 0,
+  lessonSay: "", lessonSayT: 0,   // free-lesson bubble override (view-only)
+  bramShake: 0,                   // Bram head-shake timer (view-only)
   sayText: "", quizQ: -1, quizLevel: -1,
   digestAt: -1, ledgerN: -1, doneFilled: false,
   prevBeatM: -1,            // beat-crossing detector for tick + throb
@@ -407,10 +410,10 @@ addEventListener("pointerdown", audioWake, true);
 addEventListener("keydown", audioWake, true);
 
 const PITCH = { "Do":261.63, "Ré":293.66, "Mi":329.63, "Fa":349.23, "Sol":392.00 };
-function tone(freq, type, dur, vol, slideTo){
+function tone(freq, type, dur, vol, slideTo, at){
   if(!AUDIO.ctx || AUDIO.muted) return;
   try{
-    const t0 = AUDIO.ctx.currentTime;
+    const t0 = AUDIO.ctx.currentTime + (at || 0);
     const o = AUDIO.ctx.createOscillator();
     const g = AUDIO.ctx.createGain();
     o.type = type;
@@ -424,6 +427,11 @@ function tone(freq, type, dur, vol, slideTo){
 }
 function sndPluck(note){ tone(PITCH[note] || 261.63, "triangle", 0.35, 0.30); } // caught note, its pitch
 function sndThud(){ tone(90, "sine", 0.18, 0.35, 50); }                        // faux / ember — dull
+function sndLessonChime(){ // free lesson — a soft descending chime, warm, NOT the thud
+  tone(659.25, "triangle", 0.20, 0.15);
+  tone(523.25, "triangle", 0.22, 0.13, null, 0.16);
+  tone(392.00, "triangle", 0.32, 0.11, null, 0.32);
+}
 function sndTick(){ tone(1700, "square", 0.03, 0.05); }                        // metronome, subtle
 function sndBounce(){ tone(500, "triangle", 0.08, 0.08, 350); }                // off-beat bounce, soft
 function sndDrum(dead){ tone(dead ? 70 : 150, "sine", 0.12, dead ? 0.15 : 0.35, dead ? 45 : 55); }
@@ -496,11 +504,23 @@ els.seedChip.querySelector("b").textContent = SEED;
 
 const LEVEL_TITLES = ["the first fire", "la pluie sonore", "le tambour de bram"];
 
-function flash(msg, bad){
+function flash(msg, bad, freeLesson){
   els.flash.textContent = msg;
   els.flash.classList.toggle("bad", !!bad);
+  els.flash.classList.toggle("freeLesson", !!freeLesson);
   els.flash.classList.add("show");
   V.flashT = 1.6;
+}
+
+/* First catch of a hazard class = a free lesson (stone template): warm
+   feedback, chime-down instead of the thud, NO mistake flash — the core
+   did not count a mistake and the HUD counter stays visibly unchanged. */
+function freeLesson(msg, bubble){
+  flash(msg, false, true);
+  V.lessonSay = bubble;
+  V.lessonSayT = 4;
+  V.bramShake = 0.9; // gentle head-shake: "we learn", not "you failed"
+  sndLessonChime();
 }
 
 /* ---- input: L2 tap (pointer or Space). t = monotonic rAF-family clock ---- */
@@ -659,8 +679,24 @@ function processLedger(){
         sndBounce();
         break;
       }
-      case "FAUX_CAUGHT": flash("a false note — the signal was not proof", true); sndThud(); break;
-      case "EMBER_CAUGHT": flash("it burns", true); sndThud(); break;
+      case "FAUX_LESSON": // first faux ever: free — no mistake, no thud
+        freeLesson("a false note — the first is a free lesson",
+          "Not every note that glitters rings. We LEARN this — nothing lost.");
+        puff(Math.round(W*0.5), gg.floorY-8, PAL.glow, 4, 0.7);
+        break;
+      case "EMBER_LESSON": // first ember ever: same free-lesson treatment
+        freeLesson("hot — lesson kept, nothing lost",
+          "HOT! ...not for hands. Lesson kept.");
+        puff(Math.round(W*0.5), gg.floorY-8, PAL.glow, 4, 0.7);
+        break;
+      case "FAUX_CAUGHT": // repeat offense: the lesson was already given
+        flash("a false note — the signal was not proof", true);
+        sndThud(); V.bramShake = 0.9; // disappointed shake
+        break;
+      case "EMBER_CAUGHT":
+        flash("it burns", true);
+        sndThud(); V.bramShake = 0.9;
+        break;
       case "SKY_RESET": flash("too many mistakes — the sky resets", true); V.sel = -1; break;
       case "STRAIN": flash("your hands are burning — let the silence play", true); sndBuzz(); break;
       case "RESTED": flash("rested — the drum listens again"); break;
@@ -707,6 +743,8 @@ function frame(now){
   if(V.ringHit > 0) V.ringHit -= dt;
   if(V.ringBounce > 0) V.ringBounce -= dt;
   if(V.tapFlash > 0) V.tapFlash -= dt;
+  if(V.lessonSayT > 0) V.lessonSayT -= dt;
+  if(V.bramShake > 0) V.bramShake -= dt;
   if(V.t - V.lastTapT > 0.8) V.tempoView += (0 - V.tempoView) * Math.min(1, dt*4);
 
   // beat-crossing detector: metronome tick + ring throb (L1 only)
@@ -815,7 +853,8 @@ function drawBram(x, fy, opts){
   const g = o.grade !== undefined ? o.grade : 1;
   const shiver = o.shiver && !REDUCE;
   const bob = o.content ? Math.sin(V.t*3)*0.6 : 0;
-  const bx = Math.round(x + (shiver ? Math.sin(V.t*33)*0.6 : 0));
+  const shake = (o.shake && !REDUCE) ? Math.sin(V.t*16)*1.3*Math.min(1,o.shake) : 0;
+  const bx = Math.round(x + (shiver ? Math.sin(V.t*33)*0.6 : 0) + shake);
   const y = Math.round(fy - 10 + bob);
   const warm = Math.min(1, g*1.6);
   const body = mixHex(PAL.moss, PAL.mossWarm, warm);
@@ -994,7 +1033,7 @@ function drawSky(){
     }
   }
   drawParticles();
-  drawBram(Math.round(W*0.5), gg.floorY, { grade: 0.6 });
+  drawBram(Math.round(W*0.5), gg.floorY, { grade: 0.6, shake: V.bramShake });
 }
 
 /* ---- L2: le tambour de bram ---- */
@@ -1187,14 +1226,23 @@ function syncDom(){
   els.phaseChip.innerHTML = "phase <b></b>";
   els.phaseChip.querySelector("b").textContent = S.phase;
 
-  // companion speech — ONLY from proposeCompanionLine, provenance visible
-  const line = SC.proposeCompanionLine(S);
-  if(line.speech !== V.sayText){
-    V.sayText = line.speech;
-    els.sayText.textContent = line.speech;
-    els.sayProv.textContent =
-      (line.provenance.indexOf("curated") !== -1 ? "curated" : "signal") +
+  // companion speech — ONLY from proposeCompanionLine, provenance visible.
+  // A free-lesson bubble (fixed curated text keyed to a ledger event, no
+  // text input path) briefly overrides it, then the companion line returns.
+  let sayText, sayProv;
+  if(V.lessonSayT > 0){
+    sayText = V.lessonSay;
+    sayProv = "curated · free lesson";
+  } else {
+    const line = SC.proposeCompanionLine(S);
+    sayText = line.speech;
+    sayProv = (line.provenance.indexOf("curated") !== -1 ? "curated" : "signal") +
       " · " + line.emotion.replace(/_/g," ");
+  }
+  if(sayText !== V.sayText){
+    V.sayText = sayText;
+    els.sayText.textContent = sayText;
+    els.sayProv.textContent = sayProv;
     els.say.classList.add("show");
   }
 
