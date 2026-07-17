@@ -14,7 +14,9 @@ Run start 2026-07-17T01:28Z · min 8 epochs, target 12-16, hard max 24.
 | E6 | 01:37-01:42 | EVIDENCE AUDIT: BUILD_RECEIPT_MAP (13 rows), CLAIM_MATRIX (10 claims typed+gated, wording bans transcribed) | R12 (browser E2E) PENDING; CM-09 ordering thesis awaits sweep |
 | E7 | 01:42-01:46 | FORMALIST: D1-D9, P1-P2 with proof sketches + honesty notes, H1-H3 falsifiable hypotheses | every equation receipt-tagged or [HYP]; decorative math = 0 |
 | E8 | 01:37- (in flight) | BUILD: UI shell agent (index.html over untouched core; headless drive-to-DONE) | pending R12 |
-| E9 | planned | FIRST FULL DRAFT (all 14 sections + appendices) | requires E4 synthesis; R12 preferred |
+| E4 | 01:33-01:52 | (landed) 6-domain sweep: 61 raw → 60 deduped sources, 0 unverified; 9 novelty threats (1 kills_claim: C2-as-invention); gap statement; 9 coverage gaps | SOURCE_LEDGER.ndjson written; positioning sentences adopted as law |
+| E4b | 01:55- (in flight) | gap sweep: gesture/embodiment, serious-games transfer + onboarding, AI-governance games + agentic-literacy frameworks + HITL | pending — checks the one unswept direct threat to C4 |
+| E9 | 01:56- (started) | FIRST FULL DRAFT (all 14 sections + appendices) | part 1 (§1-§7) writing; §8/§9 await R12; §2 will absorb E4b |
 | E10 | planned | citation audit (every cite resolvable; fabricated = 0) | |
 | E11 | planned | adversarial reviews #2 and #3 (two independent reviewers, whole article) | gate requires 2 passed |
 | E12 | planned | editorial pass + ARTICLE_GATE conjunction check | on FAIL: narrow claims, loop |
