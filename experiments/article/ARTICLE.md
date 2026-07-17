@@ -1,7 +1,7 @@
 # From Attachment to Orchestration: A Three-Scale Playable Architecture for Human–AI Agent Literacy
 
 <!-- authority=false · canon=false · ledger_effect=none · non-sovereign -->
-<!-- STATUS: DRAFT E9 — sections 8, 9, and appendices land after receipt R12; gate not yet run -->
+<!-- STATUS: FULL DRAFT (E9+E10 complete) — awaiting adversarial reviews 2+3 and ARTICLE_GATE -->
 
 *Working product variant: Goblin Warren: A Playable Epistemic Interface for Learning Human-Agent Coordination.*
 
@@ -165,6 +165,56 @@ single LLM agent [wang2024nemobot]. The gap is the architecture above the
 single agent: orchestration scales, proposal/admission gating, and the
 signal/proof/permission/authority ladder.
 
+**Embodied learning and gesture.** C3's warrant comes from a literature the
+paper must also answer to. Gesture is cognitive, not decorative
+[goldinmeadow2003hearing]; embodied interaction grounds meaning in situated
+physical engagement [dourish2001action]; and *gestural conceptual mapping*
+shows that touch gestures aid learning specifically when congruent with the
+target concept's structure — tapping for discrete, dragging for continuous
+[segal2011gestural], with transfer to abstract science concepts demonstrated
+under motion capture [johnsonglenberg2017physics] and design methodology
+established by the Mathematical Imagery Trainer's attentional anchors
+[howison2011mit, lindgren2013emboldened]. Embodied approaches to AI literacy
+specifically already exist — kindergarten interventions [yang2024embodiedai]
+and unplugged role-play in higher education [reddig2026aiunplugged] — so
+Goblin Warren claims no priority on embodiment. C3 contributes a
+level-indexed gesture vocabulary that applies gestural conceptual mapping to
+*agentic* concepts: binding congruent gesture families (assemble/hold,
+catch/discriminate, turn/regulate) to the scale progression, where prior
+embodied AI-literacy work teaches general ML concepts without a designed
+gesture-to-concept progression and without governance content. The same
+literature sets the evidentiary bar: gesture-to-concept transfer is
+demonstrated by controlled studies, which this paper does not have — hence
+C3 is a hypothesis (§10), with a congruence rationale per gesture stated in
+§6. On transfer breadth we adopt the meta-analytic line: serious games
+produce content-level, near transfer [wouters2013meta, clark2016digital,
+mayer2019games]; far transfer of general ability is not supported
+[sala2018videogame]; and explicit tutorializing helps only in proportion to
+mechanic complexity [andersen2012tutorials, anthropy2014vocabulary] — the
+quiz gate names concepts, it does not carry them.
+
+**Playable governance and agentic-literacy frameworks.** Playable
+AI-governance experiences exist: Intelligence Rising's facilitated policy
+role-play [intelligence_rising, gruetzemacher2025_ai_race_gaming] and a CHI
+2025 serious game on governance trade-offs
+[chi2025_performance_or_governance]. Both are discussion- and
+role-play-mediated, group-facilitated, and policy-scaled. The narrowed claim
+this paper defends: Goblin Warren is, to the sweep's knowledge, the first
+*single-player mechanical* game in which governance is enacted through the
+core interaction loop itself — an admission gate that is the sole mutation
+path — rather than through discussion, role-play, or resource-allocation
+abstraction. Likewise the *competencies* are already being codified in
+prose: delegation, oversight, and calibrated trust appear as principal-side
+competencies in the agentic-literacy literature [agentic_literacy_debt2026]
+and the OECD-EC AILit framework's "Manage AI" domain [oecd_ec_ailit2026];
+the human-in-the-loop interaction itself has been formalized
+game-theoretically [overman2025_oversight_game], with roots in
+preference-based oversight [christiano2017_preferences] and safe
+interruptibility [orseau2016_interruptible]. This paper contributes the
+playable operationalization of those named competencies — the design
+mechanisms the frameworks lack — and C4 is an experiential contribution
+(players inhabit the distinctions), explicitly not a new formal result.
+
 **Human-agent authority and trust.** Leveled accounts of human-agent
 authority are well established, from levels of automation
 [parasuraman2000automation] to agent-autonomy levels defined by the user's
@@ -196,12 +246,14 @@ mutates the world; and the game scores the player on exactly that
 discrimination.
 
 **The gap.** No prior work we could locate makes the governance
-architecture of agentic AI itself the playable content of a game — a
-designed progression of mental models in which expression is structurally
-severed from mutation, every state change is a ledgered replayable event,
-and the player's own admission act is the only path from agent proposal to
-world change — offered as a scaffolded literacy curriculum for lay users.
-That composition, and the receipts behind it, are what this paper defends.
+architecture of agentic AI itself the *mechanically played* content of a
+single-player game — a designed progression of mental models in which
+expression is structurally severed from mutation, every state change is a
+ledgered replayable event, and the player's own admission act is the only
+path from agent proposal to world change — offered as a scaffolded literacy
+curriculum for lay users, operationalizing competencies the frameworks have
+so far only named. That composition, and the receipts behind it, are what
+this paper defends.
 
 ## 3. The Design Problem
 
@@ -370,7 +422,13 @@ architecture, receipt-checked.
 The slice implements the Pet scale as three levels plus integrated
 verification quizzes, over a deterministic core of 420 lines with a
 30-assertion suite (§9). Each level introduces one gesture family; each
-gesture's consequence structure *is* the target concept.
+gesture's consequence structure *is* the target concept. The bindings
+follow gestural conceptual mapping [segal2011gestural, howison2011mit]:
+discrete placement then *sustained continuous* contact for maintained
+attention (L0); discrete *classification acts* under time pressure for
+discrimination (L1); *continuous control* of a rate variable for
+regulation (L2). Each level's congruence rationale is stated with its
+description below; whether the mapping transfers is H1-H3's question.
 
 **Level 0 — Fire (assemble, drag, hold).** The cold opening: the player
 places three stones (nothing can ignite before the context exists), then
@@ -456,7 +514,105 @@ exactly that fidelity — which is itself part of the lesson the Superteam
 scale will make explicit: guarantees have classes, and knowing the class
 is the literacy.
 
-<!-- §8 IMPLEMENTATION, §9 EVALUATION — pending receipt R12 (headless browser E2E) -->
+## 8. Implementation
+
+The slice is two files with no build step, no dependencies, and no network
+requirement: `slice-core.js` (~420 lines, the deterministic core) and
+`index.html` (the rendering shell), plus a design-token stylesheet shared
+with the wider project. The split enforces the architecture: the core is
+loadable headlessly under Node (that is how it is tested), contains no DOM,
+no `Math.random`, no `Date`, and no storage or network surfaces (asserted
+by comment-stripped static scan, receipt R10); the shell holds the state
+object as `const`, performs zero direct field writes (grep-verified), and
+routes every interaction — pointer, keyboard, quiz buttons — through
+`applyEvent`.
+
+**Scheduler and overlapping drops.** The sky's spawn schedule is a pure
+function of the seed: drop *i* spawns at 0.6 + 1.1·i seconds plus a hashed
+jitter under 0.4 s, and falls for 3.0 s — so at any moment past the opening
+seconds, multiple objects are in flight (asserted: ≥2 simultaneously,
+receipt R7). Difficulty is therefore a *schedule*, not a random pressure,
+and any moment of play is reconstructible from (seed, elapsed ticks).
+
+**Gesture recognition.** L0's scratch is intentionally primitive — pointer
+movement while held, with per-frame `moving` flags, so that *stopping* is
+detectable and decay can act. L2's whisk computes angular velocity from
+successive pointer angles around the bowl center (unwrapped across full
+turns); a rest breaks the gesture stream by design, so cached momentum
+cannot leak across pauses. Both recognizers live in the core as pure
+functions of the action stream; the shell only samples input.
+
+**Quiz state.** The quiz is core state, not UI state: `BEGIN_QUIZ` is legal
+only from CANDIDATE, answers append to the ledger as QUIZ_ANSWERED events,
+and the pass/fail branch is the single location in the program that can
+admit a level (§5, P1). The shell renders whatever question index the core
+says is open; refreshing the page mid-quiz is not recoverable *by design*
+(no persistence).
+
+**Fire states.** COLD → READY (3 stones) → SPARKING (progress ∈ (0,1),
+decaying when idle) → LIT, each transition ledgered. The cold→warm visual
+grade is a pure projection of `fire.progress` and `fire.state`.
+
+**Companion rendering.** Bram is a canvas sprite drawn per the project's
+sprite specification; his speech bubble renders `proposeCompanionLine`
+output verbatim with its provenance label ("curated"), and his L1 hints
+render `hintFor` output labeled "signal — not proof." The shell adds no
+speech of its own beyond static UI chrome.
+
+**Accessibility.** Keyboard-complete (Space scratches/whisks/places, 1-4
+answer quizzes, L toggles the lens, arrows+Enter aim and catch);
+`prefers-reduced-motion` reduces particle counts and removes decorative
+animation; game logic never depends on animation events. Even cosmetic
+jitter avoids `Math.random`, using a small PRNG seeded from the game seed,
+so two runs of the same seed are visually identical too.
+
+## 9. Evaluation
+
+Evaluation is structural and behavioral, not human-subject (§11). Four
+instruments, all re-executable (§12):
+
+**Invariant suite (core).** 30 assertions, all passing, emitting a receipt
+with the core file's identity digest (`demo-fnv1a:070d6d5c`). Coverage by
+theme: determinism (identical digests across seeds/replays; distinct
+schedules across seeds); boundary (unknown actions throw pre-mutation;
+free-text action forged as companion speech throws with state digest
+unchanged; expression view mutates nothing); L0 (context gate, decay,
+~20 s ignition, candidate-not-admission); the verification gate (bank
+shape, failed quiz refuses admission and preserves the candidate, passed
+quiz admits — and is the sole admission site by static scan); L1 (overlap,
+fallible hints including a confidently-wrong one within the first 60
+drops, VERIFY ground truth, False-Jewel mistake with lesson event, reset
+on the fourth mistake, five gems → candidate); L2 (rest structurally
+required — the constants make 8 s of blend cost 6.4 heat against a cap of
+5 — overheat lock, cooling, splash penalty, completion); ledger (cap at
+250, kinds stable).
+
+**Invariant suite (surrounding game).** The V0 game's 29-assertion suite
+passes untouched with the slice present — the slice imports nothing from
+and exports nothing to the canonical game, and the repository treats that
+suite as law.
+
+**Adversarial review.** An independent model context (which authored none
+of the reviewed code) re-executed all five lineage suites (29/15/16/51/55
+assertions), confirmed each claimed seam at its cited file and line, and
+returned the repositioning demands this paper's §2, §5, and §11 adopt.
+One pass, run once; we report it as the first external check, not as
+continuous assurance.
+
+**Scripted playthrough (browser).** A headless Chromium session loaded the
+shell, observed zero console errors, and drove the complete game to its
+terminal state through the public dispatch surface: stones placed, fire
+scratched to ignition, quiz passed; five gems caught with verification
+exercised and zero mistakes; the bowl blended with rest management (final
+blend 8.05/8, zero overheats); final phase DONE with all three levels
+admitted in order and the ledger rendered. Four screenshots (lit fire,
+mid-fall sky with a live hint bubble, mid-whisk gauges, completion scene)
+document the run. Static analysis of the shell found zero direct state
+writes and zero storage/network/entropy surfaces outside comments.
+
+What this evaluation shows: the artifact has the properties the paper
+teaches, and a scripted player can traverse it. What it cannot show:
+anything about human players — §10 exists because this section ends here.
 
 ## 10. Design Hypotheses
 
@@ -625,7 +781,154 @@ as falsifiable hypotheses with the game itself prepared as the instrument.
 The loop that produced this paper could strengthen its claims or narrow
 them; it narrowed them. What survived is what the receipts can carry.
 
-<!-- REFERENCES — final list assembled at citation-audit epoch from SOURCE_LEDGER.ndjson (+ gap sweep) -->
-<!-- APPENDIX A — formal definitions (from FORMAL_MODEL_DRAFT.md D1-D9, P1-P2) -->
-<!-- APPENDIX B — test matrix (from BUILD_RECEIPT_MAP.md R1-R13 × suite assertions) -->
-<!-- APPENDIX C — claim-evidence map (from CLAIM_MATRIX.md CM-01..CM-10) -->
+## References
+
+All entries were verified against live search results during the sweep
+(2026-07-17); the machine-readable ledger with per-source stance and
+claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
+
+- **[agentic_literacy_debt2026]** (arXiv:2605.27396 authors) (2026). *Agentic Literacy Debt: A Structural Problem the AI Literacy Field Has Not Yet Named*. arXiv:2605.27396. https://arxiv.org/pdf/2605.27396
+- **[aguiar2025pathfinding]** Claire Aguiar, Dan Carpenter, Jessica Vandenberg, Wookhee Min, Veronica Catete, Bradford Mott (2025). *Fostering AI Literacy Through Strategic Play: A Competitive Pathfinding Game for Middle School*. IEEE Conference on Games (CoG) 2025. https://public.intellimedia.ncsu.edu/pubmgr/pubdb/pdfs/aguiar-cog-2025.pdf
+- **[altera2024projectsid]** Altera.AL (Robert Yang et al.) (2024). *Project Sid: Many-agent simulations toward AI civilization*. arXiv:2411.00114. https://arxiv.org/abs/2411.00114
+- **[amershi2019guidelines]** Saleema Amershi, Dan Weld, Mihaela Vorvoreanu, Adam Fourney, Besmira Nushi, et al. (2019). *Guidelines for Human-AI Interaction*. CHI 2019, ACM. https://dl.acm.org/doi/10.1145/3290605.3300233
+- **[andersen2012tutorials]** Erik Andersen, Eleanor O'Rourke, Yun-En Liu, Richard Snider, Jeff Lowdermilk, David Truong, Seth Cooper, Zoran Popovic (2012). *The Impact of Tutorials on Games of Varying Complexity*. Proceedings of CHI 2012, ACM. https://dl.acm.org/doi/abs/10.1145/2207676.2207687
+- **[anthropic2025multiagent]** Anthropic engineering team (2025). *How we built our multi-agent research system*. Anthropic (engineering report). https://www.anthropic.com/engineering/multi-agent-research-system
+- **[anthropy2014vocabulary]** Anna Anthropy, Naomi Clark (2014). *A Game Design Vocabulary: Exploring the Foundational Principles Behind Good Game Design*. Addison-Wesley. https://dl.acm.org/citation.cfm?id=2655286
+- **[bansal2019beyond]** Gagan Bansal, Besmira Nushi, Ece Kamar, Walter S. Lasecki, Daniel S. Weld, Eric Horvitz (2019). *Beyond Accuracy: The Role of Mental Models in Human-AI Team Performance*. AAAI HCOMP, 7(1), 2-11. https://ojs.aaai.org/index.php/HCOMP/article/view/5285
+- **[bates1994believable]** Joseph Bates (1994). *The Role of Emotion in Believable Agents*. Communications of the ACM 37(7), CMU Oz Project. https://dl.acm.org/doi/10.1145/176789.176803
+- **[beurerkellner2025patterns]** Luca Beurer-Kellner, Beat Buesser, Ana-Maria Creţu, Edoardo Debenedetti, et al. (2025). *Design Patterns for Securing LLM Agents against Prompt Injections*. arXiv:2506.08837 (ETH Zurich, Google, Microsoft, IBM consortium). https://arxiv.org/abs/2506.08837
+- **[bloch1999disposable]** Linda-Renée Bloch, Dafna Lemish (1999). *Disposable Love: The Rise and Fall of a Virtual Pet*. New Media & Society, 1(3), 283-303. https://journals.sagepub.com/doi/10.1177/14614449922225591
+- **[cemri2025mast]** Mert Cemri, Melissa Z. Pan, Shuyi Yang, Lakshya A. Agrawal, Bhavya Chopra, et al. (2025). *Why Do Multi-Agent LLM Systems Fail?*. arXiv:2503.13657 (UC Berkeley, MAST taxonomy). https://arxiv.org/abs/2503.13657
+- **[chen2011animalcompanions]** Zhi-Hong Chen, Chih-Yueh Chou, Yi-Chan Deng, Tak-Wai Chan (2011). *Animal Companions: Fostering Children's Effort-Making by Nurturing Virtual Pets*. British Journal of Educational Technology. https://bera-journals.onlinelibrary.wiley.com/doi/10.1111/j.1467-8535.2009.01003.x
+- **[chen2025petlike]** Zhi-Hong Chen, Hsiu-Ling Hsu, Chiu-Fan Huang, Chen-Yu Liao, Chih-Yueh Chou (2025). *Pet-Like Learning Companions: Past Research and Future Directions*. Research and Practice in Technology Enhanced Learning, 20, article 033. https://rptel.apsce.net/index.php/RPTEL/article/view/2025-20033
+- **[chen2026llmgames]** Allison Chen, Isabella Pu (2026). *Using Games to Learn How Large Language Models Work*. arXiv:2603.28374. https://arxiv.org/abs/2603.28374
+- **[chi2025_performance_or_governance]** (CHI EA 2025 authors; ACM DL 10.1145/3706599.3719951) (2025). *Performance or Governance? Serious Game and Workshop as a Tool for Fostering Awareness of Responsible AI*. CHI 2025 Extended Abstracts (ACM). https://dl.acm.org/doi/10.1145/3706599.3719951
+- **[christiano2017_preferences]** Paul F. Christiano, Jan Leike, Tom B. Brown, Miljan Martic, Shane Legg, Dario Amodei (2017). *Deep Reinforcement Learning from Human Preferences*. NeurIPS (Advances in Neural Information Processing Systems 30). https://www.researchgate.net/publication/317558021_Deep_reinforcement_learning_from_human_preferences
+- **[clark1987wilson]** David D. Clark, David R. Wilson (1987). *A Comparison of Commercial and Military Computer Security Policies*. IEEE Symposium on Security and Privacy (Oakland). https://www.semanticscholar.org/paper/f97356ffef4cab0adc41e57f7c5b8df53ba481db
+- **[clark2016digital]** Douglas B. Clark, Emily E. Tanner-Smith, Stephen S. Killingsworth (2016). *Digital Games, Design, and Learning: A Systematic Review and Meta-Analysis*. Review of Educational Research, 86(1), 79-122. https://journals.sagepub.com/doi/10.3102/0034654315582065
+- **[debenedetti2025camel]** Edoardo Debenedetti, Ilia Shumailov, Tianqi Fan, Jamie Hayes, Nicholas Carlini, Daniel Fabian, Christoph Kern, Chongyang Shi, Andreas Terzis, Florian Tramèr (2025). *Defeating Prompt Injections by Design (CaMeL)*. arXiv:2503.18813 (Google DeepMind / ETH Zurich). https://arxiv.org/abs/2503.18813
+- **[dodd2025purrogrammed]** Michaela Dodd, Allan Fowler, Danielle Lottridge (2025). *Purr-ogrammed Love: A Narrative Review of Virtual Pets*. Entertainment Computing, 54, 100958. https://www.sciencedirect.com/science/article/pii/S1875952125000382
+- **[dourish2001action]** Paul Dourish (2001). *Where the Action Is: The Foundations of Embodied Interaction*. MIT Press. https://direct.mit.edu/books/monograph/3875/Where-the-Action-IsThe-Foundations-of-Embodied
+- **[euaiact2024art14]** European Parliament and Council of the European Union (2024). *Regulation (EU) 2024/1689 (AI Act), Article 14: Human Oversight*. Official Journal of the European Union. https://artificialintelligenceact.eu/article/14/
+- **[feng2025autonomy]** K. J. Kevin Feng, David W. McDonald, Amy X. Zhang (2025). *Levels of Autonomy for AI Agents*. Knight First Amendment Institute working paper / arXiv:2506.12469. https://arxiv.org/abs/2506.12469
+- **[fowler2005eventsourcing]** Martin Fowler (2005). *Event Sourcing*. martinfowler.com (with CQRS as named by Greg Young, QCon SF 2006). https://martinfowler.com/eaaDev/EventSourcing.html
+- **[friedman2003hardware]** Batya Friedman, Peter H. Kahn Jr., Jennifer Hagman (2003). *Hardware Companions? What Online AIBO Discussion Forums Reveal about the Human-Robotic Relationship*. CHI 2003, ACM Press, pp. 273-280. https://www.researchgate.net/publication/221519735_Hardware_companions_What_online_AIBO_discussion_forums_reveal_about_the_human-robot_relationship
+- **[gallotta2024llmgames]** Roberto Gallotta, Graham Todd, Marvin Zammit, Sam Earle, Antonios Liapis, Julian Togelius, Georgios N. Yannakakis (2024). *Large Language Models and Games: A Survey and Roadmap*. IEEE Transactions on Games. https://arxiv.org/abs/2402.18659
+- **[gee2003videogames]** James Paul Gee (2003). *What Video Games Have to Teach Us About Learning and Literacy*. Palgrave Macmillan. https://en.wikipedia.org/wiki/What_Video_Games_Have_to_Teach_Us_About_Learning_and_Literacy
+- **[gero2020mentalmodels]** Katy Ilonka Gero, Zahra Ashktorab, Casey Dugan, et al. (2020). *Mental Models of AI Agents in a Cooperative Game Setting*. CHI 2020 (Best Paper), ACM. https://dl.acm.org/doi/10.1145/3313831.3376316
+- **[goldinmeadow2003hearing]** Susan Goldin-Meadow (2003). *Hearing Gesture: How Our Hands Help Us Think*. Harvard University Press (Belknap). https://www.jstor.org/stable/j.ctv1w9m9ds
+- **[greshake2023injection]** Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph Endres, Thorsten Holz, Mario Fritz (2023). *Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection*. AISec 2023; arXiv:2302.12173. https://arxiv.org/abs/2302.12173
+- **[gruetzemacher2025_ai_race_gaming]** Ross Gruetzemacher, Shahar Avin, James Fox, Alexander K. Saeri (2025). *Strategic Insights from Simulation Gaming of AI Race Dynamics*. Futures (Elsevier); arXiv:2410.03092. https://arxiv.org/abs/2410.03092
+- **[hong2024metagpt]** Sirui Hong, Mingchen Zhuge, Jonathan Chen, Xiawu Zheng, Yuheng Cheng, Ceyao Zhang, et al. (2024). *MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework*. ICLR 2024 (oral). https://proceedings.iclr.cc/paper_files/paper/2024/hash/6507b115562bb0a305f1958ccc87355a-Abstract-Conference.html
+- **[howison2011mit]** Mark Howison, Dragan Trninic, Daniel Reinholz, Dor Abrahamson (2011). *The Mathematical Imagery Trainer: From Embodied Interaction to Conceptual Learning*. Proceedings of CHI 2011 (ACM). https://www.researchgate.net/publication/221514954_The_Mathematical_Imagery_Trainer_from_embodied_interaction_to_conceptual_learning
+- **[intelligence_rising]** Shahar Avin, Ross Gruetzemacher, et al. (Cambridge CSER / Oxford / Wichita State) (2020). *Intelligence Rising: A Strategic Simulation of AI Futures*. Intelligence Rising / Centre for the Study of Existential Risk (facilitated scenario role-play exercise). https://www.intelligencerising.org/
+- **[johnsonglenberg2017physics]** Mina C. Johnson-Glenberg, Colleen Megowan-Romanowicz (2017). *Embodied Science and Mixed Reality: How Gesture and Motion Capture Affect Physics Education*. Cognitive Research: Principles and Implications 2:24 (Springer). https://cognitiveresearchjournal.springeropen.com/articles/10.1186/s41235-017-0060-9
+- **[laird2001killer]** John E. Laird, Michael van Lent (2001). *Human-Level AI's Killer Application: Interactive Computer Games*. AI Magazine 22(2). https://onlinelibrary.wiley.com/doi/abs/10.1609/aimag.v22i2.1558
+- **[lee2004trust]** John D. Lee, Katrina A. See (2004). *Trust in Automation: Designing for Appropriate Reliance*. Human Factors, 46(1), 50-80. https://journals.sagepub.com/doi/10.1518/hfes.46.1.50_30392
+- **[li2023camelrole]** Guohao Li, Hasan Abed Al Kader Hammoud, Hani Itani, Dmitrii Khizbullin, Bernard Ghanem (2023). *CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society*. NeurIPS 2023. https://arxiv.org/abs/2303.17760
+- **[lindgren2013emboldened]** Robb Lindgren, Mina C. Johnson-Glenberg (2013). *Emboldened by Embodiment: Six Precepts for Research on Embodied Learning and Mixed Reality*. Educational Researcher 42(8), 445-452. https://journals.sagepub.com/doi/abs/10.3102/0013189x13511661
+- **[lindner2019unplugged]** Annabel Lindner, Stefan Seegerer, Ralf Romeike (2019). *Unplugged Activities in the Context of AI*. ISSEP 2019, Springer LNCS. https://link.springer.com/chapter/10.1007/978-3-030-33759-9_10
+- **[long2020ailiteracy]** Duri Long, Brian Magerko (2020). *What is AI Literacy? Competencies and Design Considerations*. CHI 2020 (ACM). https://dl.acm.org/doi/10.1145/3313831.3376727
+- **[maples2024loneliness]** Bethanie Maples, Merve Cerit, Aditya Vishwanath, Roy Pea (2024). *Loneliness and Suicide Mitigation for Students Using GPT3-Enabled Chatbots*. npj Mental Health Research. https://www.nature.com/articles/s44184-023-00047-6
+- **[mayer2019games]** Richard E. Mayer (2019). *Computer Games in Education*. Annual Review of Psychology, 70, 531-549. https://www.annualreviews.org/doi/abs/10.1146/annurev-psych-010418-102744
+- **[mehrotra2024appropriatetrust]** Siddharth Mehrotra, Chadha Degachi, Oleksandra Vereschak, Catholijn M. Jonker, Myrthe L. Tielman (2024). *A Systematic Review on Fostering Appropriate Trust in Human-AI Interaction*. ACM Journal on Responsible Computing. https://dl.acm.org/doi/10.1145/3696449
+- **[miller2006robust]** Mark S. Miller (2006). *Robust Composition: Towards a Unified Approach to Access Control and Concurrency Control*. Ph.D. dissertation, Johns Hopkins University. http://erights.org/talks/thesis/markm-thesis.pdf
+- **[mitraise2021dayofai]** MIT RAISE (Cynthia Breazeal's initiative) (2021). *Day of AI: Free K-12 AI Literacy Curriculum*. MIT RAISE / MIT Open Learning (ongoing to 2026). https://raise.mit.edu/engage-with-us/k-12/day-of-ai-pilot/
+- **[naik2025earlyadopters]** Suchismita Naik, Austin L. Toombs, Amanda Snellinger, Scott Saponas, Amanda K. Hall (2025). *Exploring Human-AI Collaboration Using Mental Models of Early Adopters of Multi-Agent Generative AI Tools*. arXiv:2510.06224. https://arxiv.org/abs/2510.06224
+- **[ng2024treasureisland]** Davy Tsz Kit Ng et al. (2024). *Fostering students' AI literacy development through educational games: AI knowledge, affective and cognitive engagement*. Journal of Computer Assisted Learning, 40(5), 2049-2064. https://onlinelibrary.wiley.com/doi/10.1111/jcal.13009
+- **[norman1983mentalmodels]** Donald A. Norman (1983). *Some Observations on Mental Models*. In Gentner & Stevens (Eds.), Mental Models, Lawrence Erlbaum, pp. 7-14. https://www.routledge.com/Mental-Models/Gentner-Stevens/p/book/9780898592429
+- **[oecd_ec_ailit2026]** OECD and European Commission (with CodeAI) (2026). *Empowering Learners for the Age of AI: AI Literacy Framework for Primary and Secondary Education (AILit)*. OECD / European Commission joint framework, published 17 June 2026. https://ailiteracyframework.org/
+- **[orseau2016_interruptible]** Laurent Orseau, Stuart Armstrong (2016). *Safely Interruptible Agents*. UAI 2016 (Conference on Uncertainty in Artificial Intelligence). https://www.auai.org/uai2016/proceedings/papers/68.pdf
+- **[overman2025_oversight_game]** William Overman, Mohsen Bayati (2025). *The Oversight Game: Learning to Cooperatively Balance an AI Agent's Safety and Autonomy*. arXiv:2510.26752 (Stanford GSB working paper; rev. Feb 2026). https://arxiv.org/abs/2510.26752
+- **[papert1980mindstorms]** Seymour Papert (1980). *Mindstorms: Children, Computers, and Powerful Ideas*. Basic Books. https://dl.acm.org/doi/10.5555/1095592
+- **[parasuraman2000automation]** Raja Parasuraman, Thomas B. Sheridan, Christopher D. Wickens (2000). *A Model for Types and Levels of Human Interaction with Automation*. IEEE Transactions on Systems, Man, and Cybernetics — Part A, 30(3), 286-297. https://dl.acm.org/doi/10.1109/3468.844354
+- **[park2023generative]** Joon Sung Park, Joseph C. O'Brien, Carrie J. Cai, Meredith Ringel Morris, Percy Liang, Michael S. Bernstein (2023). *Generative Agents: Interactive Simulacra of Human Behavior*. UIST '23 (ACM Symposium on User Interface Software and Technology). https://dl.acm.org/doi/10.1145/3586183.3606763
+- **[peng2026codifiedfsm]** Letian Peng, Yupeng Hou, Kun Zhou, Jingbo Shang (2026). *Codified Finite-state Machines for Role-playing*. arXiv:2602.05905 (UC San Diego). https://arxiv.org/abs/2602.05905
+- **[qian2024chatdev]** Chen Qian, Wei Liu, Hongzhang Liu, Nuo Chen, Yufan Dang, et al. (2024). *ChatDev: Communicative Agents for Software Development*. ACL 2024 (Long Papers, pp. 15174-15186). https://aclanthology.org/2024.acl-long.810/
+- **[reddig2026aiunplugged]** Reddig et al. (Georgia Tech TAIL lab) (2026). *AI Unplugged: Embodied Interactions for AI Literacy in Higher Education*. EAAI-26 (AAAI Symposium on Educational Advances in Artificial Intelligence); arXiv:2602.13242. https://tail.cc.gatech.edu/files/reddig-eaai-2026.pdf
+- **[reeves1996media]** Byron Reeves, Clifford Nass (1996). *The Media Equation: How People Treat Computers, Television, and New Media Like Real People and Places*. Cambridge University Press / CSLI Publications. https://press.uchicago.edu/ucp/books/book/distributed/M/bo3618528.html
+- **[rowe2021zoombinis]** Elizabeth Rowe, Jodi Asbell-Clarke, et al. (TERC EdGE) (2021). *Assessing Implicit Computational Thinking in Zoombinis Puzzle Gameplay*. Computers in Human Behavior. https://www.sciencedirect.com/science/article/abs/pii/S0747563221000297
+- **[ruan2024toolemu]** Yangjun Ruan, Honghua Dong, Andrew Wang, Silviu Pitis, Yongchao Zhou, Jimmy Ba, Yann Dubois, Chris J. Maddison, Tatsunori Hashimoto (2024). *Identifying the Risks of LM Agents with an LM-Emulated Sandbox (ToolEmu)*. ICLR 2024 (Spotlight). https://arxiv.org/abs/2309.15817
+- **[ruangtanusak2025talkless]** Saksorn Ruangtanusak, Pittawat Taveekitworachai, Kunat Pipatanakul (2025). *Talk Less, Call Right: Enhancing Role-Play LLM Agents with Automatic Prompt Optimization and Role Prompting*. arXiv:2509.00482. https://arxiv.org/abs/2509.00482
+- **[sala2018videogame]** Giovanni Sala, K. Semir Tatlidil, Fernand Gobet (2018). *Video Game Training Does Not Enhance Cognitive Ability: A Comprehensive Meta-Analytic Investigation*. Psychological Bulletin, 144(2). https://pubmed.ncbi.nlm.nih.gov/29239631/
+- **[saltzer1975protection]** Jerome H. Saltzer, Michael D. Schroeder (1975). *The Protection of Information in Computer Systems*. Proceedings of the IEEE, 63(9). https://www.cs.virginia.edu/~evans/cs551/saltzer/
+- **[segal2011gestural]** Ayelet Segal (advised by John B. Black) (2011). *Do Gestural Interfaces Promote Thinking? Embodied Interaction: Congruent Gestures and Direct Touch Promote Performance in Math*. Doctoral dissertation, Columbia University (ERIC ED528929). https://eric.ed.gov/?id=ED528929
+- **[skjuve2021chatbot]** Marita Skjuve, Asbjørn Følstad, Knut Inge Fostervold, Petter Bae Brandtzaeg (2021). *My Chatbot Companion - a Study of Human-Chatbot Relationships*. International Journal of Human-Computer Studies, 149. https://www.sciencedirect.com/science/article/pii/S1071581921000197
+- **[sun2023nights]** Yuqian Sun, Zhouyi Li, Ke Fang, Chang Hee Lee, Ali Asadipour (2023). *Language as Reality: A Co-Creative Storytelling Game Experience in 1001 Nights using Generative AI*. AIIDE-23, arXiv:2308.12915. https://arxiv.org/abs/2308.12915
+- **[turkle2011alone]** Sherry Turkle (2011). *Alone Together: Why We Expect More from Technology and Less from Each Other*. Basic Books. https://books.google.com/books/about/Alone_Together.html?id=hc7SYAPVlXwC
+- **[wada2007paro]** Kazuyoshi Wada, Takanori Shibata (2007). *Living With Seal Robots — Its Sociopsychological and Physiological Influences on the Elderly at a Care House*. IEEE Transactions on Robotics, 23(5), 972-980. https://www.semanticscholar.org/paper/f029ba4c9628622aecfd99accf88e233145703b7
+- **[wang2024nemobot]** Yuchen Wang, Shangxin Guo, Lin Ling, Chee Wei Tan (2024). *Nemobot: Crafting Strategic Gaming LLM Agents for K-12 AI Education*. ACM Learning @ Scale (L@S '24). https://dl.acm.org/doi/10.1145/3657604.3664671
+- **[willison2023dualllm]** Simon Willison (2023). *The Dual LLM pattern for building AI assistants that can resist prompt injection*. simonwillison.net (widely cited practitioner essay). https://simonwillison.net/2023/Apr/25/dual-llm-pattern/
+- **[wood1976scaffolding]** David Wood, Jerome S. Bruner, Gail Ross (1976). *The Role of Tutoring in Problem Solving*. Journal of Child Psychology and Psychiatry, 17, 89-100. https://acamh.onlinelibrary.wiley.com/doi/10.1111/j.1469-7610.1976.tb00381.x
+- **[wouters2013meta]** Pieter Wouters, Christof van Nimwegen, Herre van Oostendorp, Erik D. van der Spek (2013). *A Meta-Analysis of the Cognitive and Motivational Effects of Serious Games*. Journal of Educational Psychology, 105(2), 249-265. https://eric.ed.gov/?id=EJ1008015
+- **[wu2023autogen]** Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, et al. (2023). *AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation*. Microsoft Research / arXiv:2308.08155 (COLM 2024). https://arxiv.org/abs/2308.08155
+- **[yang2024embodiedai]** Weipeng Yang, Xinyun Hu, Ibrahim H. Yeter, Jiahong Su, Yuqin Yang, John Chi-Kin Lee (2024). *Artificial Intelligence Education for Young Children: A Case Study of Technology-Enhanced Embodied Learning*. Journal of Computer Assisted Learning 40(2), 465-477. https://onlinelibrary.wiley.com/doi/abs/10.1111/jcal.12892
+## Appendix A — Formal Definitions
+
+Collected from §5; working notes with per-definition receipt tags are in
+`research/FORMAL_MODEL_DRAFT.md`.
+
+- **A1 (state):** X_t = (W_t, G_t, P_t, Q_t, R_t) — world, goblin,
+  player, quest/quiz, resource-ledger.
+- **A2 (mutation):** X_{t+1} = δ(X_t, a_t), a_t ∈ 𝒜; 𝒜 closed and
+  enumerated (nine constructors in the slice); δ = `applyEvent`, the only
+  mutation path; determinism via state-seeded FNV hash.
+- **A3 (companion policy):** a_t^g = π_g(o_t, I_g, M_g, C_t, K_t) with
+  o_t ≠ truth; hint accuracy 8/10 by construction, confidence independent
+  of correctness.
+- **A4 (expression channel):** E : X → {speech, emotion, provenance};
+  separation as absent rules: range(E) ∩ dom(δ) = ∅. AgentProposal ⇏
+  WorldMutation · Dialogue ⇏ Fact · Reflection ⇏ CanonicalMemory.
+- **A5 (governed progression):** PLAYING → CANDIDATE → QUIZ →
+  {ADMITTED | CANDIDATE}; P1: any admitted-set growth contains a passed
+  quiz (sole call site of `admitLevel`).
+- **A6 (epistemic ladder):** appearance/hint (signal) · VERIFY (proof) ·
+  CANDIDATE (permission pending) · admitLevel (authority) — four distinct
+  game objects.
+- **A7 (regulation):** ω_t = |θ_t − θ_{t−1}|/Δt; blend accrues iff
+  ω ∈ [2.0, 5.0]; rest entailed by 8 s × 0.8 heat/s > 5 heat cap.
+- **A8 (governance seam):** π_g ≠ Eval ≠ Γ ≠ SEAL; Eval : ℛ → ℰ;
+  Γ : ℰ × 𝒫 → 2^ℱ; SEAL : 𝒟 × 2^ℱ → ℋ; only SEAL touches ℋ; P2:
+  staleness disarms (digest mismatch refused). Superteam-scale authority
+  matrix: proposer/verifier/director seats each hold capability;
+  admission is reserved to the operator seat; a verifier that patches
+  what it verifies loses witness standing.
+- **A9 (the loop that wrote this paper):** Z_i = (C_i, E_i, S_i, D_i,
+  B_i); E_i(c) ∈ {UNKNOWN, SUPPORTED, REFUTED, CONFLICTED}; narrowing
+  C_{i+1} ⊆ C_i; gate PublishableCandidate(D_i) ⟺ ∧_k ρ_{i,k} ≥ τ_k.
+
+## Appendix B — Test Matrix
+
+Full receipt rows with dates and digests: `research/BUILD_RECEIPT_MAP.md`.
+
+| Invariant (paper section) | Suite / instrument | Result |
+|---|---|---|
+| Closed action surface; forged free-text action throws pre-mutation (§5, §7) | slice suite, boundary ×3 | 30/30 PASS |
+| Candidate-not-admission; failed quiz refuses; sole admission call site (§5 P1, §6) | slice suite, gate ×4 + static scan | PASS |
+| Hint fallibility incl. confidently-wrong; VERIFY ground truth; False-Jewel lesson; reset (§6 L1) | slice suite ×6 | PASS |
+| Drop overlap by construction (§8) | slice suite | PASS |
+| Rest entailed by constants; overheat lock; cooling; splash (§6 L2) | slice suite ×5 | PASS |
+| Determinism: replay byte-identity; no random/Date/DOM/storage (§5, §8) | slice suite ×3 | PASS |
+| Ledger cap and kinds (§6) | slice suite | PASS |
+| V0 canon invariants: sole admission path, council recommends-only (§5) | root suite | 29/29 PASS |
+| NPC gateway schema + existence-gated memory promotion (§7) | npc suite | 15/15 PASS |
+| Typed-relation no-repair; status floors (§5) | epoch3 suite | 16/16 PASS |
+| ACP operator disposition PENDING; REPORTED-only claims (§5) | pytest | 51/51 PASS |
+| Policy kernel seal, five-digest binding, E_STALE (§5 P2) | loom suite | 55/55 incl. KILL-01..12 PASS |
+| Browser end-to-end to DONE; zero console errors; zero direct state writes (§9) | headless Chromium, scripted drive + grep | PASS (2026-07-17) |
+| Independent seam confirmation + suite re-execution (§9) | adversarial review pass | CONFIRMED ×5 |
+
+## Appendix C — Claim–Evidence Map
+
+Full matrix with allowed/forbidden wording per claim:
+`research/CLAIM_MATRIX.md`.
+
+| Claim | Type | Evidence state |
+|---|---|---|
+| C1 three-scale progression | ARCHITECTURE | SUPPORTED as design; Pet scale implemented; Village prototyped in V0 council; Superteam specified only |
+| C2 expression/mutation separation | ARCHITECTURE + IMPLEMENTATION | SUPPORTED (receipts R1, R2, R5, R11 + review pass); positioned as pedagogical inversion of known primitives |
+| C3 gesture→concept transfer | DESIGN_HYPOTHESIS | UNKNOWN — mechanics receipt-backed (R6-R8); transfer untested (H1-H3) |
+| C4 playable epistemic ladder | ARCHITECTURE + IMPLEMENTATION | SUPPORTED as implemented mechanics; narrowed vs. governance role-play games; experiential, not formal |
+| Ordering thesis (attachment first) | ARCHITECTURE (argued) | UNKNOWN — design commitment; H0 states the test |
+| Completability | OBSERVATION | SUPPORTED under scripted play (core + browser); no human data |
+| Any learning outcome | EMPIRICAL | FORBIDDEN this paper — hypotheses only |

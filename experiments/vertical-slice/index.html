@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goblin Warren — Vertical Slice (fire · sky · matcha)</title>
+<!--
+  Goblin Warren vertical slice — playable UI shell over slice-core.js.
+  authority=false · claim=NO_CLAIM · non-sovereign · session-only · offline (no CDN).
+
+  ARCHITECTURE LAW (mirrors slice-core.js header):
+    - One state S = SliceCore.makeSlice(seed). EVERY interaction routes through
+      SliceCore.applyEvent(S, action). This file never writes S's fields.
+    - Companion speech comes ONLY from SliceCore.proposeCompanionLine(S) and
+      hints from SliceCore.hintFor(S, id); both carry visible provenance labels.
+      No text input path reaches applyEvent.
+    - No localStorage, cookies, network requests, or CDN. tokens.css is linked
+      relatively with a small inline fallback of the load-bearing custom
+      properties so the file degrades gracefully standalone.
+    - Seed comes from ?seed=... (default 'warren-slice-1'). No Math.random /
+      Date on any path; visual-only particle jitter uses a mulberry32 PRNG
+      seeded from SliceCore.h32(seed).
+    - Pixel look = technique (quarter-resolution canvas, PIX=4, nearest-
+      neighbour upscale), original art per warren-design/SPRITE_SPEC.md and
+      scene-grammar.md. Game logic lives in the core; this UI is a projection.
+-->
+<style id="token-fallback">
+  /* Inline fallback of the most load-bearing tokens. tokens.css (linked
+     below, later in the cascade) overrides these when it loads; if the file
+     is opened standalone these keep the page legible. Values are copies of
+     warren-design/tokens.css by design — not a second palette. */
+  :root{
+    --cold:#0c1418; --ember:#ff7a2c; --gold:#ffd24a; --bone:#e8dcc0;
+    --glow:#a8d858; --dim:#8fa0a6; --panel:#0a1116; --line:#26323a;
+    --font-mono:"Courier New",Courier,monospace;
+    --step-0:10px; --step-1:13px; --step-2:15px;
+    --px-1:5px; --px-2:10px; --px-3:15px; --px-4:20px;
+    --bw:3px; --shadow-1:5px 5px 0 #000; --shadow-2:10px 10px 0 #000;
+    --tracking-label:.16em; --z-bg:0; --z-hud:30;
+    --meter-cold:#2f4a52; --panel-hover:#20313b; --line-2:#33424a;
+    --moss:#2f5a3a; --moss-warm:#5c7a3a; --scrim:rgba(6,10,13,.55);
+  }
+</style>
+<link rel="stylesheet" href="../warren-design/tokens.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--cold);overflow:hidden}
+  body{
+    font-family:var(--font-mono);color:var(--bone);
+    -webkit-font-smoothing:none; touch-action:none; user-select:none;
+    -webkit-user-select:none;
+  }
+  #stage{position:fixed;inset:0}
+  canvas#scene{position:absolute;inset:0;width:100%;height:100%;z-index:var(--z-bg);
+    image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+  body.lens canvas#scene{cursor:crosshair}
+
+  #hud{position:absolute;inset:0;pointer-events:none;z-index:var(--z-hud)}
+  .hide{display:none !important}
+
+  /* ===== top bar ===== */
+  #topbar{position:absolute;left:var(--px-2);right:var(--px-2);top:var(--px-2);
+    display:flex;gap:var(--px-2);align-items:flex-start;flex-wrap:wrap}
+  .chip{background:var(--panel);border:var(--bw) solid var(--line);
+    box-shadow:var(--shadow-1);padding:var(--px-1) var(--px-2);
+    font-size:var(--step-0);letter-spacing:var(--tracking-label);
+    text-transform:uppercase;color:var(--dim)}
+  .chip b{color:var(--bone);font-weight:normal}
+  #spacer{flex:1}
+
+  button{
+    font-family:inherit;font-size:var(--step-0);cursor:pointer;
+    color:var(--bone);background:var(--panel);border:var(--bw) solid var(--line-2);
+    padding:var(--px-1) var(--px-2);text-transform:uppercase;
+    letter-spacing:var(--tracking-label);
+    box-shadow:var(--shadow-1);pointer-events:auto;
+  }
+  button:hover{background:var(--panel-hover)}
+  button:active{transform:translate(2px,2px);box-shadow:none}
+  button:focus-visible{outline:var(--bw) solid var(--glow);outline-offset:2px}
+  button.primary{font-size:var(--step-2);border-color:var(--ember);
+    padding:var(--px-2) var(--px-4);box-shadow:var(--shadow-2)}
+  button[aria-pressed="true"]{border-color:var(--glow);color:var(--glow)}
+
+  /* ===== speech / hint bubbles ===== */
+  .bubble{position:absolute;background:var(--panel);border:var(--bw) solid var(--line);
+    box-shadow:var(--shadow-1);padding:var(--px-2);max-width:min(78vw,440px);
+    font-size:var(--step-1);line-height:1.5;color:var(--glow);
+    opacity:0;transition:opacity .4s ease}
+  .bubble.show{opacity:1}
+  .prov{display:block;margin-top:var(--px-1);font-size:var(--step-0);
+    letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--dim)}
+  #say{left:50%;top:calc(var(--px-4) + 34px);transform:translateX(-50%);text-align:center}
+  #hint{left:50%;bottom:31%;transform:translateX(-50%);text-align:center;color:var(--bone)}
+  #hint .guess{color:var(--glow)}
+
+  /* ===== lesson line (what to do) ===== */
+  #lesson{position:absolute;left:50%;bottom:var(--px-3);transform:translateX(-50%);
+    text-align:center;color:var(--dim);font-size:var(--step-0);
+    letter-spacing:var(--tracking-label);text-transform:uppercase;
+    text-shadow:var(--shadow-1);max-width:92vw}
+
+  /* ===== flash feedback ===== */
+  #flash{position:absolute;left:50%;top:27%;transform:translateX(-50%);
+    font-size:var(--step-2);color:var(--gold);text-shadow:var(--shadow-1);
+    letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:opacity .25s}
+  #flash.show{opacity:1}
+  #flash.bad{color:var(--ember)}
+
+  /* ===== meters ===== */
+  .meterWrap{width:min(52vw,300px)}
+  .meterLabel{font-size:var(--step-0);letter-spacing:var(--tracking-label);
+    text-transform:uppercase;color:var(--dim);margin:0 0 var(--px-1) 2px;
+    text-shadow:var(--shadow-1);display:flex;justify-content:space-between}
+  .meterTrack{height:var(--px-2);background:var(--panel);border:var(--bw) solid var(--line);
+    box-shadow:var(--shadow-1);position:relative;overflow:hidden}
+  .meterFill{position:absolute;inset:0;width:0%;
+    background:linear-gradient(90deg,var(--meter-cold),var(--ember) 70%,var(--gold))}
+  .meterFill.green{background:linear-gradient(90deg,var(--moss),var(--moss-warm),var(--glow))}
+  .meterFill.warn{animation:pulseWarn .5s steps(2) infinite}
+  @keyframes pulseWarn{50%{filter:brightness(1.7)}}
+
+  #l0hud{position:absolute;left:50%;bottom:9%;transform:translateX(-50%)}
+  #l1hud{position:absolute;left:var(--px-2);top:calc(var(--px-4) + 30px);
+    display:flex;flex-direction:column;gap:var(--px-1)}
+  #l2hud{position:absolute;left:var(--px-2);top:calc(var(--px-4) + 30px);
+    display:flex;flex-direction:column;gap:var(--px-2)}
+
+  /* whisk speed gauge with the 2.0–5.0 rad/s band marked */
+  #dialTrack{position:relative;height:var(--px-3);background:var(--panel);
+    border:var(--bw) solid var(--line);box-shadow:var(--shadow-1);overflow:hidden}
+  #dialBand{position:absolute;top:0;bottom:0;left:22.2%;width:33.3%;
+    background:var(--moss);opacity:.6}
+  #dialNeedle{position:absolute;top:0;bottom:0;width:3px;left:0;background:var(--bone)}
+  #dialScale{display:flex;justify-content:space-between;font-size:var(--step-0);
+    color:var(--dim);margin-top:2px}
+  #lockBanner{color:var(--ember);font-size:var(--step-1);text-transform:uppercase;
+    letter-spacing:var(--tracking-label);text-shadow:var(--shadow-1)}
+  #lockBanner.hot{animation:pulseWarn .5s steps(2) infinite}
+
+  /* ===== modal panels (candidate / quiz / done) ===== */
+  .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:var(--panel);border:var(--bw) solid var(--ember);
+    box-shadow:var(--shadow-2);padding:var(--px-4);
+    width:min(88vw,520px);pointer-events:auto;text-align:center}
+  .modal h2{margin:0 0 var(--px-2);font-size:var(--step-2);color:var(--gold);
+    text-transform:uppercase;letter-spacing:.1em;font-weight:normal}
+  .modal p{margin:0 0 var(--px-3);font-size:var(--step-1);line-height:1.6;color:var(--bone)}
+  .modal .quiet{color:var(--dim)}
+  #quizChoices{display:flex;flex-direction:column;gap:var(--px-2);text-align:left}
+  #quizChoices button{font-size:var(--step-1);text-transform:none;
+    letter-spacing:.02em;padding:var(--px-2) var(--px-3)}
+  #quizChoices .num{color:var(--ember);margin-right:var(--px-1)}
+  #retryLine{color:var(--glow)}
+  #doneStats{font-size:var(--step-1);line-height:1.8;color:var(--bone);
+    text-align:left;margin:0 auto var(--px-3);max-width:340px}
+  #doneStats span{color:var(--dim)}
+
+  /* ===== ledger panel ===== */
+  #ledger{position:absolute;right:var(--px-2);top:calc(var(--px-4) + 30px);
+    width:min(74vw,320px);background:var(--panel);border:var(--bw) solid var(--line);
+    box-shadow:var(--shadow-1);padding:var(--px-2);pointer-events:auto;
+    transition:transform .25s ease}
+  #ledger.closed{transform:translateX(calc(100% + var(--px-4)))}
+  #ledger h3{margin:0 0 var(--px-1);font-size:var(--step-0);color:var(--dim);
+    text-transform:uppercase;letter-spacing:var(--tracking-label);font-weight:normal}
+  #ledgerList{list-style:none;margin:0;padding:0;font-size:var(--step-0);
+    line-height:1.7;color:var(--bone);max-height:46vh;overflow-y:auto}
+  #ledgerList .k{color:var(--gold)}
+  #ledgerList .d{color:var(--dim)}
+  #digest{margin-top:var(--px-2);font-size:var(--step-0);color:var(--dim);
+    word-break:break-all;border-top:1px solid var(--line);padding-top:var(--px-1)}
+  #digest b{color:var(--bone);font-weight:normal}
+
+  @media (prefers-reduced-motion: reduce){
+    .bubble,#flash,#ledger{transition:none}
+    .meterFill.warn,#lockBanner.hot{animation:none}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene"></canvas>
+  <div id="hud">
+    <div id="topbar">
+      <div class="chip">goblin warren · <b>vertical slice</b></div>
+      <div class="chip" id="levelChip"><b>L0</b> · the first fire</div>
+      <div class="chip" id="phaseChip">phase <b>PLAYING</b></div>
+      <div class="chip" id="seedChip">seed <b>—</b></div>
+      <div id="spacer"></div>
+      <button id="lensBtn" class="hide" aria-pressed="false">lens: off (L)</button>
+      <button id="ledgerBtn" aria-expanded="false">ledger</button>
+    </div>
+
+    <div id="say" class="bubble" role="status">
+      <span id="sayText"></span>
+      <span class="prov" id="sayProv">curated</span>
+    </div>
+
+    <div id="hint" class="bubble" role="status">
+      <span id="hintText" class="guess"></span>
+      <span class="prov">bram's hint · signal — not proof</span>
+    </div>
+
+    <div id="l0hud" class="meterWrap hide">
+      <div class="meterLabel"><span>spark</span><span id="stonesLbl">stones 0/3</span></div>
+      <div class="meterTrack"><div id="sparkFill" class="meterFill"></div></div>
+    </div>
+
+    <div id="l1hud" class="hide">
+      <div class="chip">caught <b id="caughtLbl">0/5</b></div>
+      <div class="chip">mistakes <b id="mistakesLbl">0/3</b></div>
+    </div>
+
+    <div id="l2hud" class="hide">
+      <div class="meterWrap">
+        <div class="meterLabel"><span>whisk speed</span><span>band 2.0–5.0 rad/s</span></div>
+        <div id="dialTrack"><div id="dialBand"></div><div id="dialNeedle"></div></div>
+        <div id="dialScale"><span>0</span><span>3</span><span>6</span><span>9</span></div>
+      </div>
+      <div class="meterWrap">
+        <div class="meterLabel"><span>blend</span><span id="blendLbl">0.0/8</span></div>
+        <div class="meterTrack"><div id="blendFill" class="meterFill green"></div></div>
+      </div>
+      <div class="meterWrap">
+        <div class="meterLabel"><span>heat</span><span id="heatLbl">0.0/5</span></div>
+        <div class="meterTrack"><div id="heatFill" class="meterFill"></div></div>
+      </div>
+      <div id="lockBanner" class="hide">the bowl is scorching — rest</div>
+    </div>
+
+    <div id="flash"></div>
+    <div id="lesson"></div>
+
+    <div id="candidatePanel" class="modal hide">
+      <h2>Tell me what you saw</h2>
+      <p id="retryLine" class="hide">Not quite. Sit with it a moment — then tell me again.</p>
+      <p class="quiet">The work is done — but done is not admitted.
+        Three questions stand between play and progress.</p>
+      <button id="beginQuizBtn" class="primary">answer bram</button>
+    </div>
+
+    <div id="quizPanel" class="modal hide">
+      <h2 id="quizProgress">question 1 of 3</h2>
+      <p id="quizQuestion"></p>
+      <div id="quizChoices"></div>
+      <p class="quiet" style="margin:var(--px-2) 0 0">press 1–4 to answer</p>
+    </div>
+
+    <div id="donePanel" class="modal hide">
+      <h2>fire · sky · bowl — admitted</h2>
+      <p class="quiet">Nothing advanced by itself. Play proposed; verification admitted.</p>
+      <div id="doneStats"></div>
+      <p class="quiet" style="margin:0">the full trace stays open in the ledger panel</p>
+    </div>
+
+    <div id="ledger" class="closed">
+      <h3>ledger — the readable trace</h3>
+      <ul id="ledgerList"></ul>
+      <div id="digest"><b>—</b><br>demo digest (not cryptographic)</div>
+    </div>
+  </div>
+</div>
+
+<script src="slice-core.js"></script>
+<script>
+"use strict";
+(function(){
+const SC = window.SliceCore;
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SEED = new URLSearchParams(location.search).get("seed") || "warren-slice-1";
+
+/* ---- the one state; every mutation goes through applyEvent ---- */
+const S = SC.makeSlice(SEED);
+function dispatch(a){ return SC.applyEvent(S, a); }
+
+/* ---- palette from tokens.css (fallbacks = same values, for standalone) ---- */
+const cssRoot = getComputedStyle(document.documentElement);
+function tok(name, fb){ const v = cssRoot.getPropertyValue(name).trim(); return v || fb; }
+const PAL = {
+  cold: tok("--cold","#0c1418"), stone: tok("--stone","#3a4048"),
+  ember: tok("--ember","#ff7a2c"), gold: tok("--gold","#ffd24a"),
+  bone: tok("--bone","#e8dcc0"), glow: tok("--glow","#a8d858"),
+  glowHot: tok("--glow-hot","#d8ff9a"),
+  cold2: tok("--cold-2","#0f1c22"), ember2: tok("--ember-2","#3a1e12"),
+  ceilingHi: tok("--ceiling-hi","#241417"),
+  floorCold: tok("--floor-cold","#0a1216"), floorWarm: tok("--floor-warm","#1c120e"),
+  speckCold: tok("--speck-cold","#10191e"), speckWarm: tok("--speck-warm","#2a170f"),
+  stoneWarm: tok("--stone-warm","#5a3a2c"),
+  stoneHiCold: tok("--stone-hi-cold","#4b525b"), stoneHiWarm: tok("--stone-hi-warm","#7a4e34"),
+  flintCold: tok("--flint-cold","#565e66"), flintWarm: tok("--flint-warm","#8a5230"),
+  moss: tok("--moss","#2f5a3a"), mossWarm: tok("--moss-warm","#5c7a3a"),
+  belly: tok("--belly","#3f6a48"), bellyWarm: tok("--belly-warm","#7a9a52"),
+  ear: tok("--ear","#264a30"), earWarm: tok("--ear-warm","#4a642e"),
+  ink: tok("--ink","#0a120a"), breath: tok("--breath","#9fb3ba"), rim: tok("--rim","#ffb45a"),
+  amber: tok("--amber","#ffcf6a"), coal: tok("--coal","#e0532a"),
+  smoke: tok("--smoke","#6b7076"), smoke2: tok("--smoke-2","#5a5f64"),
+  dust: tok("--dust","#22303a"),
+  dim: tok("--dim","#8fa0a6"), panel: tok("--panel","#0a1116"), line: tok("--line","#26323a"),
+};
+
+/* ---- quarter-resolution pixel buffer (PIX=4, first-fire technique) ---- */
+const cv = document.getElementById("scene");
+const ctx = cv.getContext("2d", { alpha:false });
+const PIX = 4;
+let W = 320, H = 180;
+let STARS = [];
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  W = Math.max(220, Math.round(w / PIX));
+  H = Math.round(W * (h / w));
+  cv.width = W; cv.height = H;
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  STARS = [];
+  for(let i=0;i<70;i++){
+    STARS.push({
+      x: SC.h32(SEED+":sx:"+i) % W,
+      y: SC.h32(SEED+":sy:"+i) % Math.max(1, Math.round(H*0.8)),
+      p: (SC.h32(SEED+":sp:"+i) % 100) / 100,
+    });
+  }
+}
+addEventListener("resize", resize); resize();
+
+/* ---- view-only state (NOT game state; game state lives in S) ---- */
+const V = {
+  t: 0, last: 0,
+  grade: 0,                 // eased cold->warm for the fire scene
+  pdown: false, px: 0, py: 0, movedAcc: 0,
+  kbSpace: false,
+  lens: false, sel: -1,
+  accum: 0, prevRaw: null, prevAccum: 0, omega: 0,
+  lastN: -1,                // ledger watermark for UI reactions
+  retry: false,
+  flashT: 0,
+  sayText: "", quizQ: -1, quizLevel: -1,
+  digestAt: -1, ledgerN: -1, doneFilled: false,
+  rs: SC.h32(SEED + ":fx") | 0,  // mulberry32 seed — visual jitter only
+};
+function rnd(){ // mulberry32 — deterministic visual-only entropy (no Math.random)
+  V.rs = (V.rs + 0x6D2B79F5) | 0;
+  let t = V.rs;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+/* ---- particles (visual only) ---- */
+const P = [];
+function spawnP(x,y,vx,vy,life,color,kind){
+  if(REDUCE && P.length > 60) return;
+  P.push({x,y,vx,vy,life,max:life,color,kind:kind||"spark"});
+}
+function puff(x,y,color,n,spread){
+  const count = REDUCE ? Math.ceil(n/3) : n;
+  for(let i=0;i<count;i++){
+    const a = rnd()*Math.PI*2, sp = rnd()*(spread||1.4)+0.3;
+    spawnP(x, y, Math.cos(a)*sp, Math.sin(a)*sp-0.6, 14+rnd()*18, color);
+  }
+}
+
+/* ---- geometry ---- */
+function geo(){
+  return {
+    floorY: Math.round(H*0.78),
+    hearthX: Math.round(W*0.5),
+    pileX: Math.round(W*0.22),
+    bowlX: Math.round(W*0.55), bowlY: Math.round(H*0.56),
+    bowlRX: Math.max(16, Math.round(Math.min(W,H)*0.16)),
+  };
+}
+function xOf(id){
+  return Math.round(W*0.08 + ((SC.h32(SEED+":x:"+id) % 1000) / 1000) * W*0.84);
+}
+function entPos(e){
+  const gg = geo();
+  const frac = Math.min(1, Math.max(0, (S.sky.t - e.born) / SC.TUNING.SKY_FALL_SECONDS));
+  return { x: xOf(e.id), y: Math.round(4 + frac * (gg.floorY - 14)), frac };
+}
+
+/* ---- DOM refs ---- */
+const $ = id => document.getElementById(id);
+const els = {
+  levelChip:$("levelChip"), phaseChip:$("phaseChip"), seedChip:$("seedChip"),
+  lensBtn:$("lensBtn"), ledgerBtn:$("ledgerBtn"), ledger:$("ledger"),
+  ledgerList:$("ledgerList"), digest:$("digest"),
+  say:$("say"), sayText:$("sayText"), sayProv:$("sayProv"),
+  hint:$("hint"), hintText:$("hintText"),
+  l0hud:$("l0hud"), sparkFill:$("sparkFill"), stonesLbl:$("stonesLbl"),
+  l1hud:$("l1hud"), caughtLbl:$("caughtLbl"), mistakesLbl:$("mistakesLbl"),
+  l2hud:$("l2hud"), dialNeedle:$("dialNeedle"), blendFill:$("blendFill"),
+  blendLbl:$("blendLbl"), heatFill:$("heatFill"), heatLbl:$("heatLbl"),
+  lockBanner:$("lockBanner"),
+  flash:$("flash"), lesson:$("lesson"),
+  candidatePanel:$("candidatePanel"), retryLine:$("retryLine"), beginQuizBtn:$("beginQuizBtn"),
+  quizPanel:$("quizPanel"), quizProgress:$("quizProgress"),
+  quizQuestion:$("quizQuestion"), quizChoices:$("quizChoices"),
+  donePanel:$("donePanel"), doneStats:$("doneStats"),
+};
+els.seedChip.innerHTML = "seed <b></b>";
+els.seedChip.querySelector("b").textContent = SEED;
+
+const LEVEL_TITLES = ["the first fire", "the living sky", "the bowl of patience"];
+
+function flash(msg, bad){
+  els.flash.textContent = msg;
+  els.flash.classList.toggle("bad", !!bad);
+  els.flash.classList.add("show");
+  V.flashT = 1.6;
+}
+
+/* ---- input: pointer ---- */
+function xy(e){
+  const r = cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H };
+}
+cv.addEventListener("pointerdown", e=>{
+  const p = xy(e);
+  V.pdown = true; V.px = p.x; V.py = p.y; V.movedAcc = 0;
+  V.prevRaw = null;
+  if(S.phase !== "PLAYING") return;
+  if(S.level === 0 && S.fire.state === "COLD"){
+    const gg = geo();
+    const nearPile = Math.hypot(p.x-gg.pileX, p.y-gg.floorY) < 30;
+    const nearHearth = Math.hypot(p.x-gg.hearthX, p.y-gg.floorY) < 26;
+    if(nearPile || nearHearth){
+      dispatch({k:"PLACE_STONE"});
+      puff(gg.hearthX + (S.fire.stones-2)*8, gg.floorY, PAL.dust, 5, 0.8);
+    }
+  } else if(S.level === 1){
+    let best = null, bestD = 7;
+    for(const en of S.sky.entities){
+      const pos = entPos(en);
+      const d = Math.hypot(p.x-pos.x, p.y-pos.y);
+      if(d < bestD){ bestD = d; best = en; }
+    }
+    if(best){
+      const pos = entPos(best);
+      if(V.lens){ dispatch({k:"VERIFY", id:best.id}); puff(pos.x,pos.y,PAL.glow,4,0.6); }
+      else {
+        dispatch({k:"CATCH", id:best.id});
+        puff(pos.x, pos.y, PAL.gold, 6);
+      }
+    }
+  }
+});
+cv.addEventListener("pointermove", e=>{
+  if(!V.pdown) return;
+  const p = xy(e);
+  V.movedAcc += Math.hypot(p.x-V.px, p.y-V.py);
+  if(S.level === 2 && S.phase === "PLAYING"){
+    const gg = geo();
+    const raw = Math.atan2(p.y-gg.bowlY, p.x-gg.bowlX);
+    if(V.prevRaw !== null){
+      let d = raw - V.prevRaw;
+      while(d >  Math.PI) d -= Math.PI*2;
+      while(d < -Math.PI) d += Math.PI*2;
+      V.accum += d; // unwrapped, accumulates across full turns
+    }
+    V.prevRaw = raw;
+  }
+  V.px = p.x; V.py = p.y;
+});
+function pointerUp(){ V.pdown = false; V.prevRaw = null; }
+addEventListener("pointerup", pointerUp);
+addEventListener("pointercancel", pointerUp);
+addEventListener("blur", ()=>{ V.pdown = false; V.kbSpace = false; });
+
+/* ---- input: keyboard ---- */
+function toggleLens(){
+  V.lens = !V.lens;
+  els.lensBtn.setAttribute("aria-pressed", String(V.lens));
+  els.lensBtn.textContent = "lens: " + (V.lens ? "on" : "off") + " (L)";
+  document.body.classList.toggle("lens", V.lens);
+}
+els.lensBtn.addEventListener("click", toggleLens);
+els.ledgerBtn.addEventListener("click", ()=>{
+  const open = els.ledger.classList.toggle("closed");
+  els.ledgerBtn.setAttribute("aria-expanded", String(!open));
+});
+els.beginQuizBtn.addEventListener("click", ()=>dispatch({k:"BEGIN_QUIZ"}));
+
+addEventListener("keydown", e=>{
+  const onButton = document.activeElement && document.activeElement.tagName === "BUTTON";
+  if(e.code === "Space" && !onButton){
+    e.preventDefault();
+    if(!e.repeat && S.phase === "PLAYING" && S.level === 0 && S.fire.state === "COLD"){
+      dispatch({k:"PLACE_STONE"});
+      puff(geo().hearthX, geo().floorY, PAL.dust, 5, 0.8);
+    }
+    V.kbSpace = true;
+  }
+  if(e.key === "l" || e.key === "L"){ toggleLens(); }
+  if(S.phase === "QUIZ" && /^[1-4]$/.test(e.key)){
+    dispatch({k:"ANSWER_QUIZ", choice: Number(e.key)-1});
+  }
+  if(S.phase === "PLAYING" && S.level === 1){
+    if(e.key === "ArrowLeft" || e.key === "ArrowRight"){
+      e.preventDefault();
+      const list = S.sky.entities.slice().sort((a,b)=>xOf(a.id)-xOf(b.id));
+      if(list.length){
+        let i = list.findIndex(x=>x.id===V.sel);
+        if(i === -1) i = 0;
+        else i = (i + (e.key==="ArrowRight"?1:-1) + list.length) % list.length;
+        V.sel = list[i].id;
+      }
+    }
+    if(e.key === "Enter" && !onButton){
+      const en = S.sky.entities.find(x=>x.id===V.sel);
+      if(en){
+        const pos = entPos(en);
+        if(V.lens){ dispatch({k:"VERIFY", id:en.id}); puff(pos.x,pos.y,PAL.glow,4,0.6); }
+        else { dispatch({k:"CATCH", id:en.id}); puff(pos.x,pos.y,PAL.gold,6); }
+      }
+    }
+  }
+});
+addEventListener("keyup", e=>{ if(e.code === "Space") V.kbSpace = false; });
+
+/* ---- ledger reactions (UI feedback derived from the trace) ---- */
+function processLedger(){
+  const led = S.ledger;
+  if(!led.length) return;
+  const lastN = led[led.length-1].n;
+  if(lastN === V.lastN) return;
+  const gg = geo();
+  for(const ev of led){
+    if(ev.n <= V.lastN) continue;
+    switch(ev.k){
+      case "FIRE_STATE":
+        if(ev.d.state === "LIT"){
+          flash("fire — you made fire");
+          for(let i=0;i<(REDUCE?20:60);i++){
+            const a = rnd()*Math.PI*2, sp = rnd()*2+0.4;
+            spawnP(gg.hearthX, gg.floorY-3, Math.cos(a)*sp, Math.sin(a)*sp-1.2,
+              26+rnd()*26, rnd()<0.5?PAL.gold:PAL.ember);
+          }
+        }
+        break;
+      case "FAUX_CAUGHT": flash("glass — the signal was not proof", true); break;
+      case "EMBER_CAUGHT": flash("it burns", true); break;
+      case "SKY_RESET": flash("too many mistakes — the sky resets", true); V.sel = -1; break;
+      case "SPLASH":
+        flash("splash — too fast", true);
+        puff(gg.bowlX, gg.bowlY-4, PAL.mossWarm, 8, 1.8);
+        break;
+      case "OVERHEAT": flash("the bowl is scorching — rest", true); break;
+      case "COOLED": flash("cooled — stir on"); break;
+      case "QUIZ_FAILED": V.retry = true; break;
+      case "QUIZ_PASSED": V.retry = false; flash("admitted"); break;
+      case "LEVEL_STARTED": V.sel = -1; break;
+    }
+  }
+  V.lastN = lastN;
+}
+
+/* ---- frame loop: state-driven dispatch, then projection ---- */
+function frame(now){
+  const dt = Math.min(0.05, Math.max(0, (now - V.last) / 1000)) || 0.016;
+  V.last = now; V.t += dt;
+
+  if(S.phase === "PLAYING"){
+    if(S.level === 0){
+      if(S.fire.state === "READY" || S.fire.state === "SPARKING"){
+        const moving = (V.pdown && V.movedAcc > 0.5) || V.kbSpace;
+        dispatch({k:"SCRATCH", dt, moving});
+      }
+    } else if(S.level === 1){
+      dispatch({k:"SKY_TICK", dt});
+    } else if(S.level === 2){
+      if(V.pdown || V.kbSpace){
+        if(V.kbSpace && !V.pdown) V.accum += 3.4 * dt; // synthetic in-band whisk
+        dispatch({k:"WHISK", angle: V.accum, dt});
+      } else {
+        dispatch({k:"REST", dt});
+      }
+    }
+  }
+  // view-side whisk speed readout (same |Δangle|/dt the core uses)
+  const inst = Math.abs(V.accum - V.prevAccum) / dt;
+  V.prevAccum = V.accum;
+  V.omega += (inst - V.omega) * Math.min(1, dt*10);
+  V.movedAcc = 0;
+
+  if(V.flashT > 0){ V.flashT -= dt; if(V.flashT <= 0) els.flash.classList.remove("show"); }
+
+  // eased scene grade for L0 (LIT or beyond -> warm)
+  const warmTarget = (S.level > 0 || S.phase === "DONE" || S.fire.state === "LIT")
+    ? 1 : Math.min(0.55, S.fire.progress * 0.55);
+  V.grade += (warmTarget - V.grade) * Math.min(1, dt*2.5);
+
+  emitAmbient(dt);
+  stepParticles(dt);
+  processLedger();
+  draw();
+  syncDom();
+  requestAnimationFrame(frame);
+}
+
+/* ---- ambient particle emission per scene ---- */
+function emitAmbient(dt){
+  const gg = geo();
+  if(S.phase === "DONE"){
+    if(rnd() < (REDUCE?0.2:0.6))
+      spawnP(Math.round(W*0.35)+(rnd()*6-3), gg.floorY-2, (rnd()*2-1)*0.3, -0.7-rnd()*0.8,
+        18+rnd()*20, rnd()<0.4?PAL.gold:PAL.ember, "fire");
+    return;
+  }
+  if(S.level === 0){
+    if(S.fire.state === "SPARKING" && (V.pdown || V.kbSpace)){
+      const n = REDUCE ? 1 : 1 + Math.round(S.fire.progress*3);
+      for(let i=0;i<n;i++)
+        if(rnd() < 0.7)
+          spawnP(gg.hearthX+(rnd()*8-4), gg.floorY-4, (rnd()*2-1)*1.1, -rnd()*1.5-0.3,
+            10+rnd()*14, PAL.amber);
+    }
+    if(S.fire.state === "LIT"){
+      const n = REDUCE ? 1 : 3;
+      for(let i=0;i<n;i++)
+        spawnP(gg.hearthX+(rnd()*6-3), gg.floorY-3, (rnd()*2-1)*0.3, -0.7-rnd()*0.9,
+          16+rnd()*20, rnd()<0.4?PAL.gold:(rnd()<0.7?PAL.ember:PAL.coal), "fire");
+      if(!REDUCE && rnd()<0.2)
+        spawnP(gg.hearthX+(rnd()*8-4), gg.floorY-7, (rnd()*2-1)*0.2, -0.4, 44, PAL.smoke2, "smoke");
+    }
+    if(!REDUCE && rnd()<0.05)
+      spawnP(rnd()*W, rnd()*gg.floorY, (rnd()*2-1)*0.05, -0.03, 160, PAL.dust, "dust");
+  } else if(S.level === 2){
+    if(S.matcha.heat > 3 && rnd() < (REDUCE?0.1:0.3))
+      spawnP(gg.bowlX+(rnd()*10-5), gg.bowlY-8, (rnd()*2-1)*0.15, -0.4-rnd()*0.3,
+        24+rnd()*20, PAL.smoke, "smoke");
+  }
+}
+function stepParticles(dt){
+  for(let i=P.length-1;i>=0;i--){
+    const p = P[i];
+    p.life -= dt*60;
+    if(p.life <= 0){ P.splice(i,1); continue; }
+    p.x += p.vx*dt*60; p.y += p.vy*dt*60;
+    if(p.kind==="fire"){ p.vy -= 0.02; p.vx *= 0.98; }
+    else if(p.kind==="smoke"){ p.vy -= 0.006; p.vx *= 0.99; }
+    else if(p.kind==="spark"){ p.vy += 0.03; }
+  }
+}
+
+/* ---- draw helpers ---- */
+function lerp(a,b,t){ return a+(b-a)*t; }
+function mixHex(c1,c2,t){
+  const a = parseInt(c1.slice(1),16), b = parseInt(c2.slice(1),16);
+  const r = Math.round(lerp((a>>16)&255,(b>>16)&255,t));
+  const g = Math.round(lerp((a>>8)&255,(b>>8)&255,t));
+  const bl = Math.round(lerp(a&255,b&255,t));
+  return `rgb(${r},${g},${bl})`;
+}
+function rgbaHex(hex,a){
+  const n = parseInt(hex.slice(1),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+
+/* Bram, per warren-design/SPRITE_SPEC.md — 10x10 box, anchor feet-center */
+function drawBram(x, fy, opts){
+  const o = opts || {};
+  const g = o.grade !== undefined ? o.grade : 1;
+  const shiver = o.shiver && !REDUCE;
+  const bob = o.content ? Math.sin(V.t*3)*0.6 : 0;
+  const bx = Math.round(x + (shiver ? Math.sin(V.t*33)*0.6 : 0));
+  const y = Math.round(fy - 10 + bob);
+  const warm = Math.min(1, g*1.6);
+  const body = mixHex(PAL.moss, PAL.mossWarm, warm);
+  const belly = mixHex(PAL.belly, PAL.bellyWarm, warm);
+  const ear = mixHex(PAL.ear, PAL.earWarm, warm);
+  const rim = g > 0.15;
+  ctx.fillStyle = ear;                                  // ears
+  ctx.fillRect(bx-3,y-1,2,3); ctx.fillRect(bx+5,y-1,2,3);
+  ctx.fillStyle = body;                                 // body
+  ctx.fillRect(bx-3,y+1,8,7); ctx.fillRect(bx-2,y,6,2);
+  ctx.fillStyle = belly;                                // belly
+  ctx.fillRect(bx-1,y+3,4,4);
+  ctx.fillStyle = ear;                                  // feet
+  ctx.fillRect(bx-3,y+8,2,1); ctx.fillRect(bx+3,y+8,2,1);
+  ctx.fillStyle = PAL.ink;                              // eye sockets
+  ctx.fillRect(bx-2,y+2,1,1); ctx.fillRect(bx+2,y+2,1,1);
+  ctx.fillStyle = (rim || o.content) ? PAL.glowHot : PAL.glow;
+  ctx.fillRect(bx-2,y+2,1,1); ctx.fillRect(bx+2,y+2,1,1);
+  if(!rim && shiver && Math.floor(V.t*2)%3===0){        // cold-breath puff
+    ctx.globalAlpha = 0.4; ctx.fillStyle = PAL.breath;
+    ctx.fillRect(bx+6,y+1,2,1); ctx.globalAlpha = 1;
+  }
+  if(rim){                                              // fire rim light
+    ctx.fillStyle = rgbaHex(PAL.rim, 0.3 + 0.4*g);
+    ctx.fillRect(bx+4,y+1,1,6);
+  }
+  if(o.content){                                        // ember-mark at feet
+    ctx.fillStyle = PAL.ember;
+    ctx.fillRect(bx-1, fy+1, 2, 1);
+  }
+}
+
+function drawCaveBg(g){
+  const gg = geo();
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, mixHex(PAL.cold, PAL.ceilingHi, g));
+  grd.addColorStop(1, mixHex(PAL.cold2, PAL.ember2, g));
+  ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+  if(g > 0.02){
+    const R = lerp(W*0.10, W*0.42, g);
+    const cx = S.phase==="DONE" ? Math.round(W*0.35) : gg.hearthX;
+    const rg = ctx.createRadialGradient(cx,gg.floorY-4,2, cx,gg.floorY-4,R);
+    rg.addColorStop(0, rgbaHex(PAL.gold, 0.25+0.35*g));
+    rg.addColorStop(0.5, rgbaHex(PAL.ember, 0.10+0.16*g));
+    rg.addColorStop(1, rgbaHex(PAL.ember, 0));
+    ctx.fillStyle = rg; ctx.fillRect(0,0,W,H);
+  }
+  ctx.fillStyle = mixHex(PAL.floorCold, PAL.floorWarm, g);
+  ctx.fillRect(0,gg.floorY,W,H-gg.floorY);
+  ctx.fillStyle = mixHex(PAL.speckCold, PAL.speckWarm, g);
+  for(let x=0;x<W;x+=7){ ctx.fillRect(x, gg.floorY+((x*13)%5), 3, 1); }
+}
+
+/* ---- L0: the first fire ---- */
+function drawFire(){
+  const g = V.grade;
+  const gg = geo();
+  drawCaveBg(g);
+  // stone pile (remaining stones, by the wall)
+  const remaining = Math.max(0, 3 - S.fire.stones);
+  const stoneC = mixHex(PAL.stone, PAL.stoneWarm, g);
+  const stoneHi = mixHex(PAL.stoneHiCold, PAL.stoneHiWarm, g);
+  for(let i=0;i<remaining;i++){
+    const sx = gg.pileX - 3 + i*2, sy = gg.floorY - 2 - i*3;
+    ctx.fillStyle = stoneC; ctx.fillRect(sx, sy, 6, 3);
+    ctx.fillStyle = stoneHi; ctx.fillRect(sx, sy, 6, 1);
+  }
+  // hearth marker while cold
+  if(S.fire.state === "COLD"){
+    ctx.fillStyle = rgbaHex(PAL.dim, 0.35);
+    ctx.fillRect(gg.hearthX-8, gg.floorY+1, 16, 1);
+  }
+  // placed hearth stones
+  const spots = [[-8,1],[0,3],[8,1]];
+  for(let i=0;i<S.fire.stones && i<3;i++){
+    ctx.fillStyle = stoneC;
+    ctx.fillRect(gg.hearthX+spots[i][0]-3, gg.floorY+spots[i][1]-2, 6, 3);
+    ctx.fillStyle = stoneHi;
+    ctx.fillRect(gg.hearthX+spots[i][0]-3, gg.floorY+spots[i][1]-2, 6, 1);
+  }
+  // flints once assembled
+  if(S.fire.state !== "COLD"){
+    ctx.fillStyle = mixHex(PAL.flintCold, PAL.flintWarm, g);
+    ctx.fillRect(gg.hearthX-4, gg.floorY-4, 3, 3);
+    ctx.fillRect(gg.hearthX+2, gg.floorY-4, 3, 3);
+    if(S.fire.progress > 0.02 && S.fire.state !== "LIT"){
+      ctx.fillStyle = rgbaHex(mixHex(PAL.ember, PAL.gold, 0.3), Math.min(0.9, S.fire.progress));
+      ctx.fillRect(gg.hearthX-2, gg.floorY-3, 3, 1);
+    }
+  }
+  drawParticles();
+  drawBram(gg.hearthX - Math.round(W*0.17), gg.floorY,
+    { grade:g, shiver: S.fire.state!=="LIT" && g<0.25, content: S.fire.state==="LIT" });
+}
+
+/* ---- L1: the living sky ---- */
+function drawSky(){
+  const gg = geo();
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, PAL.panel);
+  grd.addColorStop(1, PAL.cold2);
+  ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+  for(let i=0;i<STARS.length;i++){
+    const st = STARS[i];
+    const a = REDUCE ? 0.4 : 0.2 + 0.35*(0.5+0.5*Math.sin(V.t*2 + st.p*6.28));
+    ctx.globalAlpha = a; ctx.fillStyle = PAL.bone;
+    ctx.fillRect(st.x, st.y, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = PAL.floorCold; ctx.fillRect(0,gg.floorY,W,H-gg.floorY);
+  ctx.fillStyle = PAL.speckCold;
+  for(let x=0;x<W;x+=7){ ctx.fillRect(x, gg.floorY+((x*13)%5), 3, 1); }
+
+  for(const e of S.sky.entities){
+    const pos = entPos(e);
+    // ember is visibly hot; unrevealed gem and faux are IDENTICAL by design
+    const vis = e.kind === "ember" ? "ember" : (e.revealed ? e.kind : "unknown");
+    if(vis === "ember"){
+      const fl = REDUCE ? 0.5 : 0.5+0.5*Math.sin(V.t*20+e.id);
+      ctx.fillStyle = PAL.ember;
+      ctx.fillRect(pos.x-2,pos.y-1,5,3); ctx.fillRect(pos.x-1,pos.y-2,3,5);
+      ctx.fillStyle = rgbaHex(PAL.gold, 0.5+0.5*fl);
+      ctx.fillRect(pos.x-1,pos.y-1,3,3);
+      ctx.fillStyle = rgbaHex(PAL.coal, 0.7);
+      ctx.fillRect(pos.x, pos.y-4, 1, 2); // hot tail
+    } else {
+      const body = vis === "faux" ? PAL.stone : PAL.bone;
+      ctx.fillStyle = body;                       // diamond
+      ctx.fillRect(pos.x, pos.y-2, 1, 1);
+      ctx.fillRect(pos.x-1, pos.y-1, 3, 1);
+      ctx.fillRect(pos.x-2, pos.y, 5, 1);
+      ctx.fillRect(pos.x-1, pos.y+1, 3, 1);
+      ctx.fillRect(pos.x, pos.y+2, 1, 1);
+      ctx.fillStyle = PAL.dim;
+      ctx.fillRect(pos.x, pos.y, 1, 1);
+      if(e.revealed){                             // revealed badge
+        if(vis === "gem"){
+          ctx.fillStyle = PAL.gold;
+          ctx.fillRect(pos.x-3,pos.y-3,2,1); ctx.fillRect(pos.x+2,pos.y-3,2,1);
+          ctx.fillRect(pos.x-3,pos.y+3,2,1); ctx.fillRect(pos.x+2,pos.y+3,2,1);
+          ctx.fillRect(pos.x, pos.y-4, 1, 1);
+        } else {
+          ctx.fillStyle = PAL.coal;
+          ctx.fillRect(pos.x-2,pos.y-2,1,1); ctx.fillRect(pos.x+2,pos.y-2,1,1);
+          ctx.fillRect(pos.x-1,pos.y-1,1,1); ctx.fillRect(pos.x+1,pos.y-1,1,1);
+          ctx.fillRect(pos.x, pos.y, 1, 1);
+          ctx.fillRect(pos.x-1,pos.y+1,1,1); ctx.fillRect(pos.x+1,pos.y+1,1,1);
+          ctx.fillRect(pos.x-2,pos.y+2,1,1); ctx.fillRect(pos.x+2,pos.y+2,1,1);
+        }
+      }
+    }
+    if(e.id === V.sel){                           // keyboard selection ring
+      ctx.fillStyle = PAL.glow;
+      ctx.fillRect(pos.x-5,pos.y-5,11,1); ctx.fillRect(pos.x-5,pos.y+5,11,1);
+      ctx.fillRect(pos.x-5,pos.y-5,1,11); ctx.fillRect(pos.x+5,pos.y-5,1,11);
+    }
+  }
+  drawParticles();
+  drawBram(Math.round(W*0.5), gg.floorY, { grade: 0.6 });
+}
+
+/* ---- L2: the bowl of patience ---- */
+function drawMatcha(){
+  const gg = geo();
+  drawCaveBg(0.85);
+  const cx = gg.bowlX, cy = gg.bowlY, rx = gg.bowlRX, ry = Math.round(rx*0.62);
+  // table
+  ctx.fillStyle = mixHex(PAL.stone, PAL.stoneWarm, 0.6);
+  ctx.fillRect(cx-rx-8, cy+ry-1, rx*2+16, 3);
+  // heat halo
+  const heatF = S.matcha.heat / SC.TUNING.MATCHA_HEAT_MAX;
+  if(heatF > 0.1){
+    ctx.fillStyle = rgbaHex(PAL.ember, heatF*0.45);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx+3, ry+3, 0, 0, Math.PI*2); ctx.fill();
+  }
+  // bowl
+  ctx.fillStyle = S.matcha.locked ? mixHex(PAL.stoneWarm, PAL.coal, 0.5)
+                                  : mixHex(PAL.stone, PAL.stoneWarm, 0.5);
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+  // matcha surface — deepens with blend
+  const blendF = Math.min(1, S.matcha.blend / SC.TUNING.MATCHA_BLEND_NEEDED);
+  ctx.fillStyle = mixHex(PAL.moss, PAL.mossWarm, blendF);
+  ctx.beginPath(); ctx.ellipse(cx, cy-1, rx-3, ry-2, 0, 0, Math.PI*2); ctx.fill();
+  // foam speckles rotate with the whisk, multiply with blend
+  const specks = Math.round(blendF*12);
+  ctx.fillStyle = PAL.bellyWarm;
+  for(let i=0;i<specks;i++){
+    const a = V.accum*0.4 + i*0.524;
+    const rr = 0.35 + ((SC.h32(SEED+":foam:"+i)%50)/100);
+    ctx.fillRect(Math.round(cx+Math.cos(a)*(rx-5)*rr),
+                 Math.round(cy-1+Math.sin(a)*(ry-3)*rr), 1, 1);
+  }
+  // whisk
+  const wx = Math.round(cx + Math.cos(V.accum)*(rx-6));
+  const wy = Math.round(cy - 1 + Math.sin(V.accum)*(ry-3)*0.8);
+  ctx.fillStyle = PAL.flintCold;
+  ctx.fillRect(wx, wy-7, 1, 7);
+  ctx.fillStyle = PAL.bone;
+  ctx.fillRect(wx-1, wy-1, 3, 2);
+  drawParticles();
+  drawBram(Math.round(W*0.24), gg.floorY, { grade: 0.8 });
+}
+
+/* ---- DONE: completion scene — fire + gems + bowl motifs ---- */
+function drawDone(){
+  const gg = geo();
+  drawCaveBg(1);
+  const fx = Math.round(W*0.35);
+  const stoneC = mixHex(PAL.stone, PAL.stoneWarm, 1);
+  for(const dxy of [[-8,1],[0,3],[8,1]]){
+    ctx.fillStyle = stoneC;
+    ctx.fillRect(fx+dxy[0]-3, gg.floorY+dxy[1]-2, 6, 3);
+  }
+  ctx.fillStyle = PAL.gold; ctx.fillRect(fx-2, gg.floorY-5, 4, 3);
+  ctx.fillStyle = PAL.ember; ctx.fillRect(fx-3, gg.floorY-3, 6, 2);
+  // bowl motif
+  const bx = Math.round(W*0.66), by = gg.floorY-3;
+  ctx.fillStyle = stoneC;
+  ctx.beginPath(); ctx.ellipse(bx, by, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = PAL.mossWarm;
+  ctx.beginPath(); ctx.ellipse(bx, by-1, 7, 3, 0, 0, Math.PI*2); ctx.fill();
+  // gem arc motif
+  for(let i=0;i<5;i++){
+    const gx = Math.round(W*0.30 + i*(W*0.10));
+    const gy = Math.round(H*0.26 + Math.sin(i*1.1)*4 + (REDUCE?0:Math.sin(V.t*1.5+i)*1.5));
+    ctx.fillStyle = PAL.bone;
+    ctx.fillRect(gx, gy-2,1,1); ctx.fillRect(gx-1,gy-1,3,1);
+    ctx.fillRect(gx-2,gy,5,1); ctx.fillRect(gx-1,gy+1,3,1); ctx.fillRect(gx,gy+2,1,1);
+    ctx.fillStyle = PAL.gold; ctx.fillRect(gx, gy-4, 1, 1);
+  }
+  drawParticles();
+  drawBram(Math.round(W*0.47), gg.floorY, { grade: 1, content: true });
+}
+
+function drawParticles(){
+  for(const p of P){
+    const a = Math.max(0, p.life/p.max);
+    ctx.globalAlpha = p.kind==="dust" ? a*0.4 : a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function draw(){
+  if(S.phase === "DONE") drawDone();
+  else if(S.level === 0) drawFire();
+  else if(S.level === 1) drawSky();
+  else drawMatcha();
+}
+
+/* ---- DOM projection ---- */
+function show(el, on){ el.classList.toggle("hide", !on); }
+
+function hintSentence(h){
+  if(h.guess === "gem")
+    return h.confidence === "sure"
+      ? "That one sparkles true — I'm sure of it."
+      : "That one might be true... I can't swear it.";
+  return h.confidence === "sure"
+    ? "That one lies — glass, I'm sure of it."
+    : "Careful — that one may be glass.";
+}
+
+function lessonText(){
+  if(S.phase === "QUIZ") return "press 1–4 · answer what you saw";
+  if(S.phase === "CANDIDATE") return "the play is done — verification admits it";
+  if(S.phase === "DONE") return "fire · sky · bowl — the ledger remembers";
+  if(S.level === 0){
+    if(S.fire.state === "COLD") return "tap the stones — three make a hearth (or press space)";
+    return "hold & drag on the hearth — keep scratching (or hold space)";
+  }
+  if(S.level === 1)
+    return "click to catch · L toggles the lens (verify) · arrows + enter to aim";
+  if(S.matcha.locked) return "the bowl is scorching — let go and rest";
+  return "hold & stir circles around the bowl — stay in the band, rest to cool (or hold space)";
+}
+
+function renderQuiz(){
+  const qi = S.quiz.answers.length;
+  if(V.quizQ === qi && V.quizLevel === S.level) return;
+  V.quizQ = qi; V.quizLevel = S.level;
+  const bank = SC.quizForLevel(S.level);
+  const q = bank[qi];
+  if(!q) return;
+  els.quizProgress.textContent = "question " + (qi+1) + " of " + bank.length +
+    " · " + q.category.replace(/_/g," ");
+  els.quizQuestion.textContent = q.question;
+  els.quizChoices.textContent = "";
+  q.choices.forEach((c,i)=>{
+    const b = document.createElement("button");
+    const num = document.createElement("span");
+    num.className = "num"; num.textContent = (i+1)+".";
+    b.appendChild(num);
+    b.appendChild(document.createTextNode(c));
+    b.addEventListener("click", ()=>dispatch({k:"ANSWER_QUIZ", choice:i}));
+    els.quizChoices.appendChild(b);
+  });
+  const first = els.quizChoices.querySelector("button");
+  if(first) first.focus();
+}
+
+function renderLedger(){
+  const led = S.ledger;
+  const lastN = led.length ? led[led.length-1].n : -1;
+  if(lastN !== V.ledgerN){
+    V.ledgerN = lastN;
+    els.ledgerList.textContent = "";
+    const tail = led.slice(-12).reverse();
+    for(const ev of tail){
+      const li = document.createElement("li");
+      const k = document.createElement("span");
+      k.className = "k"; k.textContent = "#" + ev.n + " " + ev.k + " ";
+      const d = document.createElement("span");
+      d.className = "d";
+      let ds = JSON.stringify(ev.d);
+      if(ds.length > 38) ds = ds.slice(0,38) + "…";
+      d.textContent = ds === "{}" ? "" : ds;
+      li.appendChild(k); li.appendChild(d);
+      els.ledgerList.appendChild(li);
+    }
+  }
+  if(V.t - V.digestAt > 0.5){
+    V.digestAt = V.t;
+    const dg = SC.stateDigest(S);
+    els.digest.textContent = "";
+    const b = document.createElement("b");
+    b.textContent = dg.slice(0, 19);
+    els.digest.appendChild(b);
+    els.digest.appendChild(document.createElement("br"));
+    els.digest.appendChild(document.createTextNode("demo digest (not cryptographic)"));
+  }
+}
+
+function syncDom(){
+  const playing = S.phase === "PLAYING";
+  els.levelChip.innerHTML = "<b></b> · ";
+  els.levelChip.querySelector("b").textContent =
+    S.phase === "DONE" ? "DONE" : "L" + S.level;
+  els.levelChip.appendChild(document.createTextNode(
+    S.phase === "DONE" ? "the whole lesson" : LEVEL_TITLES[S.level]));
+  els.phaseChip.innerHTML = "phase <b></b>";
+  els.phaseChip.querySelector("b").textContent = S.phase;
+
+  // companion speech — ONLY from proposeCompanionLine, provenance visible
+  const line = SC.proposeCompanionLine(S);
+  if(line.speech !== V.sayText){
+    V.sayText = line.speech;
+    els.sayText.textContent = line.speech;
+    els.sayProv.textContent =
+      (line.provenance.indexOf("curated") !== -1 ? "curated" : "signal") +
+      " · " + line.emotion.replace(/_/g," ");
+    els.say.classList.add("show");
+  }
+
+  // L0 HUD
+  show(els.l0hud, playing && S.level === 0);
+  if(playing && S.level === 0){
+    els.sparkFill.style.width = (S.fire.progress*100).toFixed(1) + "%";
+    els.stonesLbl.textContent = "stones " + Math.min(3,S.fire.stones) + "/3";
+    els.sparkFill.classList.toggle("warn",
+      S.fire.state === "SPARKING" && !(V.pdown || V.kbSpace) && S.fire.progress > 0.05);
+  }
+
+  // L1 HUD + Bram's hint (signal — not proof)
+  const inSky = playing && S.level === 1;
+  show(els.l1hud, inSky);
+  show(els.lensBtn, inSky);
+  let hintOn = false;
+  if(inSky){
+    els.caughtLbl.textContent = S.sky.caught + "/" + SC.TUNING.SKY_GEMS_NEEDED;
+    els.mistakesLbl.textContent = S.sky.mistakes + "/" + SC.TUNING.SKY_MAX_MISTAKES;
+    let nearest = null, best = -1;
+    for(const e of S.sky.entities){
+      if(e.revealed) continue;
+      const frac = (S.sky.t - e.born) / SC.TUNING.SKY_FALL_SECONDS;
+      if(frac > best){ best = frac; nearest = e; }
+    }
+    if(nearest){
+      const h = SC.hintFor(S, nearest.id);
+      els.hintText.textContent = hintSentence(h);
+      hintOn = true;
+    }
+  }
+  els.hint.classList.toggle("show", hintOn);
+
+  // L2 HUD
+  const inBowl = playing && S.level === 2;
+  show(els.l2hud, inBowl);
+  if(inBowl){
+    const pct = Math.min(100, V.omega/9*100);
+    els.dialNeedle.style.left = "calc(" + pct.toFixed(1) + "% - 1px)";
+    const blend = S.matcha.blend, heat = S.matcha.heat;
+    els.blendFill.style.width =
+      Math.min(100, blend/SC.TUNING.MATCHA_BLEND_NEEDED*100).toFixed(1) + "%";
+    els.blendLbl.textContent = blend.toFixed(1) + "/" + SC.TUNING.MATCHA_BLEND_NEEDED;
+    els.heatFill.style.width =
+      Math.min(100, heat/SC.TUNING.MATCHA_HEAT_MAX*100).toFixed(1) + "%";
+    els.heatLbl.textContent = heat.toFixed(1) + "/" + SC.TUNING.MATCHA_HEAT_MAX;
+    els.heatFill.classList.toggle("warn", heat >= 4);
+    show(els.lockBanner, S.matcha.locked);
+    els.lockBanner.classList.toggle("hot", S.matcha.locked);
+  }
+
+  // gates
+  show(els.candidatePanel, S.phase === "CANDIDATE");
+  show(els.retryLine, S.phase === "CANDIDATE" && V.retry);
+  show(els.quizPanel, S.phase === "QUIZ");
+  if(S.phase === "QUIZ") renderQuiz(); else { V.quizQ = -1; }
+
+  // done
+  show(els.donePanel, S.phase === "DONE");
+  if(S.phase === "DONE" && !V.doneFilled){
+    V.doneFilled = true;
+    els.ledger.classList.remove("closed");
+    els.ledgerBtn.setAttribute("aria-expanded","true");
+    const rows = [
+      ["levels admitted", S.admitted.join(" · ")],
+      ["actions dispatched", String(S.actions)],
+      ["sky resets", String(S.sky.resets)],
+      ["overheats", String(S.matcha.overheats)],
+      ["splashes", String(S.matcha.splashes)],
+      ["quiz attempts", String(S.quiz.attempts)],
+    ];
+    els.doneStats.textContent = "";
+    for(const r of rows){
+      const div = document.createElement("div");
+      const lbl = document.createElement("span");
+      lbl.textContent = r[0] + " — ";
+      div.appendChild(lbl);
+      div.appendChild(document.createTextNode(r[1]));
+      els.doneStats.appendChild(div);
+    }
+  }
+
+  els.lesson.textContent = lessonText();
+  renderLedger();
+}
+
+/* ---- debug hooks for headless verification: routes through applyEvent only ---- */
+window.__slice = { S, dispatch, V };
+
+requestAnimationFrame(function(now){ V.last = now; requestAnimationFrame(frame); });
+})();
+</script>
+</body>
+</html>

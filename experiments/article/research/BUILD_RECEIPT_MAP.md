@@ -18,7 +18,7 @@ claims may only appear as FUTURE_WORK, present/future tense.
 | R9 | Vertical slice progression is governed: gameplay completion → CANDIDATE; quiz ≥2/3 is the only admission path; `admitLevel` has exactly one call site (comment-stripped static scan) | slice-selftest 30/30, gate assertions ×4 | same receipt | PASS |
 | R10 | Vertical slice determinism: no Math.random/Date/DOM/storage in the core (comment-stripped scan); identical action script → byte-identical digest; ledger capped 250 | slice-selftest 30/30, ×3 | same receipt | PASS |
 | R11 | Companion expression cannot mutate: free text has no action kind; unknown action throws pre-mutation; `proposeCompanionLine` digest-neutral | slice-selftest 30/30, boundary assertions ×3 | same receipt | PASS |
-| R12 | Playable UI shell renders the three scenes and reaches DONE end-to-end in a real browser | headless Chromium drive-to-DONE | IN FLIGHT (build agent) | PENDING |
+| R12 | Playable UI shell renders the three scenes and reaches DONE end-to-end in a real browser | headless Chromium drive-to-DONE: 0 console errors, phases L0→DONE all reached (blend 8.05/8, 0 overheats), 4 screenshots; shell grep: 0 direct state writes, 0 storage/network/entropy surfaces outside comments | 2026-07-17 ~01:50Z | PASS |
 | R13 | Root canon untouched by all of the above | `node selftest.js index.html` → 29/29 | 2026-07-17T01:37Z after slice build | PASS |
 
 ## Forbidden inference (from HAL review 1)
