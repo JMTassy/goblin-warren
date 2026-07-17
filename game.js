@@ -6698,7 +6698,40 @@ var AI_QCM = [
     pool: ["Check who wrote it, when, and whether it can be tested", "Copy it into three more scrolls", "Trust scrolls more than living goblins", "Ignore it unless it rhymes"],
     correct: "Check who wrote it, when, and whether it can be tested",
     topic: "sources", lesson: "check the source before you trust the claim",
-    explain: "Author, date, testability — three questions before a scroll becomes a fact. Untested scrolls are just fan fiction." }
+    explain: "Author, date, testability — three questions before a scroll becomes a fact. Untested scrolls are just fan fiction." },
+
+  /* FABLE-EDUCATOR batch (witness #8) — World 2's gaps: tool use and
+     memory/retrieval, carried by the Forge's own quizmaster. */
+  { q: "Pip can't see inside the dark burrow. What turns “can't” into “can”?",
+    pool: ["Borrowing the right tool — a lantern", "Trying harder with closed eyes", "Pretending it isn't dark", "Shouting at the dark"],
+    correct: "Borrowing the right tool — a lantern",
+    topic: "tools_models", lesson: "a tool extends what a helper can do",
+    explain: "Tool use: an AI that can't see a file or the web borrows a tool that can. The borrowing-plug grown-ups use is called MCP." },
+  { q: "Nib must measure the pond. Hammer, soup spoon, or measuring string?",
+    pool: ["The measuring string", "The hammer, confidently", "The soup spoon, twice", "All three at once"],
+    correct: "The measuring string",
+    topic: "tools_models", lesson: "pick the tool that fits the question",
+    explain: "Tool choice: an AI picks a calculator for math and a search for facts — the wrong tool answers a different question." },
+  { q: "The Moth asks: yesterday's exact ZOL count — guess it, or check the ledger?",
+    pool: ["Check the ledger", "Guess it with feeling", "Ask three goblins to vote", "Round to a nice number"],
+    correct: "Check the ledger",
+    topic: "memory", lesson: "look it up, don't make it up",
+    explain: "Retrieval: fetching the real note beats guessing every time. The go-fetch-the-scroll trick is called RAG." },
+  { q: "Lulu remembers everything — until she sleeps. What survives the night?",
+    pool: ["What was written down", "Her loudest thought", "Everything, always", "Whatever Gerald witnessed"],
+    correct: "What was written down",
+    topic: "memory", lesson: "what isn't written down is lost at sleep",
+    explain: "A session's context vanishes when it ends; memory is notes reread on waking. The Warren replays its whole log every morning." },
+  { q: "Pip's desk fits five scrolls. You dump fifty on it. What happens to the rest?",
+    pool: ["They slide off — keep only what the task needs", "The desk grows", "Pip reads faster", "Scrolls learn to stack themselves"],
+    correct: "They slide off — keep only what the task needs",
+    topic: "memory", lesson: "a helper's desk is small; pack it with what matters",
+    explain: "Context window: an AI can only hold so much at once. Choosing what to show it is half the work." },
+  { q: "Nib's gadget says the pond is 900 leagues deep. The pond is knee-high. Now what?",
+    pool: ["Check the gadget — tools can be wrong too", "Believe it; gadgets never lie", "Evacuate the Warren", "Report the pond for lying"],
+    correct: "Check the gadget — tools can be wrong too",
+    topic: "tools_models", lesson: "trust, then verify — even tools",
+    explain: "A tool's output is evidence, not gospel: sanity-check what comes back before acting on it. Knee-high beats 900 leagues." }
 ];
 
 /* VISION_V1_31 §2b — riddle difficulty follows depth: the hard share grows
@@ -6949,7 +6982,110 @@ var QUIZ_ZOL_BANK = [
       "Assume it's wrong and ignore it.",
       "Ask the model if it's sure."
     ], correctIdx: 1,
-    explain: "Fabricated citations look flawless. Grounding — checking the source exists — is the only real test. 'Are you sure?' just invites more confident fiction." }
+    explain: "Fabricated citations look flawless. Grounding — checking the source exists — is the only real test. 'Are you sure?' just invites more confident fiction." },
+
+  /* FABLE-EDUCATOR batch (witness #8: "more AI educative") — World 1's
+     curriculum: what an agent IS, checking claims, garbage-in-garbage-out,
+     asking well, who decides. Jargon lives only in the explain line. */
+  { id: "agents_q2", topic: "agents", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "Lulu wonders: am I a recording that replays, or something more? What makes a helper an agent?",
+    options: [
+      "It can notice, decide, and act on its own — not just replay answers.",
+      "It has a very good hat.",
+      "It talks the most.",
+      "It never, ever makes mistakes."
+    ], correctIdx: 0,
+    explain: "That's the word: AGENT — something that senses, decides, and acts toward a goal. Hats optional. Mistakes: extremely possible." },
+
+  { id: "agents_q3", topic: "agents", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "A shovel digs when you push it. Lulu digs when the garden needs it. What's the difference?",
+    options: [
+      "An agent chooses when and how; a tool waits to be used.",
+      "Shovels are shinier.",
+      "There is no difference.",
+      "Lulu digs faster."
+    ], correctIdx: 0,
+    explain: "TOOL vs AGENT: a tool does exactly what it's pushed to do; an agent picks its next move toward a goal. You still choose the goal." },
+
+  { id: "hallucination_q3", topic: "checking claims", difficulty: 1, effect: "knowledge-lantern", base: 10,
+    q: "Zaz says the moon is made of ZOL. She sounds SO sure. What does sounding sure prove?",
+    options: [
+      "Nothing — confidence isn't evidence; surprising claims get checked.",
+      "It proves she's right.",
+      "It proves the moon is rich.",
+      "The loudest voice is the truest voice."
+    ], correctIdx: 0,
+    explain: "CONFIDENCE ≠ CORRECTNESS. An AI can sound completely certain and be completely wrong — the surprising ones get checked first." },
+
+  { id: "grounding_q1", topic: "checking claims", difficulty: 1, effect: "knowledge-lantern", base: 10,
+    q: "Lulu tells you a WILD fun fact. Which one question tests it fastest?",
+    options: [
+      "“Where did you learn that?” — trace it back to a source.",
+      "“Can you say it louder?”",
+      "“Is it fun though?”",
+      "“Can you repeat it three times?”"
+    ], correctIdx: 0,
+    explain: "GROUNDING: a claim you can trace to a real source is worth more than ten you can't. No source, no fact — just a nice noise." },
+
+  { id: "training_data_q1", topic: "what goes in", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "The sky rains coins, leaves, and one rude fly. If Lulu gobbles EVERYTHING that falls…?",
+    options: [
+      "She learns from the junk too — what goes in shapes what comes out.",
+      "She becomes 400% smarter.",
+      "The fly doesn't count.",
+      "Nothing; eating is eating."
+    ], correctIdx: 0,
+    explain: "GARBAGE IN, GARBAGE OUT: an AI is built from whatever it's fed. Catch the coins, skip the fly — feeding IS teaching." },
+
+  { id: "training_data_q2", topic: "what goes in", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "You only ever talk to Lulu about mushrooms. What will her big ideas mostly be about?",
+    options: [
+      "Mushrooms — a helper reflects what it's been given.",
+      "Whatever is truly best.",
+      "The sea. Obviously the sea.",
+      "She'll invent new topics from nothing."
+    ], correctIdx: 0,
+    explain: "TRAINING DATA is a diet: narrow food, narrow thoughts. If you want wide ideas, feed a wide world." },
+
+  { id: "prompting_q2", topic: "asking well", difficulty: 1, effect: "learned-mushroom", base: 10,
+    q: "You ask Lulu to “make the garden nice.” She paints every rock purple. Whose miss was that?",
+    options: [
+      "The ask's — “nice” was vague; clear asks say what, where, how much.",
+      "Lulu's; she should read minds.",
+      "The rocks'.",
+      "Purple's. Purple went too far."
+    ], correctIdx: 0,
+    explain: "A PROMPT is the ask: goal + place + limits. “Nice” can't be checked; “three flowers by the pond” can." },
+
+  { id: "context_q1", topic: "asking well", difficulty: 1, effect: "knowledge-lantern", base: 10,
+    q: "Lulu didn't know you hate purple. How could she have known, before painting?",
+    options: [
+      "Only if it was in what you told her — helpers use what's in front of them.",
+      "By guessing harder.",
+      "By asking the rocks.",
+      "She knew. She did it anyway."
+    ], correctIdx: 0,
+    explain: "CONTEXT: an AI only sees what's in the conversation. If it matters, say it — unsaid things don't exist to her." },
+
+  { id: "authority_q1", topic: "who decides", difficulty: 1, effect: "knowledge-lantern", base: 10,
+    q: "Lulu wants to repaint the WHOLE Warren tonight. Who gets the final yes?",
+    options: [
+      "You — a helper proposes; the keeper decides.",
+      "Lulu; it was her idea.",
+      "Whoever holds the brush.",
+      "The Warren votes at midnight."
+    ], correctIdx: 0,
+    explain: "HUMAN IN THE LOOP: ideas can come from anywhere, but the yes stays with you. That's the Warren's oldest law." },
+
+  { id: "verification_q1", topic: "who decides", difficulty: 1, effect: "mended-beam", base: 10,
+    q: "Lulu checked her own homework and gave herself a gold star. Is it checked?",
+    options: [
+      "Not yet — a real check needs eyes that didn't do the work.",
+      "Yes; stars are stars.",
+      "Yes, if she checked twice.",
+      "Only if the star is very shiny."
+    ], correctIdx: 0,
+    explain: "NO SELF-CERTIFICATION: the one who did the work can't be the only one who grades it. A second look makes it true." }
 ];
 
 var QUIZ_ZOL_REACTIONS = {
@@ -7522,7 +7658,7 @@ function spawnGoldfall(forceGlyph) {
   if (item.announce && window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(110);  // the stone announces itself, low
   var el = document.createElement("div");
   el.className = "goldfall";
-  el.textContent = item.glyph;
+  el.innerHTML = '<span class="gf-spin">' + item.glyph + '</span>';   // spin the glyph, not the hitbox (debugger-goblin: rotateY collapsed taps to ~2px)
   el.style.left = randi(10, 90) + "%";
   el.style.top = "-6%";
   el.style.transition = "top " + item.fall + "s linear";  // per-item speed (witness #7)
@@ -7619,7 +7755,9 @@ function spawnMatchaCraving() {
   matchaHeld = false;
   showBubble(matchaGoblinId, pick(MATCHA_ASK_LINES), 4200);
   var world = document.getElementById("world");
-  var forge = zoneById("forge");
+  /* debugger-goblin fix: never anchor the cup on a zone the player can't
+     see — World 1 uses the garden; the forge takes over once revealed. */
+  var forge = (stagedActive() && currentWorld() < 2) ? zoneById("garden") : zoneById("forge");
   if (world) {
     var cup = document.createElement("div");
     cup.className = "matcha-cup";
@@ -7662,7 +7800,7 @@ function showMatchaChip() {
   if (!app || document.getElementById("matcha-chip")) return;
   var chip = document.createElement("div");
   chip.id = "matcha-chip";
-  chip.textContent = "🍵 carrying matcha… tap the goblin";
+  chip.textContent = "🍵 carrying matcha… bring it to " + ((S.goblins[matchaGoblinId] && S.goblins[matchaGoblinId].name) || "the goblin");
   app.appendChild(chip);
 }
 
@@ -7720,6 +7858,27 @@ function expireMatcha() {
   }, 60000);
   scheduleMatchaCraving(randi(70000, 120000));
 }
+
+/* ── VISIBILITY LAW (adversarial audit 2026-07-17; operator: "matcha is
+   bugging" on iPhone) — iOS freezes setTimeout while the tab is hidden,
+   so on return every stale window fires at once: the goblin sulks the
+   second you're back, the cup lingers past its window, the rain stalls.
+   Law: absence ≠ punition. On becoming visible again, active windows
+   re-arm FRESH (the player gets their full window back) and the sky is
+   reconciled — nothing expires against time the player never had. */
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState !== "visible") return;
+  try {
+    if (matchaGoblinId) {
+      clearTimeout(matchaExpireTimer);
+      matchaExpireTimer = setTimeout(expireMatcha, matchaHeld ? 25000 : 45000);
+    }
+    /* goldfall ghost-stall: a coin whose element died while hidden would
+       block all future rain behind the singleton — reconcile, re-arm */
+    if (goldfallEl && !goldfallEl.isConnected) { goldfallEl = null; goldfallItem = null; skyRain(false); }
+    if (!goldfallEl && S && S.flags && S.flags.prologueSeen) scheduleGoldfall(randi(2000, 6000));
+  } catch (e) { /* never let a resume hook break play */ }
+});
 
 /* A small zolCelebrate-style sprinkle — sap, not ZOL, so it flies to the
    🔮 sap readout in #currency, never the ZOL wallet (that would misreport
@@ -9168,6 +9327,14 @@ function cribNeed() {
   prologueSetTimeout(function () {
     if (prologueStep !== 4) return;
     var o2 = cribOb();
+    /* debugger-goblin fix: Lulu quietly tends the cup herself — it must NOT
+       linger as a dead, still-glowing object after graduation (witnessed:
+       permanent cup + double-cup with the ambient ritual). */
+    if (o2.matchaCupObjId) {
+      S.objects = S.objects.filter(function (ob) { return ob.id !== o2.matchaCupObjId; });
+      o2.matchaCupObjId = null;
+      renderObjects();
+    }
     o2.need1Done = true; o2.need2Done = true;
     cribCheckNeedsDone();
   }, 30000);
@@ -9284,6 +9451,11 @@ function graduateCrib(fullReveal) {
   else S.progress.rung = 12;
   var o = cribOb();
   o.woke = true; o.offered = true; o.mystery = true;
+  /* no crib cup survives graduation (debugger-goblin, witnessed dead-cup) */
+  if (o.matchaCupObjId || S.objects.some(function (ob) { return ob.sign === "Warm Matcha"; })) {
+    S.objects = S.objects.filter(function (ob) { return ob.sign !== "Warm Matcha"; });
+    o.matchaCupObjId = null;
+  }
   saveState();
   renderGoblins();
   if (staged) {
@@ -9353,7 +9525,7 @@ function resetCrib() {
   var prog = document.getElementById("crib-progress");
   if (prog) { prog.classList.add("hidden"); for (var i = 0; i < prog.children.length; i++) prog.children[i].classList.remove("done", "crib-cue"); }
   /* wipe the crib's world objects so a replay starts truly empty */
-  S.objects = S.objects.filter(function (ob) { return ob.emoji !== "🌰" && ob.emoji !== "🌸"; });
+  S.objects = S.objects.filter(function (ob) { return ob.emoji !== "🌰" && ob.emoji !== "🌸" && ob.emoji !== "🍵"; });
   S.flags.prologueSeen = false;
   S.progress.rung = 1;
   S.progress.onboarding = Object.assign({}, CRIB_OB_DEFAULTS);
