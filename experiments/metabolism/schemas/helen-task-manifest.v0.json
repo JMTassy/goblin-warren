@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "helen-task-manifest.v0.json",
+  "title": "HELEN Task Manifest V0",
+  "description": "M0 intake output. No work begins while any required field is ambiguous. status: PROPOSAL, authority: NONE, canon: FALSE.",
+  "type": "object",
+  "required": [
+    "objective",
+    "authority_requested",
+    "scope",
+    "permissions",
+    "forbidden_paths",
+    "budget",
+    "completion_conditions",
+    "admission_policy"
+  ],
+  "properties": {
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority_requested": {
+      "type": "string",
+      "enum": [
+        "NONE"
+      ],
+      "description": "first slice grants no authority; future slices may widen under seal"
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "critical_distinctions": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "M2 output: pairs of states the worker set must be able to separate, e.g. [attempted, changed]"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "forbidden_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "turns"
+      ],
+      "properties": {
+        "turns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "completion_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "admission_policy": {
+      "type": "string",
+      "enum": [
+        "HOLD_FOR_OPERATOR"
+      ],
+      "description": "first slice has exactly one terminal"
+    }
+  },
+  "additionalProperties": true
+}

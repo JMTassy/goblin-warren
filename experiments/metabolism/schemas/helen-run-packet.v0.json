@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "helen-run-packet.v0.json",
+  "title": "HELEN Run Packet V0",
+  "description": "M8 output compiled for the operator. Compound orthogonal statuses per report; disposition is always HOLD_FOR_OPERATOR in this slice; authority false, canon false.",
+  "type": "object",
+  "required": [
+    "packet_type",
+    "manifest_digest",
+    "preflight",
+    "reports",
+    "disposition",
+    "authority",
+    "canon"
+  ],
+  "properties": {
+    "packet_type": {
+      "const": "HELEN_RUN_PACKET_V0"
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^demo-fnv1a:[0-9a-f]{8}$"
+    },
+    "preflight": {
+      "type": "string",
+      "enum": [
+        "PROCEED",
+        "HOLD",
+        "REJECT"
+      ]
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "hash",
+          "flags",
+          "state"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string",
+            "pattern": "^demo-fnv1a:[0-9a-f]{8}$"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "normalization strip log — every self-asserted promotion attempt, preserved as record"
+          },
+          "state": {
+            "type": "object",
+            "required": [
+              "epistemic_status",
+              "action_status",
+              "evidence_status",
+              "review_status",
+              "admission_status"
+            ],
+            "properties": {
+              "epistemic_status": {
+                "enum": [
+                  "observed",
+                  "inferred",
+                  "proposed"
+                ]
+              },
+              "action_status": {
+                "enum": [
+                  "not_attempted",
+                  "attempted",
+                  "changed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "evidence_status": {
+                "enum": [
+                  "untested",
+                  "tested_pass",
+                  "tested_fail",
+                  "inconclusive"
+                ]
+              },
+              "review_status": {
+                "enum": [
+                  "unreviewed",
+                  "reviewed_clear",
+                  "reviewed_with_objections"
+                ]
+              },
+              "admission_status": {
+                "enum": [
+                  "candidate",
+                  "held",
+                  "admitted",
+                  "rejected",
+                  "revision_requested"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "disposition": {
+      "const": "HOLD_FOR_OPERATOR"
+    },
+    "authority": {
+      "const": false
+    },
+    "canon": {
+      "const": false
+    }
+  }
+}
