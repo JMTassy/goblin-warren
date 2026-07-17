@@ -29,7 +29,7 @@ music initiation (assemble/hold; on-beat catch/discriminate;
 tap/regulate/rest), stated as falsifiable hypotheses — not findings —
 about installing discriminations like *signal ≠ proof ≠ permission ≠
 authority*. We formalize the architecture, map each
-implementation claim to an executed receipt (33/33 slice core; 29/29
+implementation claim to an executed receipt (34/34 slice core; 29/29
 surrounding game), position the design against
 security, generative-agent, and AI-literacy literatures, each holding one
 piece of this territory, and specify the player studies that would confirm
@@ -315,7 +315,9 @@ Three commitments follow.
    mode of physical action whose consequence structure mirrors the target
    concept (§6). The mechanic is the message; the quiz afterward only
    *names* what the hands already learned — and gates progression on the
-   naming.
+   naming. Cost design follows the same law: the first mistake of each
+   class is free and teaching, only repetition costs — a playable mistake
+   is the design's preferred teacher over any told rule (§6).
 3. **The engine must actually have the property being taught.** If the game
    *says* "agents cannot change the world without admission" while its code
    lets NPC output mutate state, the curriculum is a diorama. Hence the
@@ -459,7 +461,7 @@ architecture, receipt-checked.
 
 The slice implements the Pet scale as three levels plus integrated
 verification quizzes, over a deterministic core of ~470 lines with a
-33-assertion suite (§9). Each level introduces one gesture family; each
+34-assertion suite (§9). Each level introduces one gesture family; each
 gesture's consequence structure *is* the target concept. The bindings
 follow gestural conceptual mapping [segal2011gestural, howison2011mit]:
 discrete placement then *sustained continuous* contact for maintained
@@ -491,9 +493,12 @@ is active from its first minute. True notes and False Notes are
 hums hints — honest, fallible, sometimes confidently wrong (8/10 accuracy
 by construction, confidence uncorrelated) — each labeled "signal — not
 proof." A listening-lens gesture verifies a falling note, revealing
-ground truth at the cost of time; catching a Fausse Note is a counted
-mistake carrying the lesson event SIGNAL_NOT_PROOF; the fourth mistake
-resets the level. Concepts carried: the entire epistemic ladder in one
+ground truth at the cost of time. Mistake cost follows the *stone
+template*: the first catch of each hazard class is a free lesson —
+logged with SIGNAL_NOT_PROOF, taught, uncounted — and only repetition
+costs; the lesson flag survives level resets (a thing done wrong once is
+understood, and stays understood). The fourth counted mistake resets the
+level. Concepts carried: the entire epistemic ladder in one
 mechanic — appearance and hum are signals, the lens is proof, the catch
 is an act whose safety depended on whether you checked — plus pulse,
 pitch, and the critical ear.
@@ -642,8 +647,8 @@ so two runs of the same seed are visually identical too.
 Evaluation is structural and behavioral, not human-subject (§11). Four
 instruments, all re-executable (§12):
 
-**Invariant suite (core).** 33 assertions, all passing, emitting a receipt
-with the core file's identity digest (`demo-fnv1a:b705712a`). Coverage by
+**Invariant suite (core).** 34 assertions, all passing, emitting a receipt
+with the core file's identity digest (`demo-fnv1a:2835ee02`). Coverage by
 theme: determinism (identical digests across seeds/replays; distinct
 schedules across seeds); boundary (unknown actions throw pre-mutation;
 free-text action forged as companion speech throws with state digest
@@ -652,8 +657,9 @@ unchanged; expression view mutates nothing); L0 (context gate, decay,
 shape, failed quiz refuses admission and preserves the candidate, passed
 quiz admits — and is the sole admission site by static scan); L1 (overlap,
 fallible hints including a confidently-wrong one within the first 60
-drops, VERIFY ground truth, Fausse-Note mistake with lesson event, reset
-on the fourth mistake, on-beat catch gate — off-beat bounces are
+drops, VERIFY ground truth, stone-template Fausse-Note cost (first free
+lesson, repetition counted, lesson survives reset), reset on the fourth
+counted mistake, on-beat catch gate — off-beat bounces are
 rewardless and penalty-free, five on-beat notes → candidate); L2 (rest
 structurally
 required — the constants make 8 s of blend cost 6.4 heat against a cap of
@@ -789,7 +795,7 @@ nothing requires a network beyond cloning, and nothing persists state.
    the V0 game's governance invariants (sole admission path, council
    recommends-only, ledger discipline, no persistence surfaces).
 2. **Slice core:** `node experiments/vertical-slice/slice-selftest.js` —
-   expect 33/33 and a printed `SLICE_SELFTEST_RECEIPT_V2` JSON carrying
+   expect 34/34 and a printed `SLICE_SELFTEST_RECEIPT_V2` JSON carrying
    the core file's identity digest. Asserts every invariant cited in §5-§6
    (closed action surface, candidate-not-admission, single admission call
    site, hint fallibility incl. confidently-wrong, on-beat catch gate,
@@ -1005,7 +1011,7 @@ Full receipt rows with dates and digests: `research/BUILD_RECEIPT_MAP.md`.
 
 | Invariant (paper section) | Suite / instrument | Result |
 |---|---|---|
-| Closed action surface; forged free-text action throws pre-mutation (§5, §7) | slice suite, boundary ×3 | 33/33 PASS |
+| Closed action surface; forged free-text action throws pre-mutation (§5, §7) | slice suite, boundary ×3 | 34/34 PASS |
 | Candidate-not-admission; failed quiz refuses; sole admission call site (§5 P1, §6) | slice suite, gate ×4 + static scan | PASS |
 | Hint fallibility incl. confidently-wrong; on-beat catch gate; VERIFY ground truth; Fausse-Note lesson; reset (§6 L1) | slice suite ×6 | PASS |
 | Drop overlap by construction (§8) | slice suite | PASS |

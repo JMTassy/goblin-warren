@@ -168,13 +168,24 @@ T('L1: VERIFY (listening) reveals ground truth and logs it', () => {
   const ev = S.ledger.filter(x => x.k === 'VERIFIED').pop();
   eq(ev.d.kind, C.kindOf(S, e.id));
 });
-T('L1: catching a Fausse Note is a counted mistake with the lesson attached (beat irrelevant)', () => {
+T('L1 stone template: the FIRST Fausse Note is a free lesson — kept, not punished', () => {
   for (let guard = 0; guard < 400 && !S.sky.entities.some(e => e.kind === 'faux'); guard++) C.applyEvent(S, { k: 'SKY_TICK', dt: 0.25 });
   const faux = S.sky.entities.find(e => e.kind === 'faux');
   ok(faux, 'a faux must eventually spawn');
   const m0 = S.sky.mistakes;
   C.applyEvent(S, { k: 'CATCH', id: faux.id });
-  eq(S.sky.mistakes, m0 + 1);
+  eq(S.sky.mistakes, m0, 'first faux catch must cost nothing');
+  const ev = S.ledger.filter(x => x.k === 'FAUX_LESSON').pop();
+  eq(ev.d.free, true); eq(ev.d.lesson, 'SIGNAL_NOT_PROOF');
+  eq(S.sky.lessons.faux, true, 'the lesson is kept');
+});
+T('L1 stone template: the SECOND Fausse Note is a counted mistake (beat irrelevant)', () => {
+  for (let guard = 0; guard < 400 && !S.sky.entities.some(e => e.kind === 'faux'); guard++) C.applyEvent(S, { k: 'SKY_TICK', dt: 0.25 });
+  const faux = S.sky.entities.find(e => e.kind === 'faux');
+  ok(faux, 'a second faux must eventually spawn');
+  const m0 = S.sky.mistakes;
+  C.applyEvent(S, { k: 'CATCH', id: faux.id });
+  eq(S.sky.mistakes, m0 + 1, 'the repeated mistake must cost');
   const ev = S.ledger.filter(x => x.k === 'FAUX_CAUGHT').pop();
   eq(ev.d.lesson, 'SIGNAL_NOT_PROOF');
 });
@@ -200,15 +211,21 @@ T('L1: too many mistakes resets the sky (fresh state, reset counted)', () => {
   const bank0 = C.quizForLevel(0);
   for (let i = 0; i < 3; i++) C.applyEvent(R, { k: 'ANSWER_QUIZ', choice: bank0[i].correctIndex });
   eq(R.level, 1);
-  let caughtBad = 0;
-  for (let guard = 0; guard < 2000 && caughtBad < 4; guard++) {
+  for (let guard = 0; guard < 3000 && !kinds(R).includes('SKY_RESET'); guard++) {
     C.applyEvent(R, { k: 'SKY_TICK', dt: 0.25 });
     const bad = R.sky.entities.find(e => e.kind !== 'note');
-    if (bad) { C.applyEvent(R, { k: 'CATCH', id: bad.id }); caughtBad++; }
+    if (bad) C.applyEvent(R, { k: 'CATCH', id: bad.id });
   }
   ok(kinds(R).includes('SKY_RESET'));
   eq(R.sky.mistakes, 0); eq(R.sky.caught, 0); eq(R.sky.resets, 1);
   eq(R.level, 1, 'reset stays inside the level');
+  // understood forever: lessons survive the reset — the next faux costs immediately
+  eq(R.sky.lessons.faux, true, 'faux lesson must survive the reset');
+  for (let guard = 0; guard < 400 && !R.sky.entities.some(e => e.kind === 'faux'); guard++) C.applyEvent(R, { k: 'SKY_TICK', dt: 0.25 });
+  const faux2 = R.sky.entities.find(e => e.kind === 'faux');
+  ok(faux2, 'a faux must spawn post-reset');
+  C.applyEvent(R, { k: 'CATCH', id: faux2.id });
+  eq(R.sky.mistakes, 1, 'no second freebie after reset');
 });
 T('quiz gate L1 → level 2', () => {
   C.applyEvent(S, { k: 'BEGIN_QUIZ' });

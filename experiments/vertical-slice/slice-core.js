@@ -163,7 +163,9 @@ function makeSlice(seed) {
     admitted: [],
     ledger: [],
     fire:   { state: 'COLD', stones: 0, progress: 0 },
-    sky:    { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0, resets: 0 },
+    sky:    { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0, resets: 0,
+              lessons: { faux: false, ember: false } }, // stone template: first
+              // mistake per hazard class is a free lesson, kept forever
     rhythm: { resonance: 0, fatigue: 0, lastTap: null, locked: false, strains: 0, clatters: 0 },
     quiz:   { asked: [], answers: [], attempts: 0 },
   };
@@ -355,14 +357,25 @@ function applyEvent(S, a) {
         S.sky.caught += 1;
         logEvent(S, 'NOTE_CAUGHT', { id: e.id, note: noteOf(S, e.id), onBeat: true, verified: e.revealed });
       } else if (e.kind === 'faux') {
-        S.sky.mistakes += 1;
-        logEvent(S, 'FAUX_CAUGHT', { id: e.id, lesson: 'SIGNAL_NOT_PROOF' });
+        if (!S.sky.lessons.faux) {
+          S.sky.lessons.faux = true; // the stone template: lesson kept, nothing lost
+          logEvent(S, 'FAUX_LESSON', { id: e.id, free: true, lesson: 'SIGNAL_NOT_PROOF' });
+        } else {
+          S.sky.mistakes += 1;
+          logEvent(S, 'FAUX_CAUGHT', { id: e.id, lesson: 'SIGNAL_NOT_PROOF' });
+        }
       } else {
-        S.sky.mistakes += 1;
-        logEvent(S, 'EMBER_CAUGHT', { id: e.id });
+        if (!S.sky.lessons.ember) {
+          S.sky.lessons.ember = true;
+          logEvent(S, 'EMBER_LESSON', { id: e.id, free: true });
+        } else {
+          S.sky.mistakes += 1;
+          logEvent(S, 'EMBER_CAUGHT', { id: e.id });
+        }
       }
       if (S.sky.mistakes > SKY_MAX_MISTAKES) {
-        S.sky = { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0, resets: S.sky.resets + 1 };
+        S.sky = { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0,
+                  resets: S.sky.resets + 1, lessons: S.sky.lessons }; // lessons survive: understood forever
         logEvent(S, 'SKY_RESET', { resets: S.sky.resets });
       } else if (S.sky.caught >= SKY_NOTES_NEEDED) {
         becomeCandidate(S);
