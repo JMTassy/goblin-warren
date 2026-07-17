@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Policy Loom — a Warren Codex wedge</title>
+<!--
+  WARREN_CODEX_POLICY_LOOM_WEDGE_V0
+  authority=false · claim=NO_CLAIM · non-sovereign · session-only
+  Derived from WARREN_CODEX_REFERENCE_V0 (frozen). The reference is untouched.
+  Every button routes through the pure kernel's step(); the page renders state
+  and never invents it. All digests on this page are DEMO FNV-1a identity
+  digests — deterministic, inspectable, and NOT cryptographic.
+-->
+<style>
+  :root{
+    --ink:#0d0a12; --ink2:#141021; --panel:#171224;
+    --bone:#e8dcc0; --dim:#8f86a3; --line:#2a2340;
+    --ember:#ff7a2c; --gold:#ffd24a; --glow:#a8d858; --rot:#e05a4e; --amber:#e0a83c;
+    --mono:ui-monospace,'Cascadia Code',Menlo,Consolas,monospace;
+    --disp:system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--ink);color:var(--bone);font-family:var(--disp);line-height:1.55;
+    max-width:980px;margin:0 auto;padding:36px 20px 80px}
+  header h1{font-size:clamp(30px,6vw,54px);font-weight:900;text-transform:uppercase;
+    letter-spacing:-.02em;line-height:1.02}
+  header h1 em{font-style:normal;color:var(--gold)}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--ember);
+    text-transform:uppercase;margin-bottom:10px}
+  .lede{color:#c9c0da;max-width:64ch;margin-top:14px}
+  .lawline{font-family:var(--mono);font-size:12px;color:var(--gold);margin-top:14px;
+    padding-left:14px;border-left:3px solid var(--ember)}
+
+  section{margin-top:34px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:18px}
+  .shead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    margin-bottom:12px}
+  .stitle{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--dim);
+    text-transform:uppercase}
+  /* temporal chips: text-labeled, never color-only */
+  .tchip{font-family:var(--mono);font-size:10px;letter-spacing:.16em;padding:3px 10px;
+    border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .tchip.recorded{border-color:#5a708a;color:#9fb8d8}
+  .tchip.current{border-color:var(--glow);color:var(--glow)}
+  .tchip.proposed{border-color:var(--amber);color:var(--amber)}
+  .tchip.simulated{border-color:#8a6fc9;color:#b9a3ee}
+  .tchip.authorized{border-color:var(--gold);color:var(--gold)}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:normal;letter-spacing:.1em;text-transform:uppercase;font-size:10px}
+  td.cx{color:var(--rot)}
+
+  button{font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--bone);
+    background:#221a38;border:1px solid #3a2f58;border-radius:8px;padding:9px 14px}
+  button:hover{background:#2c2148;border-color:var(--ember)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+  button.primary{background:linear-gradient(180deg,#4a2c14,#331d0c);border-color:var(--ember);color:var(--gold)}
+  button.danger{border-color:var(--rot)}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .mono{font-family:var(--mono)}
+  .digest{font-family:var(--mono);font-size:11px;color:var(--dim);word-break:break-all}
+  .digest b{color:var(--amber);font-weight:normal}
+  .note{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:8px}
+  .statechip{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:4px 12px;
+    border-radius:99px;border:1px solid var(--amber);color:var(--amber)}
+
+  .rulebox{font-family:var(--mono);font-size:13px;background:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:12px 14px;margin:10px 0}
+  .rulebox .kw{color:var(--ember)} .rulebox .val{color:var(--gold)}
+  .cxbox{border-color:var(--rot)}
+  .cxbox h4{color:var(--rot);font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;margin-bottom:6px}
+
+  .branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px}
+  .branch{background:var(--ink);border:1px solid #4a3a72;border-radius:10px;padding:12px}
+  .branch h4{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:#b9a3ee;
+    text-transform:uppercase;margin-bottom:8px}
+  .branch .out{font-family:var(--mono);font-size:12px;line-height:1.8}
+  .branch .zero{margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--glow)}
+
+  .preview{background:var(--ink);border:1px dashed var(--amber);border-radius:10px;padding:14px;margin:12px 0}
+  .preview h4{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--amber);
+    text-transform:uppercase;margin-bottom:8px}
+  .preview .digest{line-height:1.9}
+
+  .receipt{background:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:14px;margin-top:12px}
+  .receipt h4{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--gold);
+    text-transform:uppercase;margin-bottom:8px}
+
+  .ledger{font-family:var(--mono);font-size:11px;line-height:1.9;max-height:220px;overflow-y:auto;
+    background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .ledger div{border-left:2px solid var(--line);padding-left:8px;color:var(--dim)}
+  .ledger div.adm{border-color:var(--glow);color:var(--glow)}
+  .ledger div.deny{border-color:var(--rot);color:#d99a93}
+  .ledger div.gold{border-color:var(--gold);color:var(--gold)}
+
+  footer{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim);
+    text-align:center;margin-top:50px;text-transform:uppercase}
+
+  @media (prefers-reduced-motion: reduce){
+    /* Reduced motion drops nothing: this page has no essential animation and
+       the full causal chain below is plain static text. Nothing is hidden. */
+    *{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">WARREN_CODEX_POLICY_LOOM_WEDGE_V0 · derived from the frozen Codex</div>
+  <h1>The Policy <em>Loom</em></h1>
+  <p class="lede">Bram makes decisions. A pattern emerges. The Loom weaves it into a
+    <b>candidate</b> policy — with its evidence, its counterexample, and three simulated
+    futures. Then it stops. Because a pattern is not a policy, a simulation is not
+    permission, and nothing on this page can authorize itself.</p>
+  <p class="lawline">PATTERN ≠ POLICY · CANDIDATE ≠ ACTIVE · SIMULATION ≠ PERMISSION ·
+    SCORE ≠ AUTHORIZATION · your decision is the only writer</p>
+</header>
+
+<!-- ============ RECORDED ============ -->
+<section id="sec-recorded">
+  <div class="shead">
+    <span class="stitle">Decision cases · Bram's recorded choices</span>
+    <span class="tchip recorded">RECORDED</span>
+  </div>
+  <div class="row">
+    <button class="primary" id="btnLoadCases">load witnessed cases</button>
+    <button id="btnAddCase">act: send Bram once more (adds a case)</button>
+    <button class="danger" id="btnMutate">mutate the world (staleness demo)</button>
+  </div>
+  <div style="overflow-x:auto;margin-top:12px">
+    <table aria-label="recorded decision cases">
+      <thead><tr><th>case</th><th>wood</th><th>light</th><th>Bram chose</th><th>role</th></tr></thead>
+      <tbody id="caseRows"><tr><td colspan="5" class="mono" style="color:var(--dim)">no cases loaded</td></tr></tbody>
+    </table>
+  </div>
+  <div class="digest" id="casesDigest"></div>
+</section>
+
+<!-- ============ CURRENT ============ -->
+<section id="sec-current">
+  <div class="shead">
+    <span class="stitle">Active policy · the only canonical object here</span>
+    <span class="tchip current">CURRENT</span>
+  </div>
+  <div class="rulebox" id="activeRule">none — Bram uses his own judgment (v1)</div>
+  <p class="note">This changes through exactly one code path: a digest-bound operator
+    ADOPT. Not through induction, not through simulation, not through any score.</p>
+</section>
+
+<!-- ============ PROPOSED ============ -->
+<section id="sec-proposed">
+  <div class="shead">
+    <span class="stitle">Policy candidate · induced, never self-activating</span>
+    <span class="tchip proposed">PROPOSED</span>
+  </div>
+  <div class="row">
+    <button class="primary" id="btnInduce">induce candidate from cases</button>
+    <button id="btnBind">bind evidence &amp; counterexample</button>
+  </div>
+  <div id="candidateBox" class="rulebox" style="display:none"></div>
+  <div class="digest" id="candDigest"></div>
+  <div id="evidenceBox" style="display:none">
+    <p class="note" id="supportLine"></p>
+  </div>
+</section>
+
+<!-- ============ COUNTEREXAMPLE ============ -->
+<section id="sec-counterexample">
+  <div class="shead">
+    <span class="stitle">Counterexample · never hidden</span>
+    <span class="tchip recorded">RECORDED</span>
+  </div>
+  <div class="rulebox cxbox" id="cxBox">
+    <h4>counterexample</h4>
+    <div id="cxBody" class="mono" style="font-size:12px;color:var(--dim)">— awaiting evidence binding —</div>
+  </div>
+</section>
+
+<!-- ============ SIMULATED ============ -->
+<section id="sec-simulated">
+  <div class="shead">
+    <span class="stitle">Simulated futures · projections, not permissions</span>
+    <span class="tchip simulated">SIMULATED</span>
+  </div>
+  <div class="row"><button class="primary" id="btnSimulate">simulate three branches</button></div>
+  <div class="branches" id="branchGrid"></div>
+  <p class="note">Every branch reports <b>canonical writes: 0</b>. A preferred future is
+    displayed; it is never applied. SIMULATION ≠ PERMISSION.</p>
+</section>
+
+<!-- ============ OPERATOR ============ -->
+<section id="sec-operator">
+  <div class="shead">
+    <span class="stitle">Operator decision · the only sovereign act</span>
+    <span class="tchip authorized">AUTHORIZED — BY YOU, OR NOT AT ALL</span>
+  </div>
+  <div class="row"><button class="primary" id="btnPresent">present for decision</button>
+    <span class="statechip" id="machineChip">NO_CASES</span></div>
+
+  <div class="preview" id="receiptPreview" style="display:none">
+    <h4>receipt preview — exactly what your decision will bind</h4>
+    <div class="digest" id="previewDigests"></div>
+    <p class="note">If ANY of these digests changes before you decide, this binding
+      becomes stale and your decision will be refused. Permission here is a governed,
+      receipted act — not a checkbox.</p>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button class="primary" id="btnAdopt" disabled>ADOPT</button>
+    <button id="btnAmend" disabled>AMEND (add night exception)</button>
+    <button id="btnReject" disabled>REJECT</button>
+    <button id="btnHold" disabled>HOLD</button>
+  </div>
+
+  <div class="receipt" id="receiptBox" style="display:none">
+    <h4>operator receipt</h4>
+    <div class="digest" id="receiptBody"></div>
+  </div>
+</section>
+
+<!-- ============ HISTORY ============ -->
+<section id="sec-history">
+  <div class="shead">
+    <span class="stitle">History · append-only; rejections and holds never vanish</span>
+    <span class="tchip recorded">RECORDED</span>
+  </div>
+  <div class="ledger" id="history" aria-live="polite"></div>
+</section>
+
+<footer>authority=false · claim=NO_CLAIM · all digests are demo FNV-1a identity digests, not cryptographic ·
+  the reference codex remains frozen</footer>
+
+<script src="policy-loom.js"></script>
+<script src="fixtures.js"></script>
+<script>
+'use strict';
+(function () {
+const L = window.PolicyLoom, F = window.PolicyLoomFixtures;
+let loom = L.createLoom();
+let extraSeq = 0; // deterministic add-a-case counter
+
+const $ = (id) => document.getElementById(id);
+
+function dispatch(event) {
+  loom = L.step(loom, event);
+  render();
+}
+
+function fmtRule(rule) {
+  if (!rule) return 'none — Bram uses his own judgment';
+  return 'WHEN <span class="kw">' + rule.when.attr + '</span> = <span class="val">' +
+    rule.when.equals + '</span> THEN <span class="kw">' + rule.then + '</span>';
+}
+
+function render() {
+  $('machineChip').textContent = loom.machineState;
+
+  // RECORDED
+  const rows = $('caseRows');
+  if (loom.cases.length === 0) {
+    rows.innerHTML = '<tr><td colspan="5" class="mono" style="color:var(--dim)">no cases loaded</td></tr>';
+  } else {
+    const cand = loom.candidate;
+    rows.innerHTML = loom.cases.map((c) => {
+      let role = '';
+      if (cand && cand.supportingCaseIds && cand.supportingCaseIds.includes(c.caseId)) role = 'supports';
+      if (cand && cand.counterexampleCaseIds && cand.counterexampleCaseIds.includes(c.caseId)) role = 'counterexample';
+      return '<tr><td>' + c.caseId + '</td><td>' + (c.context.wood || '—') + '</td><td>' +
+        (c.context.light || '—') + '</td><td>' + c.chosenAction + '</td><td class="' +
+        (role === 'counterexample' ? 'cx' : '') + '">' + role + '</td></tr>';
+    }).join('');
+  }
+  $('casesDigest').innerHTML = loom.casesDigest
+    ? 'cases digest: <b>' + loom.casesDigest + '</b> (DEMO_DIGEST)' : '';
+
+  // CURRENT
+  $('activeRule').innerHTML = fmtRule(loom.activePolicy) +
+    ' <span style="color:var(--dim)">(v' + loom.version + ')</span>';
+
+  // PROPOSED
+  const cb = $('candidateBox');
+  if (loom.candidate) {
+    cb.style.display = 'block';
+    cb.innerHTML = fmtRule(loom.candidate.rule) +
+      ' <span style="color:var(--dim)">· status: ' + loom.candidate.status +
+      ' — a proposal, not a truth</span>';
+    $('candDigest').innerHTML = 'candidate digest: <b>' + loom.candidate.candidateDigest + '</b> (DEMO_DIGEST)';
+  } else {
+    cb.style.display = 'none'; $('candDigest').textContent = '';
+  }
+  if (loom.evidence) {
+    $('evidenceBox').style.display = 'block';
+    $('supportLine').textContent = 'supported by ' + loom.evidence.supportingCount +
+      ' recorded case(s) · evidence digest ' + loom.evidence.evidenceDigest +
+      ' · violations recorded: ' + loom.evidence.counterexampleCaseIds.length;
+  } else { $('evidenceBox').style.display = 'none'; }
+
+  // COUNTEREXAMPLE — always rendered, never hidden
+  const cx = loom.counterexample;
+  if (cx && cx.kind === 'COUNTEREXAMPLE') {
+    $('cxBody').innerHTML = 'case <b>' + cx.case.caseId + '</b>: wood=' + cx.case.context.wood +
+      ', light=' + (cx.case.context.light || '—') + ' — Bram chose <b>' + cx.case.chosenAction +
+      '</b>, against the proposed rule.<br>The proposal may be wrong. That is why it is a proposal.';
+  } else if (cx && cx.kind === 'NO_COUNTEREXAMPLE_FOUND') {
+    $('cxBody').textContent = 'NO_COUNTEREXAMPLE_FOUND — and absence of a counterexample is not proof of truth.';
+  } else {
+    $('cxBody').textContent = '— awaiting evidence binding —';
+  }
+
+  // SIMULATED
+  const bg = $('branchGrid');
+  if (loom.branches) {
+    bg.innerHTML = loom.branches.map((b) => {
+      const outs = Object.entries(b.outcomes).sort()
+        .map(([k, v]) => k.replace(/_/g, ' ') + ' × ' + v).join('<br>');
+      return '<div class="branch"><h4>' + b.scenario.replace(/_/g, ' ') + '</h4>' +
+        '<div class="out">' + outs + '</div>' +
+        '<div class="zero">canonical writes: ' + b.canonicalWriteCount + '</div></div>';
+    }).join('');
+  } else { bg.innerHTML = ''; }
+
+  // OPERATOR
+  const awaiting = loom.machineState === 'AWAITING_DECISION';
+  ['btnAdopt', 'btnAmend', 'btnReject', 'btnHold'].forEach((id) => { $(id).disabled = !awaiting; });
+  if (awaiting) {
+    $('receiptPreview').style.display = 'block';
+    $('previewDigests').innerHTML =
+      'casesDigest: <b>' + loom.casesDigest + '</b><br>' +
+      'candidateDigest: <b>' + loom.candidate.candidateDigest + '</b><br>' +
+      'evidenceDigest: <b>' + loom.evidence.evidenceDigest + '</b><br>' +
+      'branchesDigest: <b>' + loom.branchesDigest + '</b><br>' +
+      'priorActiveDigest: <b>' + loom.activePolicyDigest + '</b>';
+  } else {
+    $('receiptPreview').style.display = 'none';
+  }
+  if (loom.lastReceipt) {
+    $('receiptBox').style.display = 'block';
+    const r = loom.lastReceipt;
+    $('receiptBody').innerHTML =
+      'kind: <b>' + r.kind + '</b> · activation: <b>' + r.activation + '</b><br>' +
+      'version: ' + r.policyVersionBefore + ' → ' + (r.policyVersionAfter || '(unchanged)') + '<br>' +
+      'receipt digest: <b>' + r.receiptDigest + '</b><br>' +
+      'class: ' + r.digestClass + ' — ' + r.digestNote;
+  }
+
+  // HISTORY
+  $('history').innerHTML = loom.history.slice().reverse().map((h) => {
+    const cls = h.kind === 'ADOPTED' ? 'adm'
+      : (h.kind === 'REJECTED' || /^E_|REFUSED|STALE/.test(h.kind)) ? 'deny'
+      : (h.kind === 'HELD' || h.kind === 'AMENDED') ? 'gold' : '';
+    return '<div class="' + cls + '">#' + h.seq + ' ' + h.kind + ' · ' + h.detail + '</div>';
+  }).join('');
+}
+
+function bound() {
+  return {
+    casesDigest: loom.casesDigest,
+    candidateDigest: loom.candidate && loom.candidate.candidateDigest,
+    evidenceDigest: loom.evidence && loom.evidence.evidenceDigest,
+    branchesDigest: loom.branchesDigest,
+    priorActiveDigest: loom.activePolicyDigest,
+  };
+}
+
+$('btnLoadCases').addEventListener('click', () =>
+  dispatch({ type: 'LOAD_CASES', cases: F.F02_SUPPORT_PLUS_COUNTEREXAMPLE }));
+$('btnAddCase').addEventListener('click', () => {
+  extraSeq++;
+  const wood = extraSeq % 3 === 0 ? 'dry' : 'wet';   // deterministic, seq-driven
+  const light = extraSeq % 2 === 0 ? 'night' : 'day';
+  const action = wood === 'wet' ? 'wait' : 'carry';
+  const cases = loom.cases.concat([{ caseId: 'p' + String(extraSeq).padStart(2, '0'),
+    context: { wood, light }, chosenAction: action }]);
+  // Adding a case is world-change: pre-decision it must drive staleness.
+  if (['CANDIDATE_INDUCED', 'EVIDENCE_BOUND', 'SIMULATED', 'AWAITING_DECISION', 'AMENDED'].includes(loom.machineState)) {
+    dispatch({ type: 'MUTATE_CASES', cases });
+  } else {
+    dispatch({ type: 'LOAD_CASES', cases });
+  }
+});
+$('btnMutate').addEventListener('click', () =>
+  dispatch({ type: 'MUTATE_CASES', cases: window.PolicyLoomFixtures.F05_MUTATED_CASES }));
+$('btnInduce').addEventListener('click', () => dispatch({ type: 'INDUCE' }));
+$('btnBind').addEventListener('click', () => dispatch({ type: 'BIND_EVIDENCE' }));
+$('btnSimulate').addEventListener('click', () => dispatch({ type: 'SIMULATE' }));
+$('btnPresent').addEventListener('click', () => dispatch({ type: 'PRESENT' }));
+
+$('btnAdopt').addEventListener('click', () =>
+  dispatch({ type: 'OPERATOR_DECIDE', decision: { kind: 'ADOPT', boundDigests: bound() } }));
+$('btnAmend').addEventListener('click', () =>
+  dispatch({ type: 'OPERATOR_DECIDE', decision: { kind: 'AMEND', boundDigests: bound(),
+    amendedRule: { when: { attr: 'light', equals: 'night' }, then: 'carry' } } }));
+$('btnReject').addEventListener('click', () =>
+  dispatch({ type: 'OPERATOR_DECIDE', decision: { kind: 'REJECT', boundDigests: bound() } }));
+$('btnHold').addEventListener('click', () =>
+  dispatch({ type: 'OPERATOR_DECIDE', decision: { kind: 'HOLD', boundDigests: bound() } }));
+
+render();
+})();
+</script>
+</body>
+</html>

@@ -95,6 +95,29 @@ to any Warren app.
 Run: `node experiments/epoch3/epoch3.test.js` (16/16, matches the EPOCH-3
 adversarial spec test verbatim).
 
+### `policy-loom/`
+POLICY_LOOM_WEDGE_V0 — an executable derivative of the (frozen, untouched)
+Warren Codex, built under an operator-frozen bead contract. A pure
+deterministic kernel (`policy-loom.js`) implements the chain: decision
+cases → induced policy **candidate** → evidence bundle → explicit
+counterexample (or `NO_COUNTEREXAMPLE_FOUND` — absence ≠ proof) → three
+zero-write simulation branches → digest-bound operator decision
+(ADOPT / AMEND / REJECT / HOLD) → receipt. One sovereign writer
+(`activate()`, behind a module-private seal) is the only path that changes
+the active policy; simulations, scores, checkboxes, and animation can
+never reach it. Any pre-decision world change drives the candidate STALE
+and disarms adoption. All digests are deterministic **demo FNV-1a identity
+digests** (`DEMO_DIGEST`), explicitly not cryptographic — repairing, not
+repeating, the reference Codex's Act-04 `sha256` mislabel. `index.html`
+is the playable wedge (keyboard-operable, reduced-motion-complete,
+temporal labels RECORDED/CURRENT/PROPOSED/SIMULATED/AUTHORIZED).
+
+Run: `node experiments/policy-loom/policy-loom.test.js` (55/55: unit,
+invariant, replay, malformed-input, semantic-firewall, KILL-01..12, purity).
+Independently witnessed by a separate adversarial verifier context:
+12/12 claims held, incl. nine seal-forgery shapes refused and byte-identical
+digests across separate OS processes.
+
 ### `warren-codex.html`
 A single-file, zero-dependency scroll experience that renders the Warren's
 doctrine as **running demonstrations** rather than prose: a WebGL2
