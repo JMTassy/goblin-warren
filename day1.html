@@ -33,19 +33,24 @@
 
   /* ── STAGE ─────────────────────────────────────────────── */
   .stage {
-    position: relative; height: 210px;
+    position: relative; height: 250px;
     background: #0a120e; border: 1px solid var(--edge);
     border-radius: 12px; overflow: hidden; margin: 8px 0;
   }
   .zone-box {
     position: absolute; top: 8px; bottom: 8px; width: 44%;
     border-radius: 10px; border: 1px solid var(--edge);
+    overflow: hidden;
   }
-  .zone-box.garden  { left: 4%;  background: #0d1e14; }
-  .zone-box.archive { right: 4%; background: #160e14; }
+  .zone-box.garden  { left: 4%;
+    background: #0d1e14 url("assets/collage_stills/wall_garden.png") center/cover no-repeat; }
+  .zone-box.archive { right: 4%;
+    background: #160e14 url("assets/collage_stills/wall_archive.png") center/cover no-repeat; }
   .zone-label {
-    padding: 6px 9px; font-size: 0.63rem;
-    text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim);
+    display: inline-block; margin: 6px 0 0 6px; padding: 3px 9px;
+    font-size: 0.63rem; border-radius: 6px;
+    text-transform: uppercase; letter-spacing: 0.07em; color: #e8f0e4;
+    background: rgba(10, 18, 14, 0.65);
   }
 
   /* need badges positioned in stage */
@@ -55,6 +60,11 @@
     user-select: none;
   }
   .badge-icon { font-size: 1.45rem; line-height: 1; transition: filter 0.3s; }
+  .badge-icon img {
+    display: block; width: 52px; height: auto;
+    filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.45));
+    transition: filter 0.3s;
+  }
   .badge-warn {
     font-size: 0.6rem; color: var(--warn); min-height: 12px;
     opacity: 0; transition: opacity 0.35s;
@@ -76,23 +86,25 @@
   }
   .need-badge.resolved .badge-check { opacity: 1; }
 
-  /* agents */
+  /* agents — paper cutout sprites */
   .agent {
-    position: absolute; bottom: 14px; width: 36px; height: 36px;
-    border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 1.1rem;
-    border: 2px solid var(--edge);
+    position: absolute; bottom: 14px; width: 58px;
     transition: left 0.55s cubic-bezier(0.4,0,0.2,1),
                 bottom 0.55s cubic-bezier(0.4,0,0.2,1),
-                border-color 0.3s, box-shadow 0.3s;
+                filter 0.3s, opacity 0.3s;
   }
-  .agent.bram { background: #3a4a38; left: 20%; }
-  .agent.lulu { background: #4a3a58; left: 34%; }
-  .agent.working {
-    border-color: var(--pulse);
-    box-shadow: 0 0 10px #a8d85844;
+  .agent img {
+    display: block; width: 100%; height: auto;
+    filter: drop-shadow(3px 4px 4px rgba(0,0,0,0.5));
+    transition: filter 0.3s;
   }
-  .agent.resting { border-color: var(--dim); opacity: 0.65; }
+  .agent.bram { left: 20%; }
+  .agent.lulu { left: 34%; width: 50px; }
+  .agent.working img {
+    filter: drop-shadow(3px 4px 4px rgba(0,0,0,0.5))
+            drop-shadow(0 0 9px #a8d858);
+  }
+  .agent.resting { opacity: 0.6; }
 
   /* pulse dot */
   .trace-pulse {
@@ -228,8 +240,8 @@
     <div class="zone-label">Archive</div>
   </div>
   <!-- badges injected by JS -->
-  <div class="agent bram" id="bram" title="Bram — repairs what looks dangerous">🛠️</div>
-  <div class="agent lulu" id="lulu" title="Lulu — watches, never fixes">🔍</div>
+  <div class="agent bram" id="bram" title="Bram — repairs what looks dangerous"><img src="assets/collage_stills/cut/bram.png" alt="Bram" /></div>
+  <div class="agent lulu" id="lulu" title="Lulu — watches, never fixes"><img src="assets/collage_stills/cut/lulu.png" alt="Lulu" /></div>
   <div class="trace-pulse" id="pulse"></div>
   <div class="burst" id="burst">✨</div>
 </div>
@@ -272,10 +284,14 @@
   }
 
   /* ── need / stage metadata ───────────────────────────── */
+  var ART = "assets/collage_stills/cut/";
   var NEED_META = {
-    dry_seedlings: { label: "Dry seedlings", icon: "🌱", zone: "Garden" },
-    cracked_root:  { label: "Cracked root",  icon: "🪨", zone: "Garden" },
-    fading_memory: { label: "Fading memory", icon: "📜", zone: "Archive" },
+    dry_seedlings: { label: "Dry seedlings", icon: "🌱", zone: "Garden",
+                     img: "seedlings_dry.png", imgDone: "seedlings_bloomed.png" },
+    cracked_root:  { label: "Cracked root",  icon: "🪨", zone: "Garden",
+                     img: "rock_cracked.png" },
+    fading_memory: { label: "Fading memory", icon: "📜", zone: "Archive",
+                     img: "scroll_fading.png" },
   };
 
   // Position inside the stage (percentage of stage box)
@@ -300,6 +316,7 @@
     BRAM_PATH:            "👣",
     BRAM_REPAIR_START:    "🛠️",
     BRAM_REPAIR_COMPLETE: "🌱",
+    BRAM_SIGNAL_FAINT:    "🔇",
     BRAM_IDLE:            "😴",
   };
 
@@ -317,6 +334,7 @@
       case "BRAM_PATH":            return "Bram heads toward " + n + ".";
       case "BRAM_REPAIR_START":    return "Bram starts repairing.";
       case "BRAM_REPAIR_COMPLETE": return "Bram finishes. " + n + " is fixed.";
+      case "BRAM_SIGNAL_FAINT":    return "Bram hears only a faint warning — mark it louder.";
       case "BRAM_IDLE":            return "Bram finds nothing to repair.";
       default: return ev.kind;
     }
@@ -344,7 +362,7 @@
       el.style.left = pos.left;
       el.style.top  = pos.top;
       el.innerHTML =
-        '<div class="badge-icon">' + NEED_META[id].icon + '</div>' +
+        '<div class="badge-icon"><img id="bimg-' + id + '" src="' + ART + NEED_META[id].img + '" alt="' + NEED_META[id].label + '" /></div>' +
         '<div class="badge-warn" id="bw-' + id + '"></div>' +
         '<div class="badge-check">✓</div>';
       badges[id] = el;
@@ -371,6 +389,13 @@
   }
 
   /* ── stage animation helpers ─────────────────────────── */
+  function swapDoneArt(needId) {
+    var meta = NEED_META[needId];
+    if (!meta || !meta.imgDone) return;
+    var img = document.getElementById("bimg-" + needId);
+    if (img) img.src = ART + meta.imgDone;
+  }
+
   function resetAgents() {
     var bram = document.getElementById("bram");
     var lulu = document.getElementById("lulu");
@@ -415,7 +440,10 @@
         break;
       case "TRACE_STRENGTHEN": {
         var bwEl = document.getElementById("bw-" + ev.needId);
-        if (bwEl) bwEl.textContent = ev.strength > 2 ? "⚠️⚠️" : "⚠️";
+        if (bwEl) {
+          var th = (S.BRAM_ACT_THRESHOLD || 3);
+          bwEl.textContent = ev.strength >= th ? "⚠️⚠️" : "⚠️";
+        }
         if (badges[ev.needId]) {
           badges[ev.needId].classList.add("glowing");
           badges[ev.needId].classList.add("has-warning");
@@ -429,6 +457,7 @@
         fireBurst(ev.needId);
         setTimeout(function () {
           if (badges[ev.needId]) badges[ev.needId].classList.add("resolved");
+          swapDoneArt(ev.needId);
         }, 280);
         break;
       case "BRAM_PATH": {
@@ -443,10 +472,12 @@
         fireBurst(ev.needId);
         setTimeout(function () {
           if (badges[ev.needId]) badges[ev.needId].classList.add("resolved");
+          swapDoneArt(ev.needId);
           var br = document.getElementById("bram");
           br.classList.remove("working");
         }, 280);
         break;
+      case "BRAM_SIGNAL_FAINT":
       case "BRAM_IDLE":
         document.getElementById("bram").classList.add("resting");
         break;
