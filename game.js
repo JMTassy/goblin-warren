@@ -1082,6 +1082,23 @@ var Sound = {
     tone(f * 2, 0.15, 1.4, "sine", 0.018);
   },
 
+  /* SOLFÈGE INITIATION V0 — claim=NO_CLAIM · solfeggio = wonder and play,
+     never medicine. One soft scale-degree ring: quieter and shorter than a
+     bowl, so a caught coin can walk the ladder without drowning the coin. */
+  solfaDegree: function (freq, at) {
+    var f = freq || SOLFEGGIO.liberation, t = at || 0;
+    tone(f, t, 1.5, "sine", 0.055);
+    tone(f * 2, t + 0.05, 1.0, "sine", 0.022);
+  },
+  /* the comic flat — the same degree sagging downward. A giggle in tone
+     form for catching the thing that was not treasure: gentle, never harsh,
+     never a punishment (discrimination is learned, not scolded). */
+  solfaBent: function (freq) {
+    var f = (freq || SOLFEGGIO.liberation) * 0.944;
+    tone(f, 0, 0.55, "triangle", 0.045, f * 0.94);
+    tone(f / 2, 0.05, 0.5, "sine", 0.03, f * 0.45);
+  },
+
   tibetanBowl: function (freq) {
     /* One bowl strike: soft mallet transient, then long inharmonic partials
        (×1, ×2.72, ×5.4 — measured bowl ratios) each doubled slightly detuned
@@ -4692,6 +4709,8 @@ function renderObjects() {
           if (prologueActive && prologueStep === 2 && obj.id === prologueSeedObjId) tapPrologueSeed();
           /* VISION_PROGRESSION Rung 4 — tapping the matcha cup feeds Lulu, tapping the bloom waters it */
           if (prologueActive && prologueStep === 4) { tapMatchaCup(obj.id); tapBloomWater(obj.id); }
+          /* SOLFÈGE V0 §2 — while Lulu's echo is live, the keys sing their degrees */
+          if (echoTapObject(obj)) return;
           /* QUIZ_TO_ZOL_V2 — the lit Knowledge Lantern is the repeat door to Lulu's fun facts */
           if (obj.sign === "Knowledge Lantern" && quizZolAvailable()) { openQuizZol(); return; }
           if (obj.emoji === "🍄") Sound.shamanicBurst();
@@ -7620,6 +7639,24 @@ function scheduleGoldfall(delay) {
 /* freeze soft-progression-v1 (opérateur, 2026-07-17): coins slow and
    frequent FIRST — pure catching joy before any discrimination. Avoid-items
    arrive later, one at a time, the stone announced by a low tone. */
+/* SOLFÈGE INITIATION V0 §1 — THE FALLING SCALE (operator witness #8: the
+   game as "a great instrument for solfeggio initiation" · claim=NO_CLAIM —
+   music and play, never medicine). Each true catch rings the next degree
+   of the six-tone ladder, up then down (396→417→528→639→741→852→741…),
+   so catching the rain literally walks the scale: the sky is the first
+   instrument. Odd items ring the same degree sagging flat — comic, not
+   harsh — and the ladder holds its place for the next true catch.
+   Session-only module state; nothing persists. */
+var SOLFA_LADDER = [SOLFEGGIO.liberation, SOLFEGGIO.change, SOLFEGGIO.love,
+                    SOLFEGGIO.connection, SOLFEGGIO.intuition, SOLFEGGIO.order];
+var skyScaleStep = 0;
+function skyScaleFreq(step) {
+  var n = SOLFA_LADDER.length, period = n * 2 - 2;   /* palindrome walk */
+  var i = step % period;
+  if (i >= n) i = period - i;
+  return SOLFA_LADDER[i];
+}
+
 var SKYFALL_TABLE = [
   { glyph: "🪙", world: 1, weight: 3, fall: 5.5, kind: "zol"    },  // the quicker coin (also the debug pin)
   { glyph: "🪙", world: 1, weight: 6, fall: 8,   kind: "zol"    },  // slow coins from minute one
@@ -7698,6 +7735,7 @@ function catchGoldfall(e) {
     var amt = item.kind === "zolBig" ? randi(6, 10) : randi(2, 5);
     S.learning.zolBalance += amt;
     Sound.glingGling(amt);
+    Sound.solfaDegree(skyScaleFreq(skyScaleStep)); skyScaleStep++;   /* the catch walks the scale */
     zolCelebrate(amt, r.left + r.width / 2, r.top + r.height / 2);
     pushReplay("The Sky", "Gold fell from the sky", "goldfall",
       "a falling " + (item.kind === "zolBig" ? "gem" : "coin") + " was caught mid-air. +" + amt + " ZOL",
@@ -7705,16 +7743,19 @@ function catchGoldfall(e) {
   } else if (item.kind === "sap") {
     earn(0, 1);
     if (window.Sound && Sound.chirp) Sound.chirp();
+    Sound.solfaDegree(skyScaleFreq(skyScaleStep)); skyScaleStep++;   /* sap is a true catch too */
     pushReplay("The Sky", "A drop of sap fell", "goldfall-sap",
       "a slow violet drop, caught. +1 sap", "the sky feeds the Warren too.");
   } else if (item.kind === "bonk") {
     if (window.Sound && Sound.uiClick) Sound.uiClick();
+    Sound.solfaBent(skyScaleFreq(skyScaleStep));   /* the flat note: the ladder waits */
     var voice2 = Object.keys(S.goblins).filter(goblinRevealed);
     if (voice2.length) showBubble(pick(voice2), SKYFALL_ODD_LINES["🪨"], 3200);
     pushReplay("The Sky", "A rock fell", "skyfall-odd",
       "you caught a rock. bonk. zero coins lost — lesson kept.", "we do not catch rocks.");
   } else {
     /* odd catch: no pay, one giggle — discrimination is learned, not punished */
+    Sound.solfaBent(skyScaleFreq(skyScaleStep));   /* the flat note: the ladder waits */
     var voice = Object.keys(S.goblins).filter(goblinRevealed);
     if (voice.length) showBubble(pick(voice), SKYFALL_ODD_LINES[item.glyph] || "...huh.", 3200);
     pushReplay("The Sky", "Something odd fell", "skyfall-odd",
@@ -7727,6 +7768,137 @@ function catchGoldfall(e) {
   renderTopbar();
   renderReplayStrip();
   scheduleGoldfall();
+}
+
+/* ---------------------------------------------------------------------
+   LULU'S ECHO — SOLFÈGE INITIATION V0 §2 (call-and-response, the actual
+   initiation). authority=false · claim=NO_CLAIM — solfeggio here is
+   wonder and play, never a healing claim. Rarely, in Worlds 1-2 only,
+   Lulu hums a two-note motif from the ladder; the bloom, the hearth and
+   the lantern (existing world objects — zero new assets) become three
+   tappable "keys" for 20 seconds. Sing it back and she delights with a
+   tiny shimmer; stray and she giggles and hums it once more; stray again
+   or let it lapse and it expires silently. Never blocks, never punishes,
+   never during the crib / proposals / quizzes / arrival stars.
+   Session-only module state; nothing persists.
+--------------------------------------------------------------------- */
+var ECHO_KEYS = [
+  { k: "hearth",  freq: SOLFEGGIO.liberation, name: "the low warm one",
+    signs: ["A Cold Hearth", "Our First Fire"] },
+  { k: "bloom",   freq: SOLFEGGIO.love,       name: "the bright one",
+    signs: ["Our First Bloom"] },
+  { k: "lantern", freq: SOLFEGGIO.connection, name: "the high glowing one",
+    signs: ["Knowledge Lantern"] }
+];
+var echoState = null;                    /* { keys, motif, progress, retried } */
+var echoTimer = null, echoExpireTimer = null;
+
+function echoFindKeys() {
+  var found = [];
+  ECHO_KEYS.forEach(function (kd) {
+    for (var i = 0; i < S.objects.length; i++) {
+      if (kd.signs.indexOf(S.objects[i].sign) !== -1) {
+        found.push({ def: kd, objId: S.objects[i].id });
+        return;
+      }
+    }
+  });
+  return found;
+}
+
+function echoEligible() {
+  return stagedActive() && currentWorld() <= 2 && !prologueActive &&
+         !S.activeProposal && !quizOpen && !arrivalStarEl && !echoState;
+}
+
+function scheduleLuluEcho(delay) {
+  clearTimeout(echoTimer);
+  echoTimer = setTimeout(spawnLuluEcho, delay == null ? randi(90000, 150000) : delay);
+}
+
+function spawnLuluEcho() {
+  if (!stagedActive() || currentWorld() > 2) return;   /* the game grew past it — the chain ends quietly */
+  if (!echoEligible()) { scheduleLuluEcho(randi(30000, 60000)); return; }
+  var keys = echoFindKeys();
+  if (keys.length < 2) { scheduleLuluEcho(randi(30000, 60000)); return; }
+  echoState = { keys: keys, motif: [pick(keys), pick(keys)], progress: 0, retried: false };
+  echoHum();
+}
+
+/* she hums the motif and lights the keys — also the "once more" retry */
+function echoHum() {
+  if (!echoState) return;
+  var m = echoState.motif;
+  Sound.solfaDegree(m[0].def.freq, 0);
+  Sound.solfaDegree(m[1].def.freq, 0.9);
+  /* degrees named kid-simply — no jargon, no frequency numbers on screen */
+  showBubble("lulu", "♪ " + m[0].def.name + "… " + m[1].def.name + "… can you sing it back?", 6200, true);
+  echoState.keys.forEach(function (key) {
+    var el = objectEls[key.objId];
+    if (el) el.classList.add("echo-key");
+  });
+  clearTimeout(echoExpireTimer);
+  echoExpireTimer = setTimeout(expireLuluEcho, 20000);
+}
+
+function echoClearCues() {
+  document.querySelectorAll(".echo-key").forEach(function (el) { el.classList.remove("echo-key"); });
+}
+
+function echoEnd() {                      /* one door out — cues off, timer off */
+  echoState = null;
+  echoClearCues();
+  clearTimeout(echoExpireTimer);
+}
+
+function expireLuluEcho() {               /* lapse: expires silently, no comment */
+  if (!echoState) return;
+  echoEnd();
+  scheduleLuluEcho();
+}
+
+/* the object tap router — returns true when the echo consumed the tap.
+   Non-key objects keep their ordinary voices; only the three keys count. */
+function echoTapObject(obj) {
+  if (!echoState || !obj) return false;
+  var key = null;
+  for (var i = 0; i < echoState.keys.length; i++) {
+    if (echoState.keys[i].objId === obj.id) { key = echoState.keys[i]; break; }
+  }
+  if (!key) return false;
+  Sound.solfaDegree(key.def.freq);        /* every key tap rings its own degree */
+  var el = objectEls[key.objId];
+  if (el) { el.classList.remove("singing"); void el.offsetWidth; el.classList.add("singing"); }
+  var want = echoState.motif[echoState.progress];
+  if (key.def.k === want.def.k) {
+    echoState.progress++;
+    if (echoState.progress >= echoState.motif.length) echoDelight();
+  } else if (!echoState.retried) {
+    echoState.retried = true;
+    echoState.progress = 0;
+    Sound.giggle();
+    showBubble("lulu", "Hee — almost! Listen once more…", 3200, true);
+    setTimeout(function () { if (echoState) echoHum(); }, 1400);
+  } else {
+    /* twice astray: she lets it go warmly — never punishes, never blocks */
+    echoEnd();
+    Sound.giggle();
+    showBubble("lulu", "Hee hee. We'll sing it another time.", 3200, true);
+    scheduleLuluEcho();
+  }
+  return true;
+}
+
+function echoDelight() {
+  var base = echoState.motif[0].def.freq;
+  echoEnd();
+  var g = S.goblins.lulu;
+  if (g) { g.mood = "delighted"; renderGoblins(); dropParticle(g, "🎶", true); }
+  if (goblinEls.lulu) flashClass(goblinEls.lulu, "crib-bloom-pop", 900);
+  Sound.sparkle();
+  Sound.harmonyShimmer(base);             /* the tiny shimmer — confirmation, not fanfare */
+  showBubble("lulu", "You sang it back! The Warren heard you. ✨", 4600, true);
+  scheduleLuluEcho();
 }
 
 /* ---------------------------------------------------------------------
@@ -9474,6 +9646,7 @@ function graduateCrib(fullReveal) {
       showBubble("lulu", "This is our garden. Zaz tends it... the rest of the Warren still sleeps.", 5600, true);
     }, 2600);
     setTimeout(spawnHearth, 9000);   /* WORLD 1's embodied quest (witness #6) */
+    scheduleLuluEcho();              /* SOLFÈGE V0 §2 — the call-and-response begins, rarely */
     return;
   }
   /* the ambient goblin ticks, deferred by boot() until the crib graduated */
@@ -9789,7 +9962,26 @@ window.WARREN_DEBUG = {
   checkWorldAdvance: function () { checkWorldAdvance(); return currentWorld(); },
   arrivalPending: function () { return !!arrivalStarEl; },
   catchArrival: function () { catchArrivalStar(); return currentWorld(); },
-  getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
+  getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; },
+  /* SOLFÈGE INITIATION V0 test surface (claim=NO_CLAIM — play, not medicine) */
+  skyScaleStep: function () { return skyScaleStep; },
+  skyScaleFreq: function (s) { return skyScaleFreq(s == null ? skyScaleStep : s); },
+  triggerEcho: function () { clearTimeout(echoTimer); spawnLuluEcho(); return window.WARREN_DEBUG.getEchoSolfa(); },
+  tapEchoKey: function (k) {
+    if (!echoState) return false;
+    for (var i = 0; i < echoState.keys.length; i++) {
+      if (echoState.keys[i].def.k === k) return echoTapObject({ id: echoState.keys[i].objId });
+    }
+    return false;
+  },
+  getEchoSolfa: function () {
+    if (!echoState) return { active: false };
+    return { active: true,
+      motif: echoState.motif.map(function (m) { return m.def.k; }),
+      keys: echoState.keys.map(function (m) { return m.def.k; }),
+      progress: echoState.progress, retried: echoState.retried };
+  },
+  expireEcho: function () { expireLuluEcho(); }
 };
 
 /* ---------------------------------------------------------------------
@@ -9898,6 +10090,9 @@ function boot() {
   if (!runCrib) {
     /* WORLD 1's embodied quest persists across sessions until lit */
     if (stagedActive() && currentWorld() === 1) setTimeout(spawnHearth, 6000);
+
+    /* SOLFÈGE V0 §2 — Lulu's echo lives in Worlds 1-2 only (gated again at spawn) */
+    if (stagedActive() && currentWorld() <= 2) scheduleLuluEcho();
 
     /* the sky sheds a coin now and then — first one comes a little sooner */
     scheduleGoldfall(randi(25000, 55000));

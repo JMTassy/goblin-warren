@@ -3262,6 +3262,10 @@ html, body {
 }
 .crib-cue { animation: cribCue 1.7s ease-in-out infinite; }
 
+/* SOLFÈGE V0 §2 — Lulu's echo keys breathe the same gentle glow, a touch
+   quicker (an invitation to play, not a crib beat). claim=NO_CLAIM. */
+.echo-key { animation: cribCue 1.1s ease-in-out infinite; }
+
 /* the offered seed arcs toward Lulu before it blooms */
 @keyframes cribOfferFly {
   0%   { transform: translate(0,0) scale(1); }
