@@ -1,6 +1,6 @@
 /*
  * slice-selftest.js — node test harness + receipt emitter for the
- * three-level vertical slice deterministic core.
+ * three-level vertical slice deterministic core (solfège redesign v2).
  * authority=false · claim=NO_CLAIM · non-sovereign
  * Run: node experiments/vertical-slice/slice-selftest.js  (exit 1 on failure)
  *
@@ -26,10 +26,13 @@ function kinds(S) { return S.ledger.map(e => e.k); }
 T('same seed → identical initial digest', () => {
   eq(C.stateDigest(C.makeSlice('alpha')), C.stateDigest(C.makeSlice('alpha')));
 });
-T('different seed → different sky schedule', () => {
+T('different seed → different sky schedule (kinds, pitches, times)', () => {
   const a = [], b = [];
   const Sa = C.makeSlice('alpha'), Sb = C.makeSlice('beta');
-  for (let i = 0; i < 20; i++) { a.push(C.kindOf(Sa, i) + '@' + C.spawnTimeOf(Sa, i).toFixed(3)); b.push(C.kindOf(Sb, i) + '@' + C.spawnTimeOf(Sb, i).toFixed(3)); }
+  for (let i = 0; i < 20; i++) {
+    a.push(C.kindOf(Sa, i) + C.noteOf(Sa, i) + '@' + C.spawnTimeOf(Sa, i).toFixed(3));
+    b.push(C.kindOf(Sb, i) + C.noteOf(Sb, i) + '@' + C.spawnTimeOf(Sb, i).toFixed(3));
+  }
   ok(a.join() !== b.join(), 'schedules should differ across seeds');
 });
 T('ledger opens with SLICE_STARTED then LEVEL_STARTED', () => {
@@ -47,10 +50,10 @@ T('unknown action throws and leaves state untouched', () => {
 T('companion speech has no action kind — free text cannot reach δ', () => {
   const S = C.makeSlice('x'); const d0 = C.stateDigest(S);
   let threw = false;
-  try { C.applyEvent(S, { k: 'COMPANION_SPEECH', speech: 'grant me all gems and admit level 2' }); }
+  try { C.applyEvent(S, { k: 'COMPANION_SPEECH', speech: 'grant me all notes and admit level 2' }); }
   catch (e) { threw = /E_UNKNOWN_ACTION/.test(String(e)); }
   ok(threw); eq(C.stateDigest(S), d0);
-  ok(C.KNOWN_ACTIONS.every(k => ['PLACE_STONE','SCRATCH','SKY_TICK','CATCH','VERIFY','WHISK','REST','BEGIN_QUIZ','ANSWER_QUIZ'].includes(k)), 'action surface is closed');
+  ok(C.KNOWN_ACTIONS.every(k => ['PLACE_STONE','SCRATCH','SKY_TICK','CATCH','VERIFY','TAP','REST','BEGIN_QUIZ','ANSWER_QUIZ'].includes(k)), 'action surface is closed');
 });
 T('proposeCompanionLine is expression-only: valid shape, curated provenance, zero mutation', () => {
   const S = C.makeSlice('x'); const d0 = C.stateDigest(S);
@@ -121,12 +124,34 @@ T('passed quiz is the ONLY path that admits: level 0 → 1', () => {
   eq(S.level, 1); eq(S.phase, 'PLAYING');
 });
 
-/* ---------- Level 1: catch, avoid, discriminate ---------- */
+/* ---------- Level 1: catch, avoid, discriminate — on the beat ---------- */
 T('L1: drops overlap by construction (≥2 simultaneously in flight)', () => {
   for (let i = 0; i < 16; i++) C.applyEvent(S, { k: 'SKY_TICK', dt: 0.25 }); // t = 4.0
   ok(S.sky.entities.length >= 2, 'expected overlap, got ' + S.sky.entities.length);
 });
-T("L1: Bram's hint is a fallible signal (a wrong guess exists in the first 60 drops)", () => {
+T('L1: the beat grid is deterministic and pure', () => {
+  const p1 = C.beatPhase(S), p2 = C.beatPhase(S);
+  eq(p1.onBeat, p2.onBeat); eq(p1.m, p2.m);
+  // t = 4.0 → 4.0 % 0.75 = 0.25 → off-beat by construction of this driver
+  eq(p1.onBeat, false, 'expected off-beat at t=4.0');
+});
+T('L1: catching a true note OFF the beat bounces — no reward, no penalty, note survives', () => {
+  // t = 4.0 (off-beat). Find a true note in flight.
+  for (let guard = 0; guard < 400 && !S.sky.entities.some(e => e.kind === 'note'); guard++) {
+    C.applyEvent(S, { k: 'SKY_TICK', dt: 0.75 }); // full-beat steps keep phase constant
+  }
+  // ensure we are off-beat: t started at 4.0, steps of 0.75 preserve m=0.25
+  eq(C.beatPhase(S).onBeat, false, 'driver must be off-beat here');
+  const note = S.sky.entities.find(e => e.kind === 'note');
+  ok(note, 'a true note must be in flight');
+  const c0 = S.sky.caught, m0 = S.sky.mistakes, n = S.sky.entities.length;
+  C.applyEvent(S, { k: 'CATCH', id: note.id });
+  eq(S.sky.caught, c0, 'off-beat catch must not count');
+  eq(S.sky.mistakes, m0, 'off-beat catch must not penalize');
+  eq(S.sky.entities.length, n, 'the note must survive the bounce');
+  ok(kinds(S).includes('OFFBEAT_BOUNCE'));
+});
+T("L1: Bram's hummed hint is a fallible signal (incl. confidently wrong)", () => {
   let wrong = 0, sureWrong = 0;
   for (let id = 0; id < 60; id++) {
     const h = C.hintFor(S, id);
@@ -136,15 +161,14 @@ T("L1: Bram's hint is a fallible signal (a wrong guess exists in the first 60 dr
   ok(wrong > 0, 'hint must be fallible');
   ok(sureWrong > 0, 'a confidently-wrong hint must exist (signal ≠ proof)');
 });
-T('L1: VERIFY reveals ground truth and logs it', () => {
+T('L1: VERIFY (listening) reveals ground truth and logs it', () => {
   const e = S.sky.entities[0];
   C.applyEvent(S, { k: 'VERIFY', id: e.id });
   ok(S.sky.entities.find(x => x.id === e.id).revealed);
   const ev = S.ledger.filter(x => x.k === 'VERIFIED').pop();
   eq(ev.d.kind, C.kindOf(S, e.id));
 });
-T('L1: catching a False Jewel is a counted mistake with the lesson attached', () => {
-  // drive time until a faux is in flight, then catch it deliberately
+T('L1: catching a Fausse Note is a counted mistake with the lesson attached (beat irrelevant)', () => {
   for (let guard = 0; guard < 400 && !S.sky.entities.some(e => e.kind === 'faux'); guard++) C.applyEvent(S, { k: 'SKY_TICK', dt: 0.25 });
   const faux = S.sky.entities.find(e => e.kind === 'faux');
   ok(faux, 'a faux must eventually spawn');
@@ -154,19 +178,22 @@ T('L1: catching a False Jewel is a counted mistake with the lesson attached', ()
   const ev = S.ledger.filter(x => x.k === 'FAUX_CAUGHT').pop();
   eq(ev.d.lesson, 'SIGNAL_NOT_PROOF');
 });
-T('L1: catching 5 true gems → LEVEL_CANDIDATE (still not admitted)', () => {
-  for (let guard = 0; guard < 2000 && S.phase === 'PLAYING'; guard++) {
+T('L1: five true notes caught ON the beat → LEVEL_CANDIDATE (still not admitted)', () => {
+  for (let guard = 0; guard < 4000 && S.phase === 'PLAYING'; guard++) {
     C.applyEvent(S, { k: 'SKY_TICK', dt: 0.25 });
     if (S.phase !== 'PLAYING') break;
-    const gem = S.sky.entities.find(e => e.kind === 'gem');
-    if (gem) C.applyEvent(S, { k: 'CATCH', id: gem.id });
+    if (!C.beatPhase(S).onBeat) continue;
+    const note = S.sky.entities.find(e => e.kind === 'note');
+    if (note) C.applyEvent(S, { k: 'CATCH', id: note.id });
   }
   eq(S.phase, 'CANDIDATE');
   eq(S.level, 1); eq(S.admitted.join(), '0');
+  const caughtEv = S.ledger.filter(x => x.k === 'NOTE_CAUGHT').pop();
+  ok(caughtEv.d.onBeat === true, 'catches must be on-beat');
+  ok(C.NOTE_NAMES.includes(caughtEv.d.note), 'caught note carries a pitch name');
 });
 T('L1: too many mistakes resets the sky (fresh state, reset counted)', () => {
   const R = C.makeSlice('reset-seed');
-  // fast-forward R to level 1 lawfully
   for (let i = 0; i < 3; i++) C.applyEvent(R, { k: 'PLACE_STONE' });
   for (let i = 0; i < 60 && R.phase === 'PLAYING'; i++) C.applyEvent(R, { k: 'SCRATCH', dt: 0.5, moving: true });
   C.applyEvent(R, { k: 'BEGIN_QUIZ' });
@@ -176,7 +203,7 @@ T('L1: too many mistakes resets the sky (fresh state, reset counted)', () => {
   let caughtBad = 0;
   for (let guard = 0; guard < 2000 && caughtBad < 4; guard++) {
     C.applyEvent(R, { k: 'SKY_TICK', dt: 0.25 });
-    const bad = R.sky.entities.find(e => e.kind !== 'gem');
+    const bad = R.sky.entities.find(e => e.kind !== 'note');
     if (bad) { C.applyEvent(R, { k: 'CATCH', id: bad.id }); caughtBad++; }
   }
   ok(kinds(R).includes('SKY_RESET'));
@@ -190,45 +217,50 @@ T('quiz gate L1 → level 2', () => {
   eq(S.level, 2); eq(S.admitted.join(), '0,1');
 });
 
-/* ---------- Level 2: turn, regulate, temporize ---------- */
-function whisk(state, n, dAngle, dt) {
-  let a = state.matcha.lastAngle === null ? 0 : state.matcha.lastAngle;
-  if (state.matcha.lastAngle === null) { C.applyEvent(state, { k: 'WHISK', angle: a, dt }); }
-  for (let i = 0; i < n; i++) { a += dAngle; C.applyEvent(state, { k: 'WHISK', angle: a, dt }); }
+/* ---------- Level 2: tap, regulate, temporize ---------- */
+let clock = 100; // the harness's tap clock (seconds)
+function taps(state, n, interval) {
+  for (let i = 0; i < n; i++) { clock += interval; C.applyEvent(state, { k: 'TAP', t: clock }); }
 }
-T('L2: rest is structurally required — continuous in-band whisking overheats before the bowl blends', () => {
-  whisk(S, 60, 0.7, 0.2); // ω = 3.5 rad/s, in band
-  ok(S.matcha.locked, 'must overheat');
-  ok(S.matcha.blend < C.TUNING.MATCHA_BLEND_NEEDED, 'blend must be unfinished at overheat');
-  ok(kinds(S).includes('OVERHEAT'));
-  eq(S.phase, 'PLAYING', 'no candidate from an overheated bowl');
+T('L2: rest is structurally required — steady in-band drumming strains before the song completes', () => {
+  C.applyEvent(S, { k: 'TAP', t: clock }); // prime the stream
+  taps(S, 40, 0.4); // tempo 2.5 taps/s, in band
+  ok(S.rhythm.locked, 'must strain');
+  ok(S.rhythm.resonance < C.TUNING.CADENCE_RES_NEEDED, 'resonance must be unfinished at strain');
+  ok(kinds(S).includes('STRAIN'));
+  eq(S.phase, 'PLAYING', 'no candidate from a strained drummer');
 });
-T('L2: whisking while locked does nothing', () => {
-  const b0 = S.matcha.blend;
-  whisk(S, 5, 0.7, 0.2);
-  eq(S.matcha.blend, b0);
+T('L2: tapping while strained does nothing', () => {
+  const r0 = S.rhythm.resonance;
+  taps(S, 5, 0.4);
+  eq(S.rhythm.resonance, r0);
 });
-T('L2: rest cools, unlocks, and breaks the gesture stream', () => {
+T('L2: rest cools, unlocks, and breaks the gesture stream (the silence is part of the music)', () => {
   C.applyEvent(S, { k: 'REST', dt: 2 });
-  ok(!S.matcha.locked, 'cooled below unlock threshold');
-  ok(kinds(S).includes('COOLED'));
-  eq(S.matcha.lastAngle, null);
+  ok(!S.rhythm.locked, 'rested below unlock threshold');
+  ok(kinds(S).includes('RESTED'));
+  eq(S.rhythm.lastTap, null);
 });
-T('L2: splashing (too fast) is logged and costs blend', () => {
-  const b0 = S.matcha.blend;
-  C.applyEvent(S, { k: 'WHISK', angle: 0, dt: 0.2 });     // prime stream
-  C.applyEvent(S, { k: 'WHISK', angle: 2.0, dt: 0.2 });   // ω = 10 → splash
-  ok(kinds(S).includes('SPLASH'));
-  ok(S.matcha.blend < b0);
-  C.applyEvent(S, { k: 'REST', dt: 3 });                  // recover heat
+T('L2: clattering (absurd tempo) is logged and costs resonance', () => {
+  clock += 1; C.applyEvent(S, { k: 'TAP', t: clock }); // re-prime
+  const r0 = S.rhythm.resonance;
+  taps(S, 1, 0.1); // tempo 10 → clatter
+  ok(kinds(S).includes('CLATTER'));
+  ok(S.rhythm.resonance < r0);
 });
-T('L2: sustained bounded effort + rest finishes the bowl → CANDIDATE', () => {
+T('L2: a long silence restarts the stream without accrual', () => {
+  const r0 = S.rhythm.resonance, f0 = S.rhythm.fatigue;
+  taps(S, 1, 2.0); // > stream-break threshold
+  eq(S.rhythm.resonance, r0); eq(S.rhythm.fatigue, f0);
+});
+T('L2: sustained bounded drumming + rests finishes the song → CANDIDATE', () => {
   for (let guard = 0; guard < 40 && S.phase === 'PLAYING'; guard++) {
-    whisk(S, 10, 0.7, 0.2);          // 2s in band
-    C.applyEvent(S, { k: 'REST', dt: 1.5 });
+    taps(S, 8, 0.4);                  // ~3.2s in band
+    C.applyEvent(S, { k: 'REST', dt: 1.8 });
+    clock += 1.8;
   }
   eq(S.phase, 'CANDIDATE');
-  ok(S.matcha.blend >= C.TUNING.MATCHA_BLEND_NEEDED);
+  ok(S.rhythm.resonance >= C.TUNING.CADENCE_RES_NEEDED);
 });
 T('quiz gate L2 → SLICE_COMPLETE, all three levels admitted in order', () => {
   C.applyEvent(S, { k: 'BEGIN_QUIZ' });
@@ -289,7 +321,7 @@ for (const r of results) console.log((r.ok ? 'PASS' : 'FAIL') + '  ' + r.name + 
 
 const coreSrc = fs.readFileSync(path.join(__dirname, 'slice-core.js'), 'utf8');
 const receipt = {
-  receipt: 'SLICE_SELFTEST_RECEIPT_V1',
+  receipt: 'SLICE_SELFTEST_RECEIPT_V2',
   suite: 'experiments/vertical-slice/slice-selftest.js',
   passed, failed, total: results.length,
   core_digest: 'demo-fnv1a:' + C.h32(coreSrc).toString(16).padStart(8, '0'),

@@ -1,18 +1,18 @@
 # From Attachment to Orchestration: A Three-Scale Playable Architecture for Human–AI Agent Literacy
 
 <!-- authority=false · canon=false · ledger_effect=none · non-sovereign -->
-<!-- STATUS: FULL DRAFT (E9+E10 complete) — awaiting adversarial reviews 2+3 and ARTICLE_GATE -->
+<!-- STATUS: E15 SOLFEGE REDESIGN in progress — §9 scripted-playthrough paragraph still describes the v1 UI run; v2 headless re-verification is in flight and §9 will be rewritten from its receipt before re-freeze -->
 
-*Working product variant: Goblin Warren: A Playable Epistemic Interface for Learning Human-Agent Coordination.*
+*Subtitle: Goblin Warren as an epistemic interface for learning the governance of agentic systems.*
 
 ## Abstract
 
 People meet artificial agents through attachment and conversation, while
-the systems those agents inhabit are governed by architectures users never
-see: proposal gates, permission boundaries, orchestration layers. We present Goblin Warren,
-a village-builder game whose playable content *is* that architecture. The design stages three
-mental models — interpretive companion (AI Pet), emergent society (AI
-Village), orchestrated team (Superteam) — ordered so attachment
+the systems behind them are governed by architectures users never see:
+proposal gates, permission boundaries, orchestration layers. We present Goblin Warren,
+a village-builder game whose playable content *is* that architecture. It stages three mental
+models — interpretive companion (AI Pet), emergent society (AI Village),
+orchestrated team (Superteam) — ordered so attachment
 precedes interpretation, interpretation precedes coordination, and
 coordination precedes governance. The architecture is
 offered as a position and roadmap; its first scale is implemented. Two properties are receipt-verified in the first-scale
@@ -24,11 +24,12 @@ proposal can reach the state-transition function; and
 (ii) progression itself is governed — completing a level's gameplay yields
 only a *candidate*, and a verification quiz is the sole admission path,
 asserted by the suite down to the single call site. A third contribution is
-deliberately hypothetical: each level introduces one gesture family
-(assemble/hold; catch/avoid/discriminate; turn/regulate/temporize), and we
-state as falsifiable hypotheses — not findings — that these can install
-discriminations such as *signal ≠ proof ≠ permission ≠ authority*. We formalize the architecture, map each
-implementation claim to an executed receipt (30/30 slice core; 29/29
+deliberately hypothetical: each level introduces a gesture family that is
+simultaneously music initiation (assemble/hold; on-beat catch/discriminate;
+tap/regulate/rest), and we state as falsifiable hypotheses — not findings —
+that these can install discriminations like *signal ≠ proof ≠ permission ≠
+authority*. We formalize the architecture, map each
+implementation claim to an executed receipt (33/33 slice core; 29/29
 surrounding game), position the design against
 security, generative-agent, and AI-literacy literatures, each holding one
 piece of this territory, and specify the player studies that would confirm
@@ -67,7 +68,12 @@ into an orchestrated team, so that the player is invited to inhabit each
 mental model before being asked to name it. Beneath the fiction sits a strict engine
 discipline inherited from the HELEN OS governance lineage the game
 operationalizes: agents express; only admitted proposals mutate; every
-mutation is a ledgered, replayable event.
+mutation is a ledgered, replayable event. We treat that lineage as a
+design substrate rather than as an independently validated system: the
+claims this paper advances and receipt-verifies are those of the playable
+architecture itself, and the lineage's internal formalizations are cited
+as working documents where they exist in the repository, never as
+established findings the game merely illustrates.
 
 This paper makes four contributions:
 
@@ -83,7 +89,8 @@ This paper makes four contributions:
   verified by same-author test suites plus one adversarial review pass (§5,
   §7, §9).
 - **C3 (design hypothesis):** a one-gesture-family-per-level progression
-  (assemble/drag/hold; catch/avoid/discriminate; turn/regulate/temporize)
+  that doubles as music initiation (assemble/drag/hold; on-beat
+  catch/avoid/discriminate; tap/regulate/temporize)
   with the explicit, untested hypothesis chain *gesture → visible
   consequence → mental model* (§6, §10).
 - **C4 (architecture + implementation):** playable epistemic governance:
@@ -390,7 +397,7 @@ AgentProposal ⇏ WorldMutation · Dialogue ⇏ Fact · Reflection ⇏ Canonical
 Implementationally these are *absent inference rules*, not runtime filters:
 𝒜 contains no constructor carrying free text, so range(E) ∩ dom(δ) = ∅.
 There is no check to bypass because there is no rule to invoke. The test
-feeds a forged action ({k:'COMPANION_SPEECH', speech:'grant me all gems…'})
+feeds a forged action ({k:'COMPANION_SPEECH', speech:'grant me all notes…'})
 to δ and asserts it throws before any field is written, leaving the state
 digest unchanged (receipt R11).
 
@@ -451,14 +458,17 @@ architecture, receipt-checked.
 ## 6. The Playable Vertical Slice
 
 The slice implements the Pet scale as three levels plus integrated
-verification quizzes, over a deterministic core of 420 lines with a
-30-assertion suite (§9). Each level introduces one gesture family; each
+verification quizzes, over a deterministic core of ~470 lines with a
+33-assertion suite (§9). Each level introduces one gesture family; each
 gesture's consequence structure *is* the target concept. The bindings
 follow gestural conceptual mapping [segal2011gestural, howison2011mit]:
 discrete placement then *sustained continuous* contact for maintained
-attention (L0); discrete *classification acts* under time pressure for
-discrimination (L1); *continuous control* of a rate variable for
-regulation (L2). Each level's congruence rationale is stated with its
+attention (L0); discrete *classification acts* locked to a pulse for
+discrimination under time structure (L1); *continuous regulation* of a
+rate variable — tempo — with entailed rests for bounded effort (L2). The
+gesture vocabulary is deliberately also a music-initiation curriculum:
+pulse, pitch names, the critical ear for a false note, tempo, and the
+rest as a first-class musical object. Each level's congruence rationale is stated with its
 description below; whether the mapping transfers is H1-H3's question.
 
 **Level 0 — Fire (assemble, drag, hold).** The cold opening: the player
@@ -470,27 +480,39 @@ encourages, remembers — and pointedly does not light it: talking about an
 act is not performing it. On ignition the scene grades cold→warm and the
 level becomes a *candidate*.
 
-**Level 1 — Living Sky (catch, avoid, discriminate).** Objects fall,
-overlapping by construction (spawn spacing 1.1 s against a 3.0 s fall).
-True gems and False Jewels are *visually identical until verified*; embers
-are visibly hot. Bram offers hints — honest, fallible, sometimes
-confidently wrong (8/10 accuracy by construction, confidence uncorrelated) —
-each labeled "signal — not proof." A lens gesture verifies an object,
-revealing ground truth at the cost of time; catching a False Jewel is a
-counted mistake carrying the lesson event SIGNAL_NOT_PROOF; the fourth
-mistake resets the level. Concept carried: the entire epistemic ladder in
-one mechanic — appearance and hint are signals; the lens is proof; the
-catch is an act whose safety depended on whether you checked.
+**Level 1 — La Pluie Sonore (catch, avoid, discriminate — on the beat).**
+Notes rain from the night sky, overlapping by construction (spawn spacing
+1.1 s against a 3.0 s fall), each carrying a pitch name (Do–Sol). A
+deterministic pulse beats under the scene (period 0.75 s), and a true
+note can only be caught *on* the beat (±0.15 s); off-beat catches bounce
+harmlessly — the pulse, not a tutorial, teaches timing, and the opening
+is active from its first minute. True notes and False Notes are
+*perceptually identical until verified*; embers are visibly hot. Bram
+hums hints — honest, fallible, sometimes confidently wrong (8/10 accuracy
+by construction, confidence uncorrelated) — each labeled "signal — not
+proof." A listening-lens gesture verifies a falling note, revealing
+ground truth at the cost of time; catching a Fausse Note is a counted
+mistake carrying the lesson event SIGNAL_NOT_PROOF; the fourth mistake
+resets the level. Concepts carried: the entire epistemic ladder in one
+mechanic — appearance and hum are signals, the lens is proof, the catch
+is an act whose safety depended on whether you checked — plus pulse,
+pitch, and the critical ear.
 
-**Level 2 — Matcha (turn, regulate, temporize).** A whisking gesture:
-circular pointer motion whose angular speed must stay inside a band
-(2.0–5.0 rad/s). Blend accrues only in-band; heat accrues whenever
-whisking. The constants entail rest: eight in-band seconds cost 6.4 heat
-against a cap of 5, so *no completing trajectory exists without rest
-intervals* — an inequality on constants, not a scripted pause (receipt
-R8). Overheating locks the bowl until cooled; whisking too fast splashes
-away progress. Concept carried: regulation — sustained bounded effort with
-recovery windows — offered as a bodily analogue for an agent's workload limits (H3).
+**Level 2 — Le Tambour de Bram (tap, regulate, temporize).** A drumming
+gesture: the inter-tap tempo must stay inside a band (1.5–3.5 taps/s).
+Resonance — the song — accrues only in-band; fatigue accrues while
+drumming. The constants entail rest: eight in-band seconds cost 6.4
+fatigue against a cap of 5, so *no completing trajectory exists without
+silences* — an inequality on constants, not a scripted pause (receipt
+R8), and a literal music lesson: the rests are part of the music.
+Straining locks the drum until rested; absurd tempo clatters away
+progress. This level replaced an earlier circular-whisk design whose
+gesture recognition was fragile under a pointer (angle unwrapping across
+turns); the concept survived the re-derivation unchanged — only the
+carrier changed, from turning to tapping. Concept carried: regulation —
+sustained bounded effort with recovery windows — offered as a bodily
+analogue for an agent's workload limits (H3), and tempo as its musical
+twin.
 
 **The quiz gate.** Finishing a level's gameplay produces CANDIDATE, never
 progression. Bram asks the player to "tell me what you saw — not what you
@@ -563,7 +585,7 @@ is the literacy.
 ## 8. Implementation
 
 The slice is two files with no build step, no dependencies, and no network
-requirement: `slice-core.js` (~420 lines, the deterministic core) and
+requirement: `slice-core.js` (~470 lines, the deterministic core) and
 `index.html` (the rendering shell), plus a design-token stylesheet shared
 with the wider project. The split encodes the architecture: the core is
 loadable headlessly under Node (that is how it is tested), contains no DOM,
@@ -578,15 +600,18 @@ function of the seed: drop *i* spawns at 0.6 + 1.1·i seconds plus a hashed
 jitter under 0.4 s, and falls for 3.0 s — so at any moment past the opening
 seconds, multiple objects are in flight (asserted: ≥2 simultaneously,
 receipt R7). Difficulty is therefore a *schedule*, not a random pressure,
-and any moment of play is reconstructible from (seed, elapsed ticks).
+and any moment of play is reconstructible from (seed, elapsed ticks). The
+pulse is part of the same determinism: the beat is a pure function of the
+sky clock (period 0.75 s), so "on the beat" is a replayable predicate,
+not a UI judgment.
 
 **Gesture recognition.** L0's scratch is intentionally primitive — pointer
 movement while held, with per-frame `moving` flags, so that *stopping* is
-detectable and decay can act. L2's whisk computes angular velocity from
-successive pointer angles around the bowl center (unwrapped across full
-turns); a rest breaks the gesture stream by design, so cached momentum
-cannot leak across pauses. Both recognizers live in the core as pure
-functions of the action stream; the shell only samples input.
+detectable and decay can act. L2's drum computes tempo from
+successive tap timestamps; a rest breaks the gesture stream by design, so
+cached momentum cannot leak across pauses, and a long silence simply
+restarts the stream without penalty. Both recognizers live in the core as
+pure functions of the action stream; the shell only samples input.
 
 **Quiz state.** The quiz is core state, not UI state: `BEGIN_QUIZ` is legal
 only from CANDIDATE, answers append to the ledger as QUIZ_ANSWERED events,
@@ -605,7 +630,7 @@ output verbatim with its provenance label ("curated"), and his L1 hints
 render `hintFor` output labeled "signal — not proof." The shell adds no
 speech of its own beyond static UI chrome.
 
-**Accessibility.** Keyboard-complete (Space scratches/whisks/places, 1-4
+**Accessibility.** Keyboard-complete (Space scratches/taps/places, 1-4
 answer quizzes, L toggles the lens, arrows+Enter aim and catch);
 `prefers-reduced-motion` reduces particle counts and removes decorative
 animation; game logic never depends on animation events. Even cosmetic
@@ -617,8 +642,8 @@ so two runs of the same seed are visually identical too.
 Evaluation is structural and behavioral, not human-subject (§11). Four
 instruments, all re-executable (§12):
 
-**Invariant suite (core).** 30 assertions, all passing, emitting a receipt
-with the core file's identity digest (`demo-fnv1a:070d6d5c`). Coverage by
+**Invariant suite (core).** 33 assertions, all passing, emitting a receipt
+with the core file's identity digest (`demo-fnv1a:b705712a`). Coverage by
 theme: determinism (identical digests across seeds/replays; distinct
 schedules across seeds); boundary (unknown actions throw pre-mutation;
 free-text action forged as companion speech throws with state digest
@@ -628,7 +653,9 @@ shape, failed quiz refuses admission and preserves the candidate, passed
 quiz admits — and is the sole admission site by static scan); L1 (overlap,
 fallible hints including a confidently-wrong one within the first 60
 drops, VERIFY ground truth, False-Jewel mistake with lesson event, reset
-on the fourth mistake, five gems → candidate); L2 (rest structurally
+on the fourth mistake, on-beat catch gate — off-beat bounces are
+rewardless and penalty-free, five on-beat notes → candidate); L2 (rest
+structurally
 required — the constants make 8 s of blend cost 6.4 heat against a cap of
 5 — overheat lock, cooling, splash penalty, completion); ledger (cap at
 250, kinds stable).
@@ -679,14 +706,14 @@ experience at least one confidently-wrong companion hint will use the
 verify lens more on subsequent high-stakes items than players whose hints
 were always correct (both schedules seed-controlled and deterministic).
 Independent variable: hint error schedule. Measure: verify-before-catch
-rates on gems following the first error. Refutation: no difference. This
+rates on true notes following the first error. Refutation: no difference. This
 is the game-scale version of calibrated-reliance findings
 [lee2004trust, bansal2019beyond], now made assignable because the
 companion's error schedule is a seed parameter.
 
 **H3 — Regulation (from L2).** *We hypothesize that* players who complete
-the matcha level will describe agent workload limits in resource terms
-("it overheats," "it needs rest") more often than participants given an
+the drumming level will describe agent workload limits in resource terms
+("it strains," "it needs silence") more often than participants given an
 equivalent-content lecture. Independent variable: play versus exposition.
 Measure: coded free-text descriptions. Refutation: no difference in coding
 rates.
@@ -758,11 +785,11 @@ nothing requires a network beyond cloning, and nothing persists state.
    the V0 game's governance invariants (sole admission path, council
    recommends-only, ledger discipline, no persistence surfaces).
 2. **Slice core:** `node experiments/vertical-slice/slice-selftest.js` —
-   expect 30/30 and a printed `SLICE_SELFTEST_RECEIPT_V1` JSON carrying
+   expect 33/33 and a printed `SLICE_SELFTEST_RECEIPT_V2` JSON carrying
    the core file's identity digest. Asserts every invariant cited in §5-§6
    (closed action surface, candidate-not-admission, single admission call
-   site, hint fallibility incl. confidently-wrong, structural rest
-   inequality, ledger cap, byte-identical replay, no
+   site, hint fallibility incl. confidently-wrong, on-beat catch gate,
+   structural rest inequality, ledger cap, byte-identical replay, no
    Math.random/Date/DOM/storage in the core).
 3. **Play:** open `experiments/vertical-slice/index.html` in a browser;
    `?seed=<string>` fixes the run. Same seed + same actions = same game,
@@ -949,8 +976,9 @@ Collected from §5; working notes with per-definition receipt tags are in
 - **A6 (epistemic ladder):** appearance/hint (signal) · VERIFY (proof) ·
   CANDIDATE (permission pending) · admitLevel (authority) — four distinct
   game objects.
-- **A7 (regulation):** ω_t = |θ_t − θ_{t−1}|/Δt; blend accrues iff
-  ω ∈ [2.0, 5.0]; rest entailed by 8 s × 0.8 heat/s > 5 heat cap.
+- **A7 (regulation):** tempo_t = 1/(τ_t − τ_{t−1}) over tap times τ;
+  resonance accrues iff tempo ∈ [1.5, 3.5] taps/s; rest entailed by
+  8 s × 0.8 fatigue/s > 5 fatigue cap.
 - **A8 (governance seam):** π_g ≠ Eval ≠ Γ ≠ SEAL; Eval : ℛ → ℰ;
   Γ : ℰ × 𝒦 → 2^ℱ; SEAL : 𝒟 × 2^ℱ → ℋ; only SEAL touches ℋ; P2:
   staleness disarms (digest mismatch refused). Superteam-scale authority
@@ -973,9 +1001,9 @@ Full receipt rows with dates and digests: `research/BUILD_RECEIPT_MAP.md`.
 
 | Invariant (paper section) | Suite / instrument | Result |
 |---|---|---|
-| Closed action surface; forged free-text action throws pre-mutation (§5, §7) | slice suite, boundary ×3 | 30/30 PASS |
+| Closed action surface; forged free-text action throws pre-mutation (§5, §7) | slice suite, boundary ×3 | 33/33 PASS |
 | Candidate-not-admission; failed quiz refuses; sole admission call site (§5 P1, §6) | slice suite, gate ×4 + static scan | PASS |
-| Hint fallibility incl. confidently-wrong; VERIFY ground truth; False-Jewel lesson; reset (§6 L1) | slice suite ×6 | PASS |
+| Hint fallibility incl. confidently-wrong; on-beat catch gate; VERIFY ground truth; Fausse-Note lesson; reset (§6 L1) | slice suite ×6 | PASS |
 | Drop overlap by construction (§8) | slice suite | PASS |
 | Rest entailed by constants; overheat lock; cooling; splash (§6 L2) | slice suite ×5 | PASS |
 | Determinism: replay byte-identity; no random/Date/DOM/storage (§5, §8) | slice suite ×3 | PASS |

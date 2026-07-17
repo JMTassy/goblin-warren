@@ -1,6 +1,6 @@
 /*
  * slice-core.js — deterministic core of the Goblin Warren three-level
- * vertical slice (L0 fire · L1 living sky · L2 matcha).
+ * vertical slice (L0 fire · L1 pluie sonore · L2 tambour).
  * authority=false · claim=NO_CLAIM · non-sovereign
  *
  * REDUCER DISCIPLINE (same law as the repo root index.html):
@@ -17,6 +17,12 @@
  *     the completion a CANDIDATE; only a passed verification quiz
  *     reaches admitLevel(), and admitLevel() has exactly one call site
  *     (the quiz-pass branch). Play proposes; verification admits.
+ *
+ * SOLFEGE_REDESIGN v2: L1 gained a deterministic beat grid (catching
+ * counts only on the beat — pulse is the first musical skill); L2's
+ * fragile circular whisk was replaced by tap-tempo drumming whose
+ * constants entail rests (temporize = musical silence). Concepts and
+ * governance unchanged; see SOLFEGE_REDESIGN.md.
  */
 'use strict';
 (function () {
@@ -50,24 +56,28 @@ const FIRE_DECAY_FACTOR = 2;       // idle decay is half the build rate
 const SKY_SPAWN_BASE = 0.6;        // first drop
 const SKY_SPAWN_SPACING = 1.1;     // < SKY_FALL_SECONDS → drops overlap
 const SKY_FALL_SECONDS = 3.0;
-const SKY_GEMS_NEEDED = 5;
+const SKY_NOTES_NEEDED = 5;
 const SKY_MAX_MISTAKES = 3;
-const SKY_HINT_ACCURACY = 8;       // Bram's hint is right 8 times in 10
+const SKY_HINT_ACCURACY = 8;       // Bram's hummed hint is right 8 in 10
+const SKY_BEAT_PERIOD = 0.75;      // the pulse — catching counts on it
+const SKY_BEAT_WINDOW = 0.15;      // ± tolerance around the beat
+const NOTE_NAMES = ['Do', 'Ré', 'Mi', 'Fa', 'Sol'];
 
-const MATCHA_BAND_LO = 2.0;        // rad/s — the whisk band
-const MATCHA_BAND_HI = 5.0;
-const MATCHA_BLEND_NEEDED = 8;     // seconds inside the band
-const MATCHA_HEAT_MAX = 5;
-const MATCHA_HEAT_WHISK = 0.8;     // heat/s while whisking — makes rest
-                                   // structurally required: 8s of blend
-                                   // costs 6.4 heat > 5 max, so the level
-                                   // cannot be finished without temporizing
-const MATCHA_HEAT_FAST = 1.5;      // extra heat/s above the band
-const MATCHA_HEAT_SLOW = 0.3;      // token heat below the band
-const MATCHA_COOL_RATE = 1.5;      // heat shed per second of rest
-const MATCHA_SPLASH_OMEGA = 8;     // whisking this fast splashes
-const MATCHA_SPLASH_PENALTY = 0.5;
-const MATCHA_UNLOCK_HEAT = 2.5;    // overheat lock releases below this
+const CADENCE_TEMPO_LO = 1.5;      // taps/s — the drumming band
+const CADENCE_TEMPO_HI = 3.5;
+const CADENCE_RES_NEEDED = 8;      // seconds of in-band drumming
+const CADENCE_FATIGUE_MAX = 5;
+const CADENCE_FATIGUE_RATE = 0.8;  // fatigue/s while drumming in band —
+                                   // makes rest structurally required:
+                                   // 8 s of resonance costs 6.4 fatigue
+                                   // > 5 cap, so the song cannot be
+                                   // finished without silences
+const CADENCE_FATIGUE_FAST = 1.5;  // extra fatigue/s above the band
+const CADENCE_REST_RATE = 1.5;     // fatigue shed per second of rest
+const CADENCE_CLATTER_TEMPO = 8;   // taps/s that clatter
+const CADENCE_CLATTER_PENALTY = 0.5;
+const CADENCE_STREAM_BREAK = 1.5;  // s of silence that restarts the stream
+const CADENCE_UNLOCK = 2.5;        // strain lock releases below this
 
 const LEDGER_CAP = 250;
 const LEVEL_COUNT = 3;
@@ -98,48 +108,48 @@ const SLICE_QUIZ = [
               'You did — talking about an act is not performing it'],
     correctIndex: 3 },
 
-  // Level 1 — living sky: catch, avoid, discriminate → signal vs proof
+  // Level 1 — pluie sonore: catch, avoid, discriminate on the beat
   { level: 1, category: 'signal_vs_proof',
-    question: "Bram said 'that one sparkles true' — and he was wrong. What was his hint?",
+    question: "Bram hummed 'that one rings true' — and he was wrong. What was his hum?",
     choices: ['A lie', 'A signal: honest but fallible, not proof',
               'Proof, because he sounded sure', 'A bug'],
     correctIndex: 1 },
   { level: 1, category: 'signal_vs_proof',
-    question: 'How did you get certainty that a falling jewel was real?',
+    question: 'How did you get certainty that a falling note belonged to the melody?',
     choices: ['By how confident Bram sounded',
-              'By how shiny it looked',
-              'By running the verify check before catching',
+              'By how bright it looked',
+              'By listening closely with the lens before catching',
               'By catching quickly'],
     correctIndex: 2 },
   { level: 1, category: 'signal_vs_proof',
-    question: 'A False Jewel looks exactly like a gem. What actually protected you?',
+    question: 'A false note looks exactly like a true one. What actually protected you?',
     choices: ['Trusting appearances but catching faster',
               'Avoiding everything that falls',
               'Catching everything to sort it later',
               'Checking before acting, even when the signal felt sure'],
     correctIndex: 3 },
 
-  // Level 2 — matcha: turn, regulate, temporize → bounded sustained effort
+  // Level 2 — tambour: tap, regulate, temporize → bounded sustained effort
   { level: 2, category: 'regulation',
-    question: 'Whisking faster than the band burned the bowl. What is regulation?',
+    question: 'Drumming faster than the pulse strained your hands. What is regulation?',
     choices: ['Maximum effort at all times',
               'Keeping effort inside limits, not maximizing it',
               'Stopping as often as possible',
               'Following the loudest instruction'],
     correctIndex: 1 },
   { level: 2, category: 'regulation',
-    question: 'Why were the rest windows necessary to finish the bowl?',
-    choices: ['Recovery is part of the work — heat only leaves during rest',
-              'The whisk needed recharging',
+    question: 'Why were the silences necessary to finish the song?',
+    choices: ['Rests are part of the music — strain only leaves during silence',
+              'The drum needed recharging',
               'They were optional',
-              'Resting increased whisk speed'],
+              'Resting made the taps louder'],
     correctIndex: 0 },
   { level: 2, category: 'regulation',
-    question: 'The matcha blended only from time spent inside the band. The lesson?',
-    choices: ['One perfect moment finishes the job',
-              'Speed outside the band still counts a little',
+    question: 'The song built only from beats landed inside the pulse. The lesson?',
+    choices: ['One perfect strike finishes the song',
+              'Speed outside the pulse still counts a little',
               'Sustained bounded effort is what accumulates',
-              'The band was cosmetic'],
+              'The pulse was cosmetic'],
     correctIndex: 2 },
 ];
 
@@ -154,7 +164,7 @@ function makeSlice(seed) {
     ledger: [],
     fire:   { state: 'COLD', stones: 0, progress: 0 },
     sky:    { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0, resets: 0 },
-    matcha: { blend: 0, heat: 0, lastAngle: null, locked: false, overheats: 0, splashes: 0 },
+    rhythm: { resonance: 0, fatigue: 0, lastTap: null, locked: false, strains: 0, clatters: 0 },
     quiz:   { asked: [], answers: [], attempts: 0 },
   };
   logEvent(S, 'SLICE_STARTED', { seed: S.seed });
@@ -177,15 +187,26 @@ function spawnTimeOf(S, i) {
 }
 function kindOf(S, i) {
   const r = h32(S.seed + ':kind:' + i) % 10;
-  return r < 4 ? 'gem' : r < 7 ? 'faux' : 'ember';
+  return r < 4 ? 'note' : r < 7 ? 'faux' : 'ember';
+}
+// Pitch is presentation-grade determinism: Do..Sol by hash. A faux note
+// carries a pitch too — that is the point: it looks and names like music.
+function noteOf(S, i) {
+  return NOTE_NAMES[h32(S.seed + ':note:' + i) % NOTE_NAMES.length];
+}
+// The pulse. Catching counts only when the sky clock sits on a beat.
+function beatPhase(S) {
+  const m = S.sky.t % SKY_BEAT_PERIOD;
+  const onBeat = m <= SKY_BEAT_WINDOW || m >= SKY_BEAT_PERIOD - SKY_BEAT_WINDOW;
+  return { m, onBeat };
 }
 
 // Bram's perception of a falling thing: an honest SIGNAL, right ~8/10,
-// sometimes confidently wrong. Never proof; verify() is proof.
+// sometimes confidently wrong. Never proof; VERIFY (listening) is proof.
 function hintFor(S, id) {
   const actual = kindOf(S, id);
   const right = (h32(S.seed + ':hint:' + id) % 10) < SKY_HINT_ACCURACY;
-  const guess = right ? actual : (actual === 'gem' ? 'faux' : 'gem');
+  const guess = right ? actual : (actual === 'note' ? 'faux' : 'note');
   const confidence = (h32(S.seed + ':conf:' + id) % 10) < 5 ? 'unsure' : 'sure';
   return { guess, confidence, provenance: 'companion_signal' };
 }
@@ -197,10 +218,10 @@ const COMPANION_LINES = {
   READY: { speech: 'Three stones, like you meant it. Now — scratch, and keep scratching.', emotion: 'eager' },
   SPARKING: { speech: 'There! Do not stop — sparks forget quickly.', emotion: 'excited' },
   LIT: { speech: 'You made this. I will remember the night the cold ended.', emotion: 'warm' },
-  SKY: { speech: 'The sky is dropping things again. Some sparkle honest. Some lie.', emotion: 'wary' },
-  MATCHA: { speech: 'Grandmother Moss says: the whisk that never rests burns the bowl.', emotion: 'calm' },
+  SKY: { speech: 'The sky is raining song tonight. Some notes ring true. Some lie.', emotion: 'wary' },
+  RHYTHM: { speech: 'Grandmother Moss says: the drummer who never rests breaks the song.', emotion: 'calm' },
   QUIZ: { speech: 'Tell me what you saw — not what you hoped.', emotion: 'attentive_calm' },
-  DONE: { speech: 'Fire, sky, bowl. You did not rush any of them. That is the whole lesson.', emotion: 'warm' },
+  DONE: { speech: 'Fire, song-rain, drum. You did not rush any of them. That is the whole lesson.', emotion: 'warm' },
 };
 function proposeCompanionLine(S) {
   let key;
@@ -208,7 +229,7 @@ function proposeCompanionLine(S) {
   else if (S.phase === 'QUIZ') key = 'QUIZ';
   else if (S.level === 0) key = S.fire.state;
   else if (S.level === 1) key = 'SKY';
-  else key = 'MATCHA';
+  else key = 'RHYTHM';
   const line = COMPANION_LINES[key] || COMPANION_LINES.COLD;
   return { speech: line.speech, emotion: line.emotion, provenance: 'curated_fallback' };
 }
@@ -243,7 +264,7 @@ function becomeCandidate(S) {
 /* ---------- δ — the only mutation path ---------- */
 const KNOWN_ACTIONS = [
   'PLACE_STONE', 'SCRATCH', 'SKY_TICK', 'CATCH', 'VERIFY',
-  'WHISK', 'REST', 'BEGIN_QUIZ', 'ANSWER_QUIZ',
+  'TAP', 'REST', 'BEGIN_QUIZ', 'ANSWER_QUIZ',
 ];
 
 function applyEvent(S, a) {
@@ -290,7 +311,7 @@ function applyEvent(S, a) {
       return S;
     }
 
-    /* --- Level 1: catch, avoid, discriminate --- */
+    /* --- Level 1: catch, avoid, discriminate — on the beat --- */
     case 'SKY_TICK': {
       if (S.level !== 1 || S.phase !== 'PLAYING') return S;
       const dt = Math.max(0, Number(a.dt) || 0);
@@ -304,7 +325,7 @@ function applyEvent(S, a) {
       const still = [];
       for (const e of S.sky.entities) {
         if (S.sky.t - e.born > SKY_FALL_SECONDS) {
-          if (e.kind === 'gem') logEvent(S, 'GEM_MISSED', { id: e.id });
+          if (e.kind === 'note') logEvent(S, 'NOTE_MISSED', { id: e.id });
         } else still.push(e);
       }
       S.sky.entities = still;
@@ -322,10 +343,17 @@ function applyEvent(S, a) {
       if (S.level !== 1 || S.phase !== 'PLAYING') return S;
       const idx = S.sky.entities.findIndex(x => x.id === a.id);
       if (idx === -1) return S;
-      const e = S.sky.entities.splice(idx, 1)[0];
-      if (e.kind === 'gem') {
+      const e = S.sky.entities[idx];
+      // Rhythm gate: a true note only lands ON the beat. Off-beat, it
+      // bounces — no reward, no penalty, the pulse is the teacher.
+      if (e.kind === 'note' && !beatPhase(S).onBeat) {
+        logEvent(S, 'OFFBEAT_BOUNCE', { id: e.id });
+        return S;
+      }
+      S.sky.entities.splice(idx, 1);
+      if (e.kind === 'note') {
         S.sky.caught += 1;
-        logEvent(S, 'GEM_CAUGHT', { id: e.id, verified: e.revealed });
+        logEvent(S, 'NOTE_CAUGHT', { id: e.id, note: noteOf(S, e.id), onBeat: true, verified: e.revealed });
       } else if (e.kind === 'faux') {
         S.sky.mistakes += 1;
         logEvent(S, 'FAUX_CAUGHT', { id: e.id, lesson: 'SIGNAL_NOT_PROOF' });
@@ -336,41 +364,43 @@ function applyEvent(S, a) {
       if (S.sky.mistakes > SKY_MAX_MISTAKES) {
         S.sky = { t: 0, spawned: 0, entities: [], caught: 0, mistakes: 0, resets: S.sky.resets + 1 };
         logEvent(S, 'SKY_RESET', { resets: S.sky.resets });
-      } else if (S.sky.caught >= SKY_GEMS_NEEDED) {
+      } else if (S.sky.caught >= SKY_NOTES_NEEDED) {
         becomeCandidate(S);
       }
       return S;
     }
 
-    /* --- Level 2: turn, regulate, temporize --- */
-    case 'WHISK': {
+    /* --- Level 2: tap, regulate, temporize --- */
+    case 'TAP': {
       if (S.level !== 2 || S.phase !== 'PLAYING') return S;
-      const dt = Math.max(1e-6, Number(a.dt) || 0);
-      const angle = Number(a.angle) || 0;
-      if (S.matcha.lastAngle === null) { S.matcha.lastAngle = angle; return S; }
-      const omega = Math.abs(angle - S.matcha.lastAngle) / dt;
-      S.matcha.lastAngle = angle;
-      if (S.matcha.locked) return S; // overheated: whisking does nothing until cooled
-      if (omega >= MATCHA_SPLASH_OMEGA) {
-        S.matcha.splashes += 1;
-        S.matcha.blend = Math.max(0, S.matcha.blend - MATCHA_SPLASH_PENALTY);
-        logEvent(S, 'SPLASH', { omega: Math.round(omega * 100) / 100 });
+      const t = Number(a.t);
+      if (!isFinite(t)) return S;
+      if (S.rhythm.locked) return S; // strained: taps do nothing until rested
+      if (S.rhythm.lastTap === null || t <= S.rhythm.lastTap) { S.rhythm.lastTap = t; return S; }
+      const interval = t - S.rhythm.lastTap;
+      S.rhythm.lastTap = t;
+      if (interval > CADENCE_STREAM_BREAK) return S; // long silence restarts the stream
+      const tempo = 1 / interval;
+      if (tempo >= CADENCE_CLATTER_TEMPO) {
+        S.rhythm.clatters += 1;
+        S.rhythm.resonance = Math.max(0, S.rhythm.resonance - CADENCE_CLATTER_PENALTY);
+        logEvent(S, 'CLATTER', { tempo: Math.round(tempo * 100) / 100 });
       }
-      if (omega >= MATCHA_BAND_LO && omega <= MATCHA_BAND_HI) {
-        S.matcha.blend += dt;
-        S.matcha.heat += dt * MATCHA_HEAT_WHISK;
-      } else if (omega > MATCHA_BAND_HI) {
-        S.matcha.heat += dt * (MATCHA_HEAT_WHISK + MATCHA_HEAT_FAST);
+      if (tempo >= CADENCE_TEMPO_LO && tempo <= CADENCE_TEMPO_HI) {
+        S.rhythm.resonance += interval;
+        S.rhythm.fatigue += interval * CADENCE_FATIGUE_RATE;
+      } else if (tempo > CADENCE_TEMPO_HI) {
+        S.rhythm.fatigue += interval * (CADENCE_FATIGUE_RATE + CADENCE_FATIGUE_FAST);
       } else {
-        S.matcha.heat += dt * MATCHA_HEAT_SLOW;
+        S.rhythm.fatigue += interval * 0.3; // dawdling still tires, a little
       }
-      if (S.matcha.heat >= MATCHA_HEAT_MAX) {
-        S.matcha.heat = MATCHA_HEAT_MAX;
-        S.matcha.locked = true;
-        S.matcha.overheats += 1;
-        logEvent(S, 'OVERHEAT', { overheats: S.matcha.overheats });
+      if (S.rhythm.fatigue >= CADENCE_FATIGUE_MAX) {
+        S.rhythm.fatigue = CADENCE_FATIGUE_MAX;
+        S.rhythm.locked = true;
+        S.rhythm.strains += 1;
+        logEvent(S, 'STRAIN', { strains: S.rhythm.strains });
       }
-      if (S.matcha.blend >= MATCHA_BLEND_NEEDED && !S.matcha.locked) {
+      if (S.rhythm.resonance >= CADENCE_RES_NEEDED && !S.rhythm.locked) {
         becomeCandidate(S);
       }
       return S;
@@ -378,11 +408,11 @@ function applyEvent(S, a) {
     case 'REST': {
       if (S.level !== 2 || S.phase !== 'PLAYING') return S;
       const dt = Math.max(0, Number(a.dt) || 0);
-      S.matcha.heat = Math.max(0, S.matcha.heat - dt * MATCHA_COOL_RATE);
-      S.matcha.lastAngle = null; // a rest breaks the gesture stream
-      if (S.matcha.locked && S.matcha.heat <= MATCHA_UNLOCK_HEAT) {
-        S.matcha.locked = false;
-        logEvent(S, 'COOLED', {});
+      S.rhythm.fatigue = Math.max(0, S.rhythm.fatigue - dt * CADENCE_REST_RATE);
+      S.rhythm.lastTap = null; // a rest breaks the gesture stream
+      if (S.rhythm.locked && S.rhythm.fatigue <= CADENCE_UNLOCK) {
+        S.rhythm.locked = false;
+        logEvent(S, 'RESTED', {});
       }
       return S;
     }
@@ -425,13 +455,16 @@ function applyEvent(S, a) {
 const __exports = {
   makeSlice, applyEvent, stateDigest, canonicalStringify, h32,
   proposeCompanionLine, hintFor, quizForLevel, spawnTimeOf, kindOf,
-  SLICE_QUIZ, KNOWN_ACTIONS,
+  noteOf, beatPhase,
+  SLICE_QUIZ, KNOWN_ACTIONS, NOTE_NAMES,
   TUNING: {
     FIRE_STONES_NEEDED, FIRE_SCRATCH_SECONDS, SKY_SPAWN_SPACING,
-    SKY_FALL_SECONDS, SKY_GEMS_NEEDED, SKY_MAX_MISTAKES,
-    MATCHA_BAND_LO, MATCHA_BAND_HI, MATCHA_BLEND_NEEDED, MATCHA_HEAT_MAX,
-    MATCHA_HEAT_WHISK, MATCHA_COOL_RATE, LEDGER_CAP, LEVEL_COUNT,
-    QUIZ_PASS_NEEDED,
+    SKY_FALL_SECONDS, SKY_NOTES_NEEDED, SKY_MAX_MISTAKES,
+    SKY_BEAT_PERIOD, SKY_BEAT_WINDOW,
+    CADENCE_TEMPO_LO, CADENCE_TEMPO_HI, CADENCE_RES_NEEDED,
+    CADENCE_FATIGUE_MAX, CADENCE_FATIGUE_RATE, CADENCE_REST_RATE,
+    CADENCE_CLATTER_TEMPO, CADENCE_STREAM_BREAK, CADENCE_UNLOCK,
+    LEDGER_CAP, LEVEL_COUNT, QUIZ_PASS_NEEDED,
   },
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = __exports;
