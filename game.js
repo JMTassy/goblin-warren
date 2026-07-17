@@ -7408,25 +7408,35 @@ function onTapGoblin(id) {
 var goldfallEl = null, goldfallTimer = null, goldfallMissTimer = null;
 
 function scheduleGoldfall(delay) {
-  if (stagedActive() && currentWorld() < 2) return;  // Worlds gate
+  if (stagedActive() && prologueActive) return;      // never during the crib
   clearTimeout(goldfallTimer);
-  goldfallTimer = setTimeout(spawnGoldfall, delay == null ? randi(45000, 100000) : delay);
+  /* freeze soft-progression-v1: in the early worlds the calm rain IS the
+     main activity — frequent, slow, one at a time. Later it relaxes back
+     to an occasional gift. */
+  var gap = (stagedActive() && currentWorld() <= 2) ? randi(4000, 9000) : randi(45000, 100000);
+  goldfallTimer = setTimeout(spawnGoldfall, delay == null ? gap : delay);
 }
 
 /* SKYFALL TABLE — witness #7: "more things falling, at different speeds,
    some to catch, some NOT to catch." The sky's gift table grows with the
    Worlds — progression you can literally watch fall. Odd items pay
    nothing and earn a giggle: discrimination is the skill, never punished. */
+/* freeze soft-progression-v1 (opérateur, 2026-07-17): coins slow and
+   frequent FIRST — pure catching joy before any discrimination. Avoid-items
+   arrive later, one at a time, the stone announced by a low tone. */
 var SKYFALL_TABLE = [
-  { glyph: "🪙", world: 2, weight: 5, fall: 6.5, kind: "zol"    },  // the classic
-  { glyph: "🔮", world: 1, weight: 4, fall: 9.5, kind: "sap"    },  // slow and gentle: World 1's gift
-  { glyph: "💎", world: 3, weight: 1, fall: 3.6, kind: "zolBig" },  // fast + rare: the skill catch
-  { glyph: "🍂", world: 1, weight: 3, fall: 12,  kind: "odd"    },  // a drifting leaf. it is a leaf.
-  { glyph: "🪰", world: 2, weight: 2, fall: 5,   kind: "odd"    }   // the bog-fly. you'll learn.
+  { glyph: "🪙", world: 1, weight: 3, fall: 5.5, kind: "zol"    },  // the quicker coin (also the debug pin)
+  { glyph: "🪙", world: 1, weight: 6, fall: 8,   kind: "zol"    },  // slow coins from minute one
+  { glyph: "🔮", world: 1, weight: 3, fall: 10,  kind: "sap"    },  // the gentle violet drop
+  { glyph: "💎", world: 1, weight: 1, fall: 3.6, kind: "zolBig" },  // rare: the special catch
+  { glyph: "🪨", world: 2, weight: 2, fall: 7,   kind: "bonk", announce: true }, // the ONE avoid-item, announced
+  { glyph: "🍂", world: 2, weight: 2, fall: 12,  kind: "odd"    },  // a drifting leaf. it is a leaf.
+  { glyph: "🪰", world: 3, weight: 2, fall: 5,   kind: "odd"    }   // the bog-fly. you'll learn.
 ];
 var SKYFALL_ODD_LINES = {
   "🍂": "...a leaf. You caught a leaf. Keep it, I guess?",
-  "🪰": "EW. Why. WHY."
+  "🪰": "EW. Why. WHY.",
+  "🪨": "BONK. That was a rock. We do not catch rocks."
 };
 var goldfallItem = null;
 function pickSkyfallItem() {
@@ -7440,6 +7450,7 @@ function pickSkyfallItem() {
 }
 function spawnGoldfall(forceGlyph) {
   if (goldfallEl) { scheduleGoldfall(); return; }
+  if (typeof arrivalStarEl !== "undefined" && arrivalStarEl) { scheduleGoldfall(); return; } // freeze: rain yields to the star
   var world = document.getElementById("world");
   if (!world) { scheduleGoldfall(); return; }
   var item = null;
@@ -7448,6 +7459,7 @@ function spawnGoldfall(forceGlyph) {
   }
   if (!item) item = pickSkyfallItem();
   goldfallItem = item;
+  if (item.announce && window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(110);  // the stone announces itself, low
   var el = document.createElement("div");
   el.className = "goldfall";
   el.textContent = item.glyph;
@@ -7497,6 +7509,12 @@ function catchGoldfall(e) {
     if (window.Sound && Sound.chirp) Sound.chirp();
     pushReplay("The Sky", "A drop of sap fell", "goldfall-sap",
       "a slow violet drop, caught. +1 sap", "the sky feeds the Warren too.");
+  } else if (item.kind === "bonk") {
+    if (window.Sound && Sound.uiClick) Sound.uiClick();
+    var voice2 = Object.keys(S.goblins).filter(goblinRevealed);
+    if (voice2.length) showBubble(pick(voice2), SKYFALL_ODD_LINES["🪨"], 3200);
+    pushReplay("The Sky", "A rock fell", "skyfall-odd",
+      "you caught a rock. bonk. zero coins lost — lesson kept.", "we do not catch rocks.");
   } else {
     /* odd catch: no pay, one giggle — discrimination is learned, not punished */
     var voice = Object.keys(S.goblins).filter(goblinRevealed);
@@ -9212,6 +9230,7 @@ function graduateCrib(fullReveal) {
     applyWorldReveal(false);
     GOBLIN_DEFS.forEach(function (d, i) { if (goblinRevealed(d.id)) scheduleGoblinTick(d.id, 1600 + i * 700); });
     scheduleSparkle();
+    scheduleGoldfall(randi(8000, 15000));   /* freeze: the calm rain is World 1's main activity */
     scheduleMatchaCraving(randi(60000, 100000));
     setTimeout(function () {
       if (!everBooped) showBubble("lulu", "Try booping someone. Gently.", 3600);

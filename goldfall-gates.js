@@ -83,6 +83,19 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   });
   log('G6_sapdrop_pays_one_sap', g6.zolDelta === 0 && g6.sapDelta === 1, JSON.stringify(g6));
 
+  // G7 (freeze soft-progression-v1): the stone bonks — zero loss, a lesson
+  const g7 = await page.evaluate(async () => {
+    const D = window.WARREN_DEBUG;
+    const before = { zol: D.getState().learning.zolBalance, sap: D.getState().progress.magicSap };
+    D.spawnGoldfall('🪨');
+    D.catchGoldfall();
+    await new Promise(r => setTimeout(r, 600));
+    return { zolDelta: D.getState().learning.zolBalance - before.zol,
+      sapDelta: D.getState().progress.magicSap - before.sap,
+      receipt: D.getReplay().some(r => r.choice === 'skyfall-odd' && /rock/.test(r.visibleChange)) };
+  });
+  log('G7_stone_bonks_zero_loss', g7.zolDelta === 0 && g7.sapDelta === 0 && g7.receipt, JSON.stringify(g7));
+
   log('G4_no_page_errors', errs.length === 0, errs.join(' | ') || 'clean');
 
   await b.close();
