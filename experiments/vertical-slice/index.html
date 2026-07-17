@@ -3,23 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Goblin Warren — Vertical Slice (fire · sky · matcha)</title>
+<title>Goblin Warren — Vertical Slice (fire · pluie sonore · tambour)</title>
 <!--
   Goblin Warren vertical slice — playable UI shell over slice-core.js.
   authority=false · claim=NO_CLAIM · non-sovereign · session-only · offline (no CDN).
+
+  SOLFEGE_REDESIGN v2 shell: L1 is "La Pluie Sonore" (falling solfège notes,
+  catching counts only on the 0.75s pulse), L2 is "Le Tambour de Bram"
+  (tap-tempo drumming whose constants entail rests). The whisk is gone.
 
   ARCHITECTURE LAW (mirrors slice-core.js header):
     - One state S = SliceCore.makeSlice(seed). EVERY interaction routes through
       SliceCore.applyEvent(S, action). This file never writes S's fields.
     - Companion speech comes ONLY from SliceCore.proposeCompanionLine(S) and
-      hints from SliceCore.hintFor(S, id); both carry visible provenance labels.
+      hums from SliceCore.hintFor(S, id); both carry visible provenance labels.
       No text input path reaches applyEvent.
     - No localStorage, cookies, network requests, or CDN. tokens.css is linked
       relatively with a small inline fallback of the load-bearing custom
       properties so the file degrades gracefully standalone.
     - Seed comes from ?seed=... (default 'warren-slice-1'). No Math.random /
       Date on any path; visual-only particle jitter uses a mulberry32 PRNG
-      seeded from SliceCore.h32(seed).
+      seeded from SliceCore.h32(seed). TAP timestamps use the monotonic
+      rAF/performance.now clock — input timing, not entropy.
+    - AUDIO LAW: all sound is synthesized in-file via WebAudio (no assets, no
+      network). The AudioContext is lazily created on the FIRST user gesture
+      only (pointerdown/keydown) and every call is guarded, so headless or
+      muted runs are silent no-ops with zero console errors. The mute toggle
+      lives in memory only — never persisted.
     - Pixel look = technique (quarter-resolution canvas, PIX=4, nearest-
       neighbour upscale), original art per warren-design/SPRITE_SPEC.md and
       scene-grammar.md. Game logic lives in the core; this UI is a projection.
@@ -82,7 +92,7 @@
     padding:var(--px-2) var(--px-4);box-shadow:var(--shadow-2)}
   button[aria-pressed="true"]{border-color:var(--glow);color:var(--glow)}
 
-  /* ===== speech / hint bubbles ===== */
+  /* ===== speech / hum bubbles ===== */
   .bubble{position:absolute;background:var(--panel);border:var(--bw) solid var(--line);
     box-shadow:var(--shadow-1);padding:var(--px-2);max-width:min(78vw,440px);
     font-size:var(--step-1);line-height:1.5;color:var(--glow);
@@ -107,6 +117,13 @@
   #flash.show{opacity:1}
   #flash.bad{color:var(--ember)}
 
+  /* ===== pulse ring (L1 — the beat, JS-transform-driven every frame) ===== */
+  #pulseWrap{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);
+    width:44px;height:44px;pointer-events:none;
+    display:flex;align-items:center;justify-content:center}
+  #pulseRing{width:26px;height:26px;border:var(--bw) solid var(--dim);
+    background:transparent}
+
   /* ===== meters ===== */
   .meterWrap{width:min(52vw,300px)}
   .meterLabel{font-size:var(--step-0);letter-spacing:var(--tracking-label);
@@ -126,17 +143,23 @@
   #l2hud{position:absolute;left:var(--px-2);top:calc(var(--px-4) + 30px);
     display:flex;flex-direction:column;gap:var(--px-2)}
 
-  /* whisk speed gauge with the 2.0–5.0 rad/s band marked */
+  /* tap-tempo gauge with the 1.5–3.5 taps/s band marked (scale 0–5) */
   #dialTrack{position:relative;height:var(--px-3);background:var(--panel);
     border:var(--bw) solid var(--line);box-shadow:var(--shadow-1);overflow:hidden}
-  #dialBand{position:absolute;top:0;bottom:0;left:22.2%;width:33.3%;
+  #dialBand{position:absolute;top:0;bottom:0;left:30%;width:40%;
     background:var(--moss);opacity:.6}
   #dialNeedle{position:absolute;top:0;bottom:0;width:3px;left:0;background:var(--bone)}
-  #dialScale{display:flex;justify-content:space-between;font-size:var(--step-0);
-    color:var(--dim);margin-top:2px}
+  #dialScale{position:relative;height:14px;margin-top:2px;
+    font-size:var(--step-0);color:var(--dim)}
+  #dialScale span{position:absolute;transform:translateX(-50%)}
+  #dialScale span:first-child{transform:none}
+  #dialScale span:last-child{transform:translateX(-100%)}
   #lockBanner{color:var(--ember);font-size:var(--step-1);text-transform:uppercase;
     letter-spacing:var(--tracking-label);text-shadow:var(--shadow-1)}
   #lockBanner.hot{animation:pulseWarn .5s steps(2) infinite}
+  #restNote{color:var(--dim);font-size:var(--step-0);
+    letter-spacing:var(--tracking-label);text-transform:uppercase;
+    text-shadow:var(--shadow-1)}
 
   /* ===== modal panels (candidate / quiz / done) ===== */
   .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -188,6 +211,7 @@
       <div class="chip" id="phaseChip">phase <b>PLAYING</b></div>
       <div class="chip" id="seedChip">seed <b>—</b></div>
       <div id="spacer"></div>
+      <button id="muteBtn" aria-pressed="false">sound: on</button>
       <button id="lensBtn" class="hide" aria-pressed="false">lens: off (L)</button>
       <button id="ledgerBtn" aria-expanded="false">ledger</button>
     </div>
@@ -199,7 +223,7 @@
 
     <div id="hint" class="bubble" role="status">
       <span id="hintText" class="guess"></span>
-      <span class="prov">bram's hint · signal — not proof</span>
+      <span class="prov">bram's hum · signal — not proof</span>
     </div>
 
     <div id="l0hud" class="meterWrap hide">
@@ -212,21 +236,29 @@
       <div class="chip">mistakes <b id="mistakesLbl">0/3</b></div>
     </div>
 
+    <div id="pulseWrap" class="hide" aria-hidden="true">
+      <div id="pulseRing"></div>
+    </div>
+
     <div id="l2hud" class="hide">
       <div class="meterWrap">
-        <div class="meterLabel"><span>whisk speed</span><span>band 2.0–5.0 rad/s</span></div>
+        <div class="meterLabel"><span>tempo</span><span>band 1.5–3.5 taps/s</span></div>
         <div id="dialTrack"><div id="dialBand"></div><div id="dialNeedle"></div></div>
-        <div id="dialScale"><span>0</span><span>3</span><span>6</span><span>9</span></div>
+        <div id="dialScale">
+          <span style="left:0">0</span><span style="left:30%">1.5</span>
+          <span style="left:70%">3.5</span><span style="left:100%">5</span>
+        </div>
       </div>
       <div class="meterWrap">
-        <div class="meterLabel"><span>blend</span><span id="blendLbl">0.0/8</span></div>
-        <div class="meterTrack"><div id="blendFill" class="meterFill green"></div></div>
+        <div class="meterLabel"><span>song</span><span id="songLbl">0.0/8</span></div>
+        <div class="meterTrack"><div id="songFill" class="meterFill green"></div></div>
       </div>
       <div class="meterWrap">
-        <div class="meterLabel"><span>heat</span><span id="heatLbl">0.0/5</span></div>
-        <div class="meterTrack"><div id="heatFill" class="meterFill"></div></div>
+        <div class="meterLabel"><span>fatigue</span><span id="fatigueLbl">0.0/5</span></div>
+        <div class="meterTrack"><div id="fatigueFill" class="meterFill"></div></div>
       </div>
-      <div id="lockBanner" class="hide">the bowl is scorching — rest</div>
+      <div id="lockBanner" class="hide">your hands are burning — let the silence play</div>
+      <div id="restNote">the rests are part of the music</div>
     </div>
 
     <div id="flash"></div>
@@ -248,7 +280,7 @@
     </div>
 
     <div id="donePanel" class="modal hide">
-      <h2>fire · sky · bowl — admitted</h2>
+      <h2>fire · song-rain · drum — admitted</h2>
       <p class="quiet">Nothing advanced by itself. Play proposed; verification admitted.</p>
       <div id="doneStats"></div>
       <p class="quiet" style="margin:0">the full trace stays open in the ledger panel</p>
@@ -303,6 +335,7 @@ const PAL = {
 const cv = document.getElementById("scene");
 const ctx = cv.getContext("2d", { alpha:false });
 const PIX = 4;
+const NOTE_FONT = '6px "Courier New",Courier,monospace';
 let W = 320, H = 180;
 let STARS = [];
 function resize(){
@@ -329,12 +362,15 @@ const V = {
   pdown: false, px: 0, py: 0, movedAcc: 0,
   kbSpace: false,
   lens: false, sel: -1,
-  accum: 0, prevRaw: null, prevAccum: 0, omega: 0,
   lastN: -1,                // ledger watermark for UI reactions
   retry: false,
   flashT: 0,
   sayText: "", quizQ: -1, quizLevel: -1,
   digestAt: -1, ledgerN: -1, doneFilled: false,
+  prevBeatM: -1,            // beat-crossing detector for tick + throb
+  ringBeat: 0, ringHit: 0, ringBounce: 0,
+  lastTapT: -1e9,           // view clock of the last real tap gesture (L2)
+  tempoView: 0, tapFlash: 0,
   rs: SC.h32(SEED + ":fx") | 0,  // mulberry32 seed — visual jitter only
 };
 function rnd(){ // mulberry32 — deterministic visual-only entropy (no Math.random)
@@ -344,6 +380,55 @@ function rnd(){ // mulberry32 — deterministic visual-only entropy (no Math.ran
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
+
+/* ---- audio (WebAudio, synthesized, lazy, guarded — see AUDIO LAW) ---- */
+const AUDIO = { ctx:null, master:null, muted:false, failed:false };
+function audioInit(){
+  if(AUDIO.ctx || AUDIO.failed) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC){ AUDIO.failed = true; return; }
+    AUDIO.ctx = new AC();
+    AUDIO.master = AUDIO.ctx.createGain();
+    AUDIO.master.gain.value = 0.5;
+    AUDIO.master.connect(AUDIO.ctx.destination);
+  }catch(_e){ AUDIO.failed = true; }
+}
+function audioWake(){ // must be called from a user gesture
+  audioInit();
+  try{
+    if(AUDIO.ctx && AUDIO.ctx.state === "suspended"){
+      const p = AUDIO.ctx.resume();
+      if(p && p.catch) p.catch(function(){});
+    }
+  }catch(_e){}
+}
+addEventListener("pointerdown", audioWake, true);
+addEventListener("keydown", audioWake, true);
+
+const PITCH = { "Do":261.63, "Ré":293.66, "Mi":329.63, "Fa":349.23, "Sol":392.00 };
+function tone(freq, type, dur, vol, slideTo){
+  if(!AUDIO.ctx || AUDIO.muted) return;
+  try{
+    const t0 = AUDIO.ctx.currentTime;
+    const o = AUDIO.ctx.createOscillator();
+    const g = AUDIO.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(AUDIO.master);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }catch(_e){}
+}
+function sndPluck(note){ tone(PITCH[note] || 261.63, "triangle", 0.35, 0.30); } // caught note, its pitch
+function sndThud(){ tone(90, "sine", 0.18, 0.35, 50); }                        // faux / ember — dull
+function sndTick(){ tone(1700, "square", 0.03, 0.05); }                        // metronome, subtle
+function sndBounce(){ tone(500, "triangle", 0.08, 0.08, 350); }                // off-beat bounce, soft
+function sndDrum(dead){ tone(dead ? 70 : 150, "sine", 0.12, dead ? 0.15 : 0.35, dead ? 45 : 55); }
+function sndBuzz(){ tone(65, "sawtooth", 0.45, 0.22); }                        // strain
+function sndClatter(){ tone(700, "square", 0.05, 0.15); tone(520, "square", 0.08, 0.12); }
 
 /* ---- particles (visual only) ---- */
 const P = [];
@@ -365,8 +450,8 @@ function geo(){
     floorY: Math.round(H*0.78),
     hearthX: Math.round(W*0.5),
     pileX: Math.round(W*0.22),
-    bowlX: Math.round(W*0.55), bowlY: Math.round(H*0.56),
-    bowlRX: Math.max(16, Math.round(Math.min(W,H)*0.16)),
+    drumX: Math.round(W*0.5), drumY: Math.round(H*0.62),
+    drumR: Math.max(14, Math.round(Math.min(W,H)*0.13)),
   };
 }
 function xOf(id){
@@ -375,21 +460,30 @@ function xOf(id){
 function entPos(e){
   const gg = geo();
   const frac = Math.min(1, Math.max(0, (S.sky.t - e.born) / SC.TUNING.SKY_FALL_SECONDS));
-  return { x: xOf(e.id), y: Math.round(4 + frac * (gg.floorY - 14)), frac };
+  return { x: xOf(e.id), y: Math.round(6 + frac * (gg.floorY - 16)), frac };
+}
+// nearness to the beat, 0..1 (1 = dead on it) — drives glow + ring throb
+function beatNearness(){
+  const bp = SC.beatPhase(S);
+  const half = SC.TUNING.SKY_BEAT_PERIOD / 2;
+  const dNear = Math.min(bp.m, SC.TUNING.SKY_BEAT_PERIOD - bp.m);
+  return Math.max(0, 1 - dNear/half);
 }
 
 /* ---- DOM refs ---- */
 const $ = id => document.getElementById(id);
 const els = {
   levelChip:$("levelChip"), phaseChip:$("phaseChip"), seedChip:$("seedChip"),
-  lensBtn:$("lensBtn"), ledgerBtn:$("ledgerBtn"), ledger:$("ledger"),
-  ledgerList:$("ledgerList"), digest:$("digest"),
+  muteBtn:$("muteBtn"), lensBtn:$("lensBtn"), ledgerBtn:$("ledgerBtn"),
+  ledger:$("ledger"), ledgerList:$("ledgerList"), digest:$("digest"),
   say:$("say"), sayText:$("sayText"), sayProv:$("sayProv"),
   hint:$("hint"), hintText:$("hintText"),
   l0hud:$("l0hud"), sparkFill:$("sparkFill"), stonesLbl:$("stonesLbl"),
   l1hud:$("l1hud"), caughtLbl:$("caughtLbl"), mistakesLbl:$("mistakesLbl"),
-  l2hud:$("l2hud"), dialNeedle:$("dialNeedle"), blendFill:$("blendFill"),
-  blendLbl:$("blendLbl"), heatFill:$("heatFill"), heatLbl:$("heatLbl"),
+  pulseWrap:$("pulseWrap"), pulseRing:$("pulseRing"),
+  l2hud:$("l2hud"), dialNeedle:$("dialNeedle"),
+  songFill:$("songFill"), songLbl:$("songLbl"),
+  fatigueFill:$("fatigueFill"), fatigueLbl:$("fatigueLbl"),
   lockBanner:$("lockBanner"),
   flash:$("flash"), lesson:$("lesson"),
   candidatePanel:$("candidatePanel"), retryLine:$("retryLine"), beginQuizBtn:$("beginQuizBtn"),
@@ -400,13 +494,30 @@ const els = {
 els.seedChip.innerHTML = "seed <b></b>";
 els.seedChip.querySelector("b").textContent = SEED;
 
-const LEVEL_TITLES = ["the first fire", "the living sky", "the bowl of patience"];
+const LEVEL_TITLES = ["the first fire", "la pluie sonore", "le tambour de bram"];
 
 function flash(msg, bad){
   els.flash.textContent = msg;
   els.flash.classList.toggle("bad", !!bad);
   els.flash.classList.add("show");
   V.flashT = 1.6;
+}
+
+/* ---- input: L2 tap (pointer or Space). t = monotonic rAF-family clock ---- */
+function doTap(){
+  if(S.phase !== "PLAYING" || S.level !== 2) return;
+  const wasLocked = S.rhythm.locked;
+  dispatch({k:"TAP", t: performance.now()/1000});
+  const prev = V.lastTapT;
+  V.lastTapT = V.t;
+  const iv = V.t - prev;
+  if(iv > 0 && iv < SC.TUNING.CADENCE_STREAM_BREAK) V.tempoView = 1/iv;
+  V.tapFlash = 0.15;
+  sndDrum(wasLocked);
+  if(!wasLocked){
+    const gg = geo();
+    puff(gg.drumX + (rnd()*10-5), gg.drumY - 8, PAL.amber, 2, 0.7);
+  }
 }
 
 /* ---- input: pointer ---- */
@@ -417,7 +528,6 @@ function xy(e){
 cv.addEventListener("pointerdown", e=>{
   const p = xy(e);
   V.pdown = true; V.px = p.x; V.py = p.y; V.movedAcc = 0;
-  V.prevRaw = null;
   if(S.phase !== "PLAYING") return;
   if(S.level === 0 && S.fire.state === "COLD"){
     const gg = geo();
@@ -428,7 +538,7 @@ cv.addEventListener("pointerdown", e=>{
       puff(gg.hearthX + (S.fire.stones-2)*8, gg.floorY, PAL.dust, 5, 0.8);
     }
   } else if(S.level === 1){
-    let best = null, bestD = 7;
+    let best = null, bestD = 9;
     for(const en of S.sky.entities){
       const pos = entPos(en);
       const d = Math.hypot(p.x-pos.x, p.y-pos.y);
@@ -442,26 +552,17 @@ cv.addEventListener("pointerdown", e=>{
         puff(pos.x, pos.y, PAL.gold, 6);
       }
     }
+  } else if(S.level === 2){
+    doTap();
   }
 });
 cv.addEventListener("pointermove", e=>{
   if(!V.pdown) return;
   const p = xy(e);
   V.movedAcc += Math.hypot(p.x-V.px, p.y-V.py);
-  if(S.level === 2 && S.phase === "PLAYING"){
-    const gg = geo();
-    const raw = Math.atan2(p.y-gg.bowlY, p.x-gg.bowlX);
-    if(V.prevRaw !== null){
-      let d = raw - V.prevRaw;
-      while(d >  Math.PI) d -= Math.PI*2;
-      while(d < -Math.PI) d += Math.PI*2;
-      V.accum += d; // unwrapped, accumulates across full turns
-    }
-    V.prevRaw = raw;
-  }
   V.px = p.x; V.py = p.y;
 });
-function pointerUp(){ V.pdown = false; V.prevRaw = null; }
+function pointerUp(){ V.pdown = false; }
 addEventListener("pointerup", pointerUp);
 addEventListener("pointercancel", pointerUp);
 addEventListener("blur", ()=>{ V.pdown = false; V.kbSpace = false; });
@@ -474,6 +575,11 @@ function toggleLens(){
   document.body.classList.toggle("lens", V.lens);
 }
 els.lensBtn.addEventListener("click", toggleLens);
+els.muteBtn.addEventListener("click", ()=>{
+  AUDIO.muted = !AUDIO.muted; // memory only — never persisted
+  els.muteBtn.setAttribute("aria-pressed", String(AUDIO.muted));
+  els.muteBtn.textContent = "sound: " + (AUDIO.muted ? "off" : "on");
+});
 els.ledgerBtn.addEventListener("click", ()=>{
   const open = els.ledger.classList.toggle("closed");
   els.ledgerBtn.setAttribute("aria-expanded", String(!open));
@@ -487,6 +593,9 @@ addEventListener("keydown", e=>{
     if(!e.repeat && S.phase === "PLAYING" && S.level === 0 && S.fire.state === "COLD"){
       dispatch({k:"PLACE_STONE"});
       puff(geo().hearthX, geo().floorY, PAL.dust, 5, 0.8);
+    }
+    if(!e.repeat && S.phase === "PLAYING" && S.level === 2){
+      doTap();
     }
     V.kbSpace = true;
   }
@@ -537,15 +646,29 @@ function processLedger(){
           }
         }
         break;
-      case "FAUX_CAUGHT": flash("glass — the signal was not proof", true); break;
-      case "EMBER_CAUGHT": flash("it burns", true); break;
-      case "SKY_RESET": flash("too many mistakes — the sky resets", true); V.sel = -1; break;
-      case "SPLASH":
-        flash("splash — too fast", true);
-        puff(gg.bowlX, gg.bowlY-4, PAL.mossWarm, 8, 1.8);
+      case "NOTE_CAUGHT":
+        flash(ev.d.note + " — caught on the beat");
+        V.ringHit = 0.25;
+        sndPluck(ev.d.note);
         break;
-      case "OVERHEAT": flash("the bowl is scorching — rest", true); break;
-      case "COOLED": flash("cooled — stir on"); break;
+      case "OFFBEAT_BOUNCE": {
+        flash("off the beat — it bounced");
+        V.ringBounce = 0.3;
+        const en = S.sky.entities.find(x=>x.id===ev.d.id);
+        if(en){ const pos = entPos(en); puff(pos.x, pos.y+2, PAL.dim, 3, 0.5); }
+        sndBounce();
+        break;
+      }
+      case "FAUX_CAUGHT": flash("a false note — the signal was not proof", true); sndThud(); break;
+      case "EMBER_CAUGHT": flash("it burns", true); sndThud(); break;
+      case "SKY_RESET": flash("too many mistakes — the sky resets", true); V.sel = -1; break;
+      case "STRAIN": flash("your hands are burning — let the silence play", true); sndBuzz(); break;
+      case "RESTED": flash("rested — the drum listens again"); break;
+      case "CLATTER":
+        flash("clatter — too fast", true);
+        puff(gg.drumX, gg.drumY-8, PAL.coal, 6, 1.6);
+        sndClatter();
+        break;
       case "QUIZ_FAILED": V.retry = true; break;
       case "QUIZ_PASSED": V.retry = false; flash("admitted"); break;
       case "LEVEL_STARTED": V.sel = -1; break;
@@ -568,21 +691,30 @@ function frame(now){
     } else if(S.level === 1){
       dispatch({k:"SKY_TICK", dt});
     } else if(S.level === 2){
-      if(V.pdown || V.kbSpace){
-        if(V.kbSpace && !V.pdown) V.accum += 3.4 * dt; // synthetic in-band whisk
-        dispatch({k:"WHISK", angle: V.accum, dt});
-      } else {
+      // REST per frame while the player is NOT tapping. The threshold is the
+      // stream-break length: inside an active tap stream (in-band intervals
+      // are ≤0.67s) no REST fires; past it the silence is already a rest.
+      if(V.t - V.lastTapT > SC.TUNING.CADENCE_STREAM_BREAK){
         dispatch({k:"REST", dt});
       }
     }
   }
-  // view-side whisk speed readout (same |Δangle|/dt the core uses)
-  const inst = Math.abs(V.accum - V.prevAccum) / dt;
-  V.prevAccum = V.accum;
-  V.omega += (inst - V.omega) * Math.min(1, dt*10);
   V.movedAcc = 0;
 
+  // view timers
   if(V.flashT > 0){ V.flashT -= dt; if(V.flashT <= 0) els.flash.classList.remove("show"); }
+  if(V.ringBeat > 0) V.ringBeat -= dt;
+  if(V.ringHit > 0) V.ringHit -= dt;
+  if(V.ringBounce > 0) V.ringBounce -= dt;
+  if(V.tapFlash > 0) V.tapFlash -= dt;
+  if(V.t - V.lastTapT > 0.8) V.tempoView += (0 - V.tempoView) * Math.min(1, dt*4);
+
+  // beat-crossing detector: metronome tick + ring throb (L1 only)
+  if(S.phase === "PLAYING" && S.level === 1){
+    const bp = SC.beatPhase(S);
+    if(V.prevBeatM >= 0 && bp.m < V.prevBeatM){ V.ringBeat = 0.12; sndTick(); }
+    V.prevBeatM = bp.m;
+  } else V.prevBeatM = -1;
 
   // eased scene grade for L0 (LIT or beyond -> warm)
   const warmTarget = (S.level > 0 || S.phase === "DONE" || S.fire.state === "LIT")
@@ -592,9 +724,27 @@ function frame(now){
   emitAmbient(dt);
   stepParticles(dt);
   processLedger();
+  updatePulseRing();
   draw();
   syncDom();
   requestAnimationFrame(frame);
+}
+
+/* ---- pulse ring: CSS transform driven from beatPhase every frame ---- */
+function updatePulseRing(){
+  if(S.phase !== "PLAYING" || S.level !== 1) return;
+  const n = beatNearness();
+  const amp = REDUCE ? 0.12 : 0.3;
+  let sc = 1 + amp * n*n*n;
+  if(V.ringHit > 0) sc += 0.4 * (V.ringHit / 0.25);
+  let ty = 0;
+  if(V.ringBounce > 0) ty = Math.round(Math.sin((1 - V.ringBounce/0.3) * Math.PI) * 5);
+  els.pulseRing.style.transform = "scale(" + sc.toFixed(3) + ") translateY(" + ty + "px)";
+  const bp = SC.beatPhase(S);
+  const col = V.ringHit > 0 ? PAL.gold : (bp.onBeat ? PAL.ember : PAL.dim);
+  els.pulseRing.style.borderColor = col;
+  els.pulseRing.style.boxShadow = (V.ringHit > 0 || bp.onBeat)
+    ? "0 0 0 2px " + rgbaHex(V.ringHit > 0 ? PAL.gold : PAL.ember, 0.25) : "none";
 }
 
 /* ---- ambient particle emission per scene ---- */
@@ -625,9 +775,12 @@ function emitAmbient(dt){
     if(!REDUCE && rnd()<0.05)
       spawnP(rnd()*W, rnd()*gg.floorY, (rnd()*2-1)*0.05, -0.03, 160, PAL.dust, "dust");
   } else if(S.level === 2){
-    if(S.matcha.heat > 3 && rnd() < (REDUCE?0.1:0.3))
-      spawnP(gg.bowlX+(rnd()*10-5), gg.bowlY-8, (rnd()*2-1)*0.15, -0.4-rnd()*0.3,
+    if(S.rhythm.fatigue > 3 && rnd() < (REDUCE?0.1:0.3))
+      spawnP(gg.drumX+(rnd()*16-8), gg.drumY-10, (rnd()*2-1)*0.15, -0.4-rnd()*0.3,
         24+rnd()*20, PAL.smoke, "smoke");
+    if(S.rhythm.resonance > 2 && rnd() < (REDUCE?0.08:0.25))
+      spawnP(gg.drumX+(rnd()*26-13), gg.drumY-14, (rnd()*2-1)*0.2, -0.5-rnd()*0.4,
+        20+rnd()*16, PAL.glow, "fire");
   }
 }
 function stepParticles(dt){
@@ -716,7 +869,7 @@ function drawCaveBg(g){
   for(let x=0;x<W;x+=7){ ctx.fillRect(x, gg.floorY+((x*13)%5), 3, 1); }
 }
 
-/* ---- L0: the first fire ---- */
+/* ---- L0: the first fire (unchanged) ---- */
 function drawFire(){
   const g = V.grade;
   const gg = geo();
@@ -758,7 +911,28 @@ function drawFire(){
     { grade:g, shiver: S.fire.state!=="LIT" && g<0.25, content: S.fire.state==="LIT" });
 }
 
-/* ---- L1: the living sky ---- */
+/* ---- solfège glyph (eighth note), anchor = note-head center ---- */
+function drawNoteGlyph(x, y, body, halo, label, labelColor){
+  if(halo > 0){
+    ctx.fillStyle = rgbaHex(PAL.gold, halo*0.30);
+    ctx.fillRect(x-4, y-7, 11, 12);
+    ctx.fillStyle = rgbaHex(PAL.gold, halo*0.45);
+    ctx.fillRect(x-3, y-6, 9, 10);
+  }
+  ctx.fillStyle = body;
+  ctx.fillRect(x-2, y, 4, 2);       // note head
+  ctx.fillRect(x+2, y-5, 1, 6);     // stem
+  ctx.fillRect(x+3, y-5, 2, 1);     // flag
+  ctx.fillRect(x+4, y-4, 1, 2);     // flag tail
+  if(label){
+    ctx.font = NOTE_FONT; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillStyle = labelColor || PAL.bone;
+    ctx.fillText(label, x, y+3);
+    ctx.textAlign = "left";
+  }
+}
+
+/* ---- L1: la pluie sonore ---- */
 function drawSky(){
   const gg = geo();
   const grd = ctx.createLinearGradient(0,0,0,H);
@@ -776,11 +950,15 @@ function drawSky(){
   ctx.fillStyle = PAL.speckCold;
   for(let x=0;x<W;x+=7){ ctx.fillRect(x, gg.floorY+((x*13)%5), 3, 1); }
 
+  // notes glow harder as the pulse comes around
+  const near = beatNearness();
+  const halo = 0.25 + 0.75*near*near;
+
   for(const e of S.sky.entities){
     const pos = entPos(e);
-    // ember is visibly hot; unrevealed gem and faux are IDENTICAL by design
-    const vis = e.kind === "ember" ? "ember" : (e.revealed ? e.kind : "unknown");
-    if(vis === "ember"){
+    // ember is visibly hot; unrevealed note and faux are IDENTICAL by design —
+    // both render as the same glowing solfège glyph with the same pitch label
+    if(e.kind === "ember"){
       const fl = REDUCE ? 0.5 : 0.5+0.5*Math.sin(V.t*20+e.id);
       ctx.fillStyle = PAL.ember;
       ctx.fillRect(pos.x-2,pos.y-1,5,3); ctx.fillRect(pos.x-1,pos.y-2,3,5);
@@ -789,84 +967,89 @@ function drawSky(){
       ctx.fillStyle = rgbaHex(PAL.coal, 0.7);
       ctx.fillRect(pos.x, pos.y-4, 1, 2); // hot tail
     } else {
-      const body = vis === "faux" ? PAL.stone : PAL.bone;
-      ctx.fillStyle = body;                       // diamond
-      ctx.fillRect(pos.x, pos.y-2, 1, 1);
-      ctx.fillRect(pos.x-1, pos.y-1, 3, 1);
-      ctx.fillRect(pos.x-2, pos.y, 5, 1);
-      ctx.fillRect(pos.x-1, pos.y+1, 3, 1);
-      ctx.fillRect(pos.x, pos.y+2, 1, 1);
-      ctx.fillStyle = PAL.dim;
-      ctx.fillRect(pos.x, pos.y, 1, 1);
-      if(e.revealed){                             // revealed badge
-        if(vis === "gem"){
+      const revealedFaux = e.revealed && e.kind === "faux";
+      const body = revealedFaux ? PAL.stone : PAL.bone;
+      drawNoteGlyph(pos.x, pos.y, body, revealedFaux ? 0 : halo,
+        SC.noteOf(S, e.id), revealedFaux ? PAL.dim : PAL.bone);
+      if(e.revealed){                             // listening-lens verdict badge
+        if(e.kind === "note"){
           ctx.fillStyle = PAL.gold;
-          ctx.fillRect(pos.x-3,pos.y-3,2,1); ctx.fillRect(pos.x+2,pos.y-3,2,1);
-          ctx.fillRect(pos.x-3,pos.y+3,2,1); ctx.fillRect(pos.x+2,pos.y+3,2,1);
-          ctx.fillRect(pos.x, pos.y-4, 1, 1);
+          ctx.fillRect(pos.x-4,pos.y-4,2,1); ctx.fillRect(pos.x+3,pos.y-4,2,1);
+          ctx.fillRect(pos.x-4,pos.y+3,2,1); ctx.fillRect(pos.x+3,pos.y+3,2,1);
+          ctx.fillRect(pos.x, pos.y-7, 1, 1);
         } else {
           ctx.fillStyle = PAL.coal;
+          ctx.fillRect(pos.x-3,pos.y-3,1,1); ctx.fillRect(pos.x+3,pos.y-3,1,1);
           ctx.fillRect(pos.x-2,pos.y-2,1,1); ctx.fillRect(pos.x+2,pos.y-2,1,1);
-          ctx.fillRect(pos.x-1,pos.y-1,1,1); ctx.fillRect(pos.x+1,pos.y-1,1,1);
-          ctx.fillRect(pos.x, pos.y, 1, 1);
-          ctx.fillRect(pos.x-1,pos.y+1,1,1); ctx.fillRect(pos.x+1,pos.y+1,1,1);
-          ctx.fillRect(pos.x-2,pos.y+2,1,1); ctx.fillRect(pos.x+2,pos.y+2,1,1);
+          ctx.fillRect(pos.x, pos.y-1, 1, 1);
+          ctx.fillRect(pos.x-2,pos.y,1,1); ctx.fillRect(pos.x+2,pos.y,1,1);
+          ctx.fillRect(pos.x-3,pos.y+1,1,1); ctx.fillRect(pos.x+3,pos.y+1,1,1);
         }
       }
     }
     if(e.id === V.sel){                           // keyboard selection ring
       ctx.fillStyle = PAL.glow;
-      ctx.fillRect(pos.x-5,pos.y-5,11,1); ctx.fillRect(pos.x-5,pos.y+5,11,1);
-      ctx.fillRect(pos.x-5,pos.y-5,1,11); ctx.fillRect(pos.x+5,pos.y-5,1,11);
+      ctx.fillRect(pos.x-6,pos.y-8,13,1); ctx.fillRect(pos.x-6,pos.y+10,13,1);
+      ctx.fillRect(pos.x-6,pos.y-8,1,19); ctx.fillRect(pos.x+6,pos.y-8,1,19);
     }
   }
   drawParticles();
   drawBram(Math.round(W*0.5), gg.floorY, { grade: 0.6 });
 }
 
-/* ---- L2: the bowl of patience ---- */
-function drawMatcha(){
+/* ---- L2: le tambour de bram ---- */
+function drawTambour(){
   const gg = geo();
   drawCaveBg(0.85);
-  const cx = gg.bowlX, cy = gg.bowlY, rx = gg.bowlRX, ry = Math.round(rx*0.62);
-  // table
-  ctx.fillStyle = mixHex(PAL.stone, PAL.stoneWarm, 0.6);
-  ctx.fillRect(cx-rx-8, cy+ry-1, rx*2+16, 3);
-  // heat halo
-  const heatF = S.matcha.heat / SC.TUNING.MATCHA_HEAT_MAX;
-  if(heatF > 0.1){
-    ctx.fillStyle = rgbaHex(PAL.ember, heatF*0.45);
-    ctx.beginPath(); ctx.ellipse(cx, cy, rx+3, ry+3, 0, 0, Math.PI*2); ctx.fill();
+  const cx = gg.drumX, cy = gg.drumY, rw = gg.drumR;
+  const ry = Math.round(rw*0.4);
+  const T = SC.TUNING;
+
+  // resonance rings — the song, radiating (drawn behind the drum)
+  const resF = Math.min(1, S.rhythm.resonance / T.CADENCE_RES_NEEDED);
+  const rings = Math.round(resF*4);
+  for(let i=1;i<=rings;i++){
+    ctx.strokeStyle = rgbaHex(PAL.glow, Math.max(0.08, 0.45 - i*0.09));
+    ctx.beginPath();
+    ctx.ellipse(cx, cy-4, rw+2+i*5, ry+1+i*3, 0, 0, Math.PI*2);
+    ctx.stroke();
   }
-  // bowl
-  ctx.fillStyle = S.matcha.locked ? mixHex(PAL.stoneWarm, PAL.coal, 0.5)
-                                  : mixHex(PAL.stone, PAL.stoneWarm, 0.5);
-  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill();
-  // matcha surface — deepens with blend
-  const blendF = Math.min(1, S.matcha.blend / SC.TUNING.MATCHA_BLEND_NEEDED);
-  ctx.fillStyle = mixHex(PAL.moss, PAL.mossWarm, blendF);
-  ctx.beginPath(); ctx.ellipse(cx, cy-1, rx-3, ry-2, 0, 0, Math.PI*2); ctx.fill();
-  // foam speckles rotate with the whisk, multiply with blend
-  const specks = Math.round(blendF*12);
-  ctx.fillStyle = PAL.bellyWarm;
-  for(let i=0;i<specks;i++){
-    const a = V.accum*0.4 + i*0.524;
-    const rr = 0.35 + ((SC.h32(SEED+":foam:"+i)%50)/100);
-    ctx.fillRect(Math.round(cx+Math.cos(a)*(rx-5)*rr),
-                 Math.round(cy-1+Math.sin(a)*(ry-3)*rr), 1, 1);
+
+  // fatigue heat halo — alarming as it climbs
+  const fatF = S.rhythm.fatigue / T.CADENCE_FATIGUE_MAX;
+  if(fatF > 0.25){
+    ctx.fillStyle = rgbaHex(PAL.ember, (fatF-0.25)*0.5);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rw+5, ry+11, 0, 0, Math.PI*2); ctx.fill();
   }
-  // whisk
-  const wx = Math.round(cx + Math.cos(V.accum)*(rx-6));
-  const wy = Math.round(cy - 1 + Math.sin(V.accum)*(ry-3)*0.8);
+
+  // shell (wood body)
+  const shell = S.rhythm.locked
+    ? mixHex(PAL.stoneWarm, PAL.coal, 0.55)
+    : mixHex(PAL.stone, PAL.stoneWarm, 0.7);
+  ctx.fillStyle = shell;
+  ctx.fillRect(cx-rw, cy-4, rw*2, 12);
+  ctx.fillRect(cx-rw+2, cy+8, rw*2-4, 3);
+  // lashings
   ctx.fillStyle = PAL.flintCold;
-  ctx.fillRect(wx, wy-7, 1, 7);
-  ctx.fillStyle = PAL.bone;
-  ctx.fillRect(wx-1, wy-1, 3, 2);
+  for(let i=-2;i<=2;i++){ ctx.fillRect(cx + i*Math.round(rw*0.42), cy-3, 1, 10); }
+  // feet
+  ctx.fillStyle = mixHex(PAL.stone, PAL.stoneWarm, 0.4);
+  ctx.fillRect(cx-rw+1, cy+11, 3, gg.floorY-cy-11);
+  ctx.fillRect(cx+rw-4, cy+11, 3, gg.floorY-cy-11);
+
+  // skin — flashes on a tap, scorches when locked
+  const tapF = Math.max(0, V.tapFlash / 0.15);
+  const skinBase = S.rhythm.locked ? mixHex(PAL.bone, PAL.coal, 0.45) : PAL.bone;
+  ctx.fillStyle = mixHex(skinBase, PAL.gold, tapF*0.8);
+  ctx.beginPath(); ctx.ellipse(cx, cy-4, rw-1, ry, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = rgbaHex(PAL.dim, 0.35);
+  ctx.beginPath(); ctx.ellipse(cx, cy-4, rw-5, ry-2, 0, 0, Math.PI*2); ctx.stroke();
+
   drawParticles();
-  drawBram(Math.round(W*0.24), gg.floorY, { grade: 0.8 });
+  drawBram(cx - rw - Math.round(W*0.08), gg.floorY, { grade: 0.8 });
 }
 
-/* ---- DONE: completion scene — fire + gems + bowl motifs ---- */
+/* ---- DONE: completion scene — fire + note + drum motifs ---- */
 function drawDone(){
   const gg = geo();
   drawCaveBg(1);
@@ -878,20 +1061,17 @@ function drawDone(){
   }
   ctx.fillStyle = PAL.gold; ctx.fillRect(fx-2, gg.floorY-5, 4, 3);
   ctx.fillStyle = PAL.ember; ctx.fillRect(fx-3, gg.floorY-3, 6, 2);
-  // bowl motif
-  const bx = Math.round(W*0.66), by = gg.floorY-3;
+  // drum motif
+  const bx = Math.round(W*0.66), by = gg.floorY-6;
   ctx.fillStyle = stoneC;
-  ctx.beginPath(); ctx.ellipse(bx, by, 10, 5, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = PAL.mossWarm;
-  ctx.beginPath(); ctx.ellipse(bx, by-1, 7, 3, 0, 0, Math.PI*2); ctx.fill();
-  // gem arc motif
-  for(let i=0;i<5;i++){
+  ctx.fillRect(bx-9, by, 18, 6);
+  ctx.fillStyle = PAL.bone;
+  ctx.beginPath(); ctx.ellipse(bx, by, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+  // note arc motif — Do..Sol drifting over the hearth
+  for(let i=0;i<SC.NOTE_NAMES.length;i++){
     const gx = Math.round(W*0.30 + i*(W*0.10));
     const gy = Math.round(H*0.26 + Math.sin(i*1.1)*4 + (REDUCE?0:Math.sin(V.t*1.5+i)*1.5));
-    ctx.fillStyle = PAL.bone;
-    ctx.fillRect(gx, gy-2,1,1); ctx.fillRect(gx-1,gy-1,3,1);
-    ctx.fillRect(gx-2,gy,5,1); ctx.fillRect(gx-1,gy+1,3,1); ctx.fillRect(gx,gy+2,1,1);
-    ctx.fillStyle = PAL.gold; ctx.fillRect(gx, gy-4, 1, 1);
+    drawNoteGlyph(gx, gy, PAL.bone, 0.3, SC.NOTE_NAMES[i], PAL.dim);
   }
   drawParticles();
   drawBram(Math.round(W*0.47), gg.floorY, { grade: 1, content: true });
@@ -911,34 +1091,34 @@ function draw(){
   if(S.phase === "DONE") drawDone();
   else if(S.level === 0) drawFire();
   else if(S.level === 1) drawSky();
-  else drawMatcha();
+  else drawTambour();
 }
 
 /* ---- DOM projection ---- */
 function show(el, on){ el.classList.toggle("hide", !on); }
 
 function hintSentence(h){
-  if(h.guess === "gem")
+  if(h.guess === "note")
     return h.confidence === "sure"
-      ? "That one sparkles true — I'm sure of it."
-      : "That one might be true... I can't swear it.";
+      ? "That one rings true — I'd catch it on the beat."
+      : "That one might ring true... I can't swear it.";
   return h.confidence === "sure"
-    ? "That one lies — glass, I'm sure of it."
-    : "Careful — that one may be glass.";
+    ? "That one lies — a false note, I'm sure of it."
+    : "Careful — that one may ring false.";
 }
 
 function lessonText(){
   if(S.phase === "QUIZ") return "press 1–4 · answer what you saw";
   if(S.phase === "CANDIDATE") return "the play is done — verification admits it";
-  if(S.phase === "DONE") return "fire · sky · bowl — the ledger remembers";
+  if(S.phase === "DONE") return "fire · song-rain · drum — the ledger remembers";
   if(S.level === 0){
     if(S.fire.state === "COLD") return "tap the stones — three make a hearth (or press space)";
     return "hold & drag on the hearth — keep scratching (or hold space)";
   }
   if(S.level === 1)
-    return "click to catch · L toggles the lens (verify) · arrows + enter to aim";
-  if(S.matcha.locked) return "the bowl is scorching — let go and rest";
-  return "hold & stir circles around the bowl — stay in the band, rest to cool (or hold space)";
+    return "catch true notes ON the beat · L toggles the lens (verify) · arrows + enter to aim";
+  if(S.rhythm.locked) return "your hands are burning — let the silence play";
+  return "tap the drum (or space) in the band · the rests are part of the music";
 }
 
 function renderQuiz(){
@@ -1027,17 +1207,18 @@ function syncDom(){
       S.fire.state === "SPARKING" && !(V.pdown || V.kbSpace) && S.fire.progress > 0.05);
   }
 
-  // L1 HUD + Bram's hint (signal — not proof)
+  // L1 HUD + pulse ring + Bram's hum (signal — not proof)
   const inSky = playing && S.level === 1;
   show(els.l1hud, inSky);
   show(els.lensBtn, inSky);
+  show(els.pulseWrap, inSky);
   let hintOn = false;
   if(inSky){
-    els.caughtLbl.textContent = S.sky.caught + "/" + SC.TUNING.SKY_GEMS_NEEDED;
+    els.caughtLbl.textContent = S.sky.caught + "/" + SC.TUNING.SKY_NOTES_NEEDED;
     els.mistakesLbl.textContent = S.sky.mistakes + "/" + SC.TUNING.SKY_MAX_MISTAKES;
     let nearest = null, best = -1;
     for(const e of S.sky.entities){
-      if(e.revealed) continue;
+      if(e.revealed || e.kind === "ember") continue; // embers are visibly hot — no hum needed
       const frac = (S.sky.t - e.born) / SC.TUNING.SKY_FALL_SECONDS;
       if(frac > best){ best = frac; nearest = e; }
     }
@@ -1049,22 +1230,23 @@ function syncDom(){
   }
   els.hint.classList.toggle("show", hintOn);
 
-  // L2 HUD
-  const inBowl = playing && S.level === 2;
-  show(els.l2hud, inBowl);
-  if(inBowl){
-    const pct = Math.min(100, V.omega/9*100);
+  // L2 HUD — tempo dial, song (resonance), fatigue, strain lock
+  const inDrum = playing && S.level === 2;
+  show(els.l2hud, inDrum);
+  if(inDrum){
+    const T = SC.TUNING;
+    const pct = Math.min(100, V.tempoView/5*100);
     els.dialNeedle.style.left = "calc(" + pct.toFixed(1) + "% - 1px)";
-    const blend = S.matcha.blend, heat = S.matcha.heat;
-    els.blendFill.style.width =
-      Math.min(100, blend/SC.TUNING.MATCHA_BLEND_NEEDED*100).toFixed(1) + "%";
-    els.blendLbl.textContent = blend.toFixed(1) + "/" + SC.TUNING.MATCHA_BLEND_NEEDED;
-    els.heatFill.style.width =
-      Math.min(100, heat/SC.TUNING.MATCHA_HEAT_MAX*100).toFixed(1) + "%";
-    els.heatLbl.textContent = heat.toFixed(1) + "/" + SC.TUNING.MATCHA_HEAT_MAX;
-    els.heatFill.classList.toggle("warn", heat >= 4);
-    show(els.lockBanner, S.matcha.locked);
-    els.lockBanner.classList.toggle("hot", S.matcha.locked);
+    const res = S.rhythm.resonance, fat = S.rhythm.fatigue;
+    els.songFill.style.width =
+      Math.min(100, res/T.CADENCE_RES_NEEDED*100).toFixed(1) + "%";
+    els.songLbl.textContent = res.toFixed(1) + "/" + T.CADENCE_RES_NEEDED;
+    els.fatigueFill.style.width =
+      Math.min(100, fat/T.CADENCE_FATIGUE_MAX*100).toFixed(1) + "%";
+    els.fatigueLbl.textContent = fat.toFixed(1) + "/" + T.CADENCE_FATIGUE_MAX;
+    els.fatigueFill.classList.toggle("warn", fat >= 4);
+    show(els.lockBanner, S.rhythm.locked);
+    els.lockBanner.classList.toggle("hot", S.rhythm.locked);
   }
 
   // gates
@@ -1083,8 +1265,8 @@ function syncDom(){
       ["levels admitted", S.admitted.join(" · ")],
       ["actions dispatched", String(S.actions)],
       ["sky resets", String(S.sky.resets)],
-      ["overheats", String(S.matcha.overheats)],
-      ["splashes", String(S.matcha.splashes)],
+      ["strains", String(S.rhythm.strains)],
+      ["clatters", String(S.rhythm.clatters)],
       ["quiz attempts", String(S.quiz.attempts)],
     ];
     els.doneStats.textContent = "";

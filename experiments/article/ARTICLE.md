@@ -1,7 +1,7 @@
 # From Attachment to Orchestration: A Three-Scale Playable Architecture for Human–AI Agent Literacy
 
 <!-- authority=false · canon=false · ledger_effect=none · non-sovereign -->
-<!-- STATUS: E15 SOLFEGE REDESIGN in progress — §9 scripted-playthrough paragraph still describes the v1 UI run; v2 headless re-verification is in flight and §9 will be rewritten from its receipt before re-freeze -->
+<!-- STATUS: E15 SOLFEGE REDESIGN complete (core 33/33, browser v2 drive-to-DONE receipt) — focused re-review of changed sections (§6/§8/§9) pending before re-freeze -->
 
 *Subtitle: Goblin Warren as an epistemic interface for learning the governance of agentic systems.*
 
@@ -23,11 +23,11 @@ closed action surface carries no free text, so no speech, hint, or
 proposal can reach the state-transition function; and
 (ii) progression itself is governed — completing a level's gameplay yields
 only a *candidate*, and a verification quiz is the sole admission path,
-asserted by the suite down to the single call site. A third contribution is
-deliberately hypothetical: each level introduces a gesture family that is
-simultaneously music initiation (assemble/hold; on-beat catch/discriminate;
-tap/regulate/rest), and we state as falsifiable hypotheses — not findings —
-that these can install discriminations like *signal ≠ proof ≠ permission ≠
+asserted by the suite down to the single call site. A third contribution is hypothesis by
+design: each level introduces a gesture family that is simultaneously
+music initiation (assemble/hold; on-beat catch/discriminate;
+tap/regulate/rest), stated as falsifiable hypotheses — not findings —
+about installing discriminations like *signal ≠ proof ≠ permission ≠
 authority*. We formalize the architecture, map each
 implementation claim to an executed receipt (33/33 slice core; 29/29
 surrounding game), position the design against
@@ -673,15 +673,19 @@ One pass, run once; we report it as the first external check, not as
 continuous assurance.
 
 **Scripted playthrough (browser).** A headless Chromium session loaded the
-shell, observed zero console errors, and drove the complete game to its
-terminal state through the public dispatch surface: stones placed, fire
-scratched to ignition, quiz passed; five gems caught with verification
-exercised and zero mistakes; the bowl blended with rest management (final
-blend 8.05/8, zero overheats); final phase DONE with all three levels
-admitted in order and the ledger rendered. Four screenshots (lit fire,
-mid-fall sky with a live hint bubble, mid-whisk gauges, completion scene)
-document the run. Static analysis of the shell found zero direct state
-writes and zero storage/network/entropy surfaces outside comments.
+reworked shell, observed zero console errors, and drove the complete game
+to its terminal state through the public dispatch surface: stones placed,
+fire scratched to ignition, quiz passed; five true notes caught on the
+beat with verification exercised and zero mistakes (the pulse ring
+rendering live from the beat predicate); the song drummed to completion
+with rest management (resonance 8.18/8, zero strains, zero clatters);
+final phase DONE with all three levels admitted in order and the ledger
+rendered. Screenshots (mid-fall rain with a hum bubble and throbbing
+pulse ring, mid-song drum with tempo needle inside the band, completion
+scene) document the run. Audio is gesture-gated and guarded, so the
+headless run emitted no errors with sound enabled. Static analysis of the
+shell found zero direct state writes and zero storage/network/entropy
+surfaces outside comments.
 
 What this evaluation shows: the artifact has the properties the paper
 teaches, and a scripted player can traverse it. What it cannot show:
