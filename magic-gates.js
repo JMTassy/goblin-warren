@@ -29,18 +29,39 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   });
   log('Q2_quiz_opens_on_tap', q2.visible && q2.q.length > 4 && q2.opts >= 2, JSON.stringify(q2));
 
-  // Q3: answering pays ZOL (accessible economy)
+  // Q3: answering pays ZOL (accessible economy). KIND-AWARE: buildQuiz()
+  // returns an ethics "conversation" quiz 35% of the time (game.js:7173)
+  // with correct:null — every stance pays 10-12, so any option certifies
+  // the economy. The old find-by-correct matched nothing on ethics draws,
+  // clicked nothing, and flaked FAIL "+0 ZOL" at exactly ~35%.
   const q3 = await page.evaluate(async () => {
     const before = window.WARREN_DEBUG.getState().learning.zolBalance;
-    const correct = window.WARREN_DEBUG.getQuiz().correct;
+    const quiz = window.WARREN_DEBUG.getQuiz();
     const btns = [...document.querySelectorAll('#quiz-buttons .qbtn')];
-    const b = btns.find(x => x.textContent === correct);
+    const b = quiz.kind === 'ethics' ? btns[0] : btns.find(x => x.textContent === quiz.correct);
     if (b) b.click();
     await new Promise(r => setTimeout(r, 400));
-    return window.WARREN_DEBUG.getState().learning.zolBalance - before;
+    return { kind: quiz.kind || 'knowledge',
+      delta: window.WARREN_DEBUG.getState().learning.zolBalance - before };
   });
-  log('Q3_quiz_pays', q3 >= 10, `+${q3} ZOL`);
+  log('Q3_quiz_pays', q3.delta >= 10, `+${q3.delta} ZOL (${q3.kind})`);
   await page.waitForTimeout(2800);
+
+  // Q3b (regression for the flake): force the 35% ethics branch
+  // deterministically — it must ALSO pay. Fails under the old logic.
+  const q3b = await page.evaluate(async () => {
+    window.WARREN_DEBUG.forceEthicsQuiz();
+    const before = window.WARREN_DEBUG.getState().learning.zolBalance;
+    const quiz = window.WARREN_DEBUG.getQuiz();
+    const btns = [...document.querySelectorAll('#quiz-buttons .qbtn')];
+    const b = quiz.kind === 'ethics' ? btns[0] : btns.find(x => x.textContent === quiz.correct);
+    if (b) b.click();
+    await new Promise(r => setTimeout(r, 400));
+    return { kind: quiz.kind, delta: window.WARREN_DEBUG.getState().learning.zolBalance - before };
+  });
+  log('Q3b_ethics_conversation_also_pays', q3b.kind === 'ethics' && q3b.delta >= 10,
+    `+${q3b.delta} ZOL (${q3b.kind})`);
+  await page.waitForTimeout(600);
 
   // C1: chat input renders in Lulu's care panel
   await page.evaluate(() => window.WARREN_DEBUG.openCard('lulu'));
