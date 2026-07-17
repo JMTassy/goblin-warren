@@ -7,33 +7,32 @@
 
 ## Abstract
 
-People increasingly meet artificial agents the way they meet pets and
-strangers — through attachment and conversation — while the systems those
-agents inhabit are governed by architectures the users never see: proposal
-gates, permission boundaries, orchestration layers. We present Goblin Warren,
-a village-builder game whose playable content *is* that architecture. The
-design stages three successive mental models — a single interpretive
-companion (AI Pet), an emergent multi-agent society (AI Village), and an
-explicitly orchestrated team (Superteam) — and commits to an ordering in
-which attachment precedes interpretation, interpretation precedes
-coordination, and coordination precedes governance. Two properties are
-implemented and receipt-verified in a vertical slice of the first scale:
-(i) generative expression is structurally severed from world mutation — no
-action in the game's closed action surface carries free text, so an agent's
-speech, hint, or proposal cannot reach the state-transition function; and
+People meet artificial agents through attachment and conversation, while
+the systems those agents inhabit are governed by architectures users never
+see: proposal gates, permission boundaries, orchestration layers. We present Goblin Warren,
+a village-builder game whose playable content *is* that architecture. The design stages three
+mental models — interpretive companion (AI Pet), emergent society (AI
+Village), orchestrated team (Superteam) — ordered so attachment
+precedes interpretation, interpretation precedes coordination, and
+coordination precedes governance. The architecture is
+offered as a position and roadmap; its first scale is implemented. Two properties are receipt-verified in the first-scale
+vertical slice:
+(i) companion expression (curated in the slice, model-driven in a
+companion artifact) is structurally severed from world mutation: the
+closed action surface carries no free text, so no speech, hint, or
+proposal can reach the state-transition function; and
 (ii) progression itself is governed — completing a level's gameplay yields
-only a *candidate*, and a verification quiz is the sole admission path, a
-fact asserted by the test suite down to the single call site. A third
-contribution is deliberately hypothetical: each level introduces exactly one
-gesture family (assemble/hold; catch/avoid/discriminate; turn/regulate/
-temporize), and we state as falsifiable hypotheses — not findings — that
-these gestures can install governance discriminations such as *signal ≠
-proof ≠ permission ≠ authority*. We formalize the architecture, map every
-implementation claim to an executed test receipt (30/30 for the slice core;
-29/29 for the surrounding game's invariants), position the design against
-security, generative-agent, and AI-literacy literatures that each hold one
+only a *candidate*, and a verification quiz is the sole admission path,
+asserted by the suite down to the single call site. A third contribution is
+deliberately hypothetical: each level introduces one gesture family
+(assemble/hold; catch/avoid/discriminate; turn/regulate/temporize), and we
+state as falsifiable hypotheses — not findings — that these can install
+discriminations such as *signal ≠ proof ≠ permission ≠ authority*. We formalize the architecture, map each
+implementation claim to an executed receipt (30/30 slice core; 29/29
+surrounding game), position the design against
+security, generative-agent, and AI-literacy literatures, each holding one
 piece of this territory, and specify the player studies that would confirm
-or refute the pedagogy. (238 words)
+or refute the pedagogy.
 
 ## 1. Introduction
 
@@ -64,15 +63,15 @@ the single agent — the governance architecture of agentic systems itself.
 
 Goblin Warren is a design response. The player adopts one goblin companion
 (Bram), and the game grows from that relationship into a village and finally
-into an orchestrated team, so that the player inhabits each mental model
-before being asked to name it. Beneath the fiction sits a strict engine
+into an orchestrated team, so that the player is invited to inhabit each
+mental model before being asked to name it. Beneath the fiction sits a strict engine
 discipline inherited from the HELEN OS governance lineage the game
 operationalizes: agents express; only admitted proposals mutate; every
 mutation is a ledgered, replayable event.
 
 This paper makes four contributions:
 
-- **C1 (architecture):** a three-scale progression 𝒫 → 𝒱 → 𝒯 (AI Pet → AI
+- **C1 (architecture, position/roadmap):** a three-scale progression 𝒫 → 𝒱 → 𝒯 (AI Pet → AI
   Village → Superteam) staging three successive mental models of agency
   (§4). The vertical slice implements the Pet scale; the Village and
   Superteam scales are specified and partially prototyped in the underlying
@@ -203,7 +202,11 @@ this paper defends: Goblin Warren is, to the sweep's knowledge, the first
 *single-player mechanical* game in which governance is enacted through the
 core interaction loop itself — an admission gate that is the sole mutation
 path — rather than through discussion, role-play, or resource-allocation
-abstraction. Likewise the *competencies* are already being codified in
+abstraction. We hold this as a falsifiable positioning claim — one
+counterexample retires it — and we state the contribution type plainly:
+every component here is prior art, cited as such; what is claimed is the
+composed artifact, its receipts, and the composition's pedagogical
+inversion. Likewise the *competencies* are already being codified in
 prose: delegation, oversight, and calibrated trust appear as principal-side
 competencies in the agentic-literacy literature [agentic_literacy_debt2026]
 and the OECD-EC AILit framework's "Manage AI" domain [oecd_ec_ailit2026];
@@ -213,7 +216,8 @@ preference-based oversight [christiano2017_preferences] and safe
 interruptibility [orseau2016_interruptible]. This paper contributes the
 playable operationalization of those named competencies — the design
 mechanisms the frameworks lack — and C4 is an experiential contribution
-(players inhabit the distinctions), explicitly not a new formal result.
+(the distinctions are staged for players to enact in play), explicitly
+not a new formal result.
 
 **Human-agent authority and trust.** Leveled accounts of human-agent
 authority are well established, from levels of automation
@@ -274,12 +278,13 @@ Three commitments follow.
 
 1. **Attachment first.** People arrive already disposed to treat agents
    socially [reeves1996media]; a design can spend that disposition rather
-   than fight it. A single companion the player cares about makes agent
+   than fight it. A single companion is the design's instrument for making agent
    fallibility (the companion is sometimes confidently wrong)
-   *emotionally* legible before it is technically legible. This is the
+   *emotionally* legible before it is technically legible — an intent,
+   not a measured effect (H2, §10). This is the
    Turkle risk deliberately inverted [turkle2011alone]: instead of
-   attachment concealing the machinery, attachment supplies the motive to
-   examine it.
+   attachment concealing the machinery, attachment is recruited to supply
+   the motive to examine it; whether it does is H0/H2's question.
 2. **One gesture family per level.** Each level introduces exactly one new
    mode of physical action whose consequence structure mirrors the target
    concept (§6). The mechanic is the message; the quiz afterward only
@@ -299,7 +304,7 @@ The macro-structure is a progression of worlds:
 
 - **𝒫 — AI Pet.** One companion (Bram). Target mental model: *an agent is
   an interpretive individual* — it observes locally, remembers selectively,
-  reports fallibly. The player learns to read expression as expression:
+  reports fallibly. The scale's objective: expression read as expression —
   Bram's hints are signals with a provenance label, not facts. The vertical
   slice of §6/§8 implements this scale.
 - **𝒱 — AI Village.** Many goblins with specialized roles. Target mental
@@ -351,8 +356,8 @@ states (receipt R10).
 **The companion policy.** Bram's behavior is
 a_t^g = π_g(o_t, I_g, M_g, C_t, K_t): local observation, stable
 temperament, admissible memory, local context, capabilities/permissions.
-The load-bearing property is **o_t ≠ truth**: the policy guarantees its
-action follows from an admissible internal state, not that its observation
+A load-bearing property is **o_t ≠ truth**: the policy's action follows
+from an admissible internal state; nothing here asserts its observation
 is correct. In the slice this is concrete: Bram's hint about a falling
 object is right with frequency 8/10 by construction, and his confidence is
 uncorrelated with his correctness — a confidently-wrong hint provably
@@ -389,10 +394,17 @@ same qualification applies everywhere "exactly one" appears in this paper.
 
 π_g ≠ Eval ≠ Γ ≠ SEAL
 
-with Eval : ℛ → ℰ (receipts to proof state), Γ : ℰ × 𝒫 → 2^ℱ (proof state
+with Eval : ℛ → ℰ (receipts to proof state), Γ : ℰ × 𝒦 → 2^ℱ (proof state
 and policy context to authorizable effects), and SEAL : 𝒟 × 2^ℱ → ℋ
 (operator disposition and effects to authority history). Only SEAL touches
-ℋ. The lineage's other artifacts implement the same seam at increasing
+ℋ. These signatures are constructed, not gestural — in the control-plane
+artifact: ℛ = builder-emitted evidence manifests; ℰ = the ordered
+claim-tier set {SIMULATED < DOCUMENTED_ONLY < OPERATOR_REPORTED <
+LOCALLY_EXECUTED < INDEPENDENTLY_WITNESSED}; 𝒦 = the work-order policy
+(forbidden paths, environment rules); ℱ = the work order's enumerated
+authorizable effects; 𝒟 = the operator-disposition enum whose program
+default is PENDING; ℋ = the append-only run ledger. Each typed function
+is a module of that artifact, exercised by its 51-assertion suite (R4). The lineage's other artifacts implement the same seam at increasing
 stakes: the V0 game (an agent judges ACCEPTABLE/HOLD/DENY; a council
 recommends with forced self-objections; only the player's admission
 mutates territory — receipt R1); an NPC gateway whose `promoteCandidate`
@@ -413,7 +425,7 @@ object; the digests are demo-grade FNV identity checks, explicitly labeled
 non-cryptographic in the code and its tests.
 
 None of these primitives is novel (§2). What the model contributes is the
-*didactic identity*: the inequations the player learns as game verbs are
+*didactic identity*: the inequations the player manipulates as game verbs are
 the same inequations the engine passes tests on. The curriculum is the
 architecture, receipt-checked.
 
@@ -459,7 +471,7 @@ against a cap of 5, so *no completing trajectory exists without rest
 intervals* — an inequality on constants, not a scripted pause (receipt
 R8). Overheating locks the bowl until cooled; whisking too fast splashes
 away progress. Concept carried: regulation — sustained bounded effort with
-recovery windows — as the felt model of an agent's workload limits.
+recovery windows — offered as a bodily analogue for an agent's workload limits (H3).
 
 **The quiz gate.** Finishing a level's gameplay produces CANDIDATE, never
 progression. Bram asks the player to "tell me what you saw — not what you
@@ -467,8 +479,16 @@ hoped": three four-choice questions per level (categories: observation,
 signal-vs-proof, permission-vs-authority, regulation), pass threshold 2 of
 3, retakes allowed, admission logged. The gate is doing double duty: it
 names the concept the gestures carried (C3's hypothesis), and it *is* the
-governance structure (C4) — the player experiences that doing is not
-admission, verification is.
+governance structure (C4) — the player enacts, gate after gate, the rule
+that doing is not admission; verification is. Two roles must be kept
+distinct here. As *governance*, the gate is diegetic: it is the admission
+architecture the paper teaches, and blocking is the point — P1 is false
+without it. As *pedagogy*, a 2-of-3 blocking quiz is summative
+assessment, in tension with fading-support scaffolding
+[wood1976scaffolding, andersen2012tutorials]. The design accepts the
+tension deliberately (retakes are free and unpenalized — that is the
+fading), but whether the gate teaches, merely assesses, or interrupts is
+an open empirical question folded into H0's protocol, not asserted.
 
 **The ledger.** Every state change appends a typed event
 (STONE_PLACED, DROP_SPAWNED, FAUX_CAUGHT{lesson}, OVERHEAT, QUIZ_PASSED,
@@ -479,9 +499,14 @@ precisely because it is the only history there is.
 
 ## 7. The Deterministic/Generative Boundary
 
-The slice ships with a curated expression pool, but the boundary is
-designed for a generative layer and inherits from the lineage's NPC
-gateway (R2), so we state it in those terms.
+The slice itself contains no generative model: it plays curated lines
+through the expression channel, and its own receipt for this section is
+exactly R11 — a closed enumerated action surface with no free-text
+constructor. The full boundary stack (schema validation, provenance,
+existence-gated memory) is implemented and receipted in a companion
+lineage artifact, the NPC gateway (R2), which the slice's channel is
+shaped to accept. We state the design in those terms and mark, per item,
+which artifact carries its receipt.
 
 **What a model may do:** produce candidates on the expression channel —
 dialogue, emotional coloring, candidate reflections ("memory candidates"),
@@ -494,16 +519,18 @@ verification outcomes, and every world mutation — the entirety of dom(δ).
 
 **The seam, mechanically.** Three independent facts compose:
 
-1. *Schema at the mouth:* model output is validated against a strict
-   response schema ({speech, emotion, gesture, memory_candidate,
-   curiosity}); malformed output falls back to curated lines with
-   fallback provenance (R2).
-2. *No door in δ:* the action surface is closed and carries no free text
-   (R11) — a validated utterance still has nowhere to go.
-3. *Existence-gated memory:* the one thing expression may eventually
-   touch — companion memory — passes through a single promotion function
-   that verifies the referenced events exist in the ledger before
-   admitting a memory candidate (R2). Reflection ⇏ CanonicalMemory unless
+1. *Schema at the mouth* (NPC gateway artifact, R2): model output is
+   validated against a strict response schema ({speech, emotion, gesture,
+   memory_candidate, curiosity}); malformed output falls back to curated
+   lines with fallback provenance.
+2. *No door in δ* (the slice, R11): the action surface is closed and
+   carries no free text — a validated utterance still has nowhere to go.
+   This is the only one of the three facts demonstrated in the shipped
+   slice itself.
+3. *Existence-gated memory* (NPC gateway artifact, R2): the one thing
+   expression may eventually touch — companion memory — passes through a
+   single promotion function that verifies the referenced events exist in
+   the ledger before admitting a memory candidate. Reflection ⇏ CanonicalMemory unless
    the ledger witnesses it.
 
 Following the adversarial review, we state the guarantee's class honestly:
@@ -519,7 +546,7 @@ is the literacy.
 The slice is two files with no build step, no dependencies, and no network
 requirement: `slice-core.js` (~420 lines, the deterministic core) and
 `index.html` (the rendering shell), plus a design-token stylesheet shared
-with the wider project. The split enforces the architecture: the core is
+with the wider project. The split encodes the architecture: the core is
 loadable headlessly under Node (that is how it is tested), contains no DOM,
 no `Math.random`, no `Date`, and no storage or network surfaces (asserted
 by comment-stripped static scan, receipt R10); the shell holds the state
@@ -650,7 +677,8 @@ the sequence attachment → interpretation → coordination → governance. The
 comparison that would test it: a curriculum-order study crossing scale
 order (𝒫→𝒱→𝒯 versus 𝒯-first) on governance-discrimination outcomes
 (§10's ladder tasks). We register the design commitment now so the later
-study cannot quietly become confirmatory.
+study cannot quietly become confirmatory. Refutation: no difference in
+governance-discrimination outcomes between the two curriculum orderings.
 
 Protocol sketches, instruments, and power considerations belong to a
 future empirical paper; §12's reproduction protocol makes the game a
@@ -686,6 +714,10 @@ The Village scale exists as the V0 game's council/persona mechanics (a
 different interaction grammar than the slice); the Superteam scale is
 specification only. The three-scale claim is therefore architectural, with
 one scale demonstrated.
+
+**Quiz-gate pedagogy.** The gate's pedagogical function — teach, assess,
+or interrupt — is untested (§6); its governance function is what the
+receipts cover.
 
 **Prototype scope.** Three levels, one companion, curated expression pool
 by default, no persistence by design, no accessibility audit beyond
@@ -731,7 +763,8 @@ nothing requires a network beyond cloning, and nothing persists state.
 
 **Attachment as instrument, examined.** The design spends the media
 equation rather than fighting it: the player's disposition to treat Bram
-socially is the energy source for caring whether Bram is *right*. The
+socially is recruited as the intended energy source for caring whether
+Bram is *right*. The
 known risk — attachment concealing the machinery [turkle2011alone] — is
 addressed structurally, not rhetorically: the machinery is the gameplay,
 and the companion's fallibility is a scheduled, provable property rather
@@ -888,14 +921,20 @@ Collected from §5; working notes with per-definition receipt tags are in
 - **A7 (regulation):** ω_t = |θ_t − θ_{t−1}|/Δt; blend accrues iff
   ω ∈ [2.0, 5.0]; rest entailed by 8 s × 0.8 heat/s > 5 heat cap.
 - **A8 (governance seam):** π_g ≠ Eval ≠ Γ ≠ SEAL; Eval : ℛ → ℰ;
-  Γ : ℰ × 𝒫 → 2^ℱ; SEAL : 𝒟 × 2^ℱ → ℋ; only SEAL touches ℋ; P2:
+  Γ : ℰ × 𝒦 → 2^ℱ; SEAL : 𝒟 × 2^ℱ → ℋ; only SEAL touches ℋ; P2:
   staleness disarms (digest mismatch refused). Superteam-scale authority
   matrix: proposer/verifier/director seats each hold capability;
   admission is reserved to the operator seat; a verifier that patches
   what it verifies loses witness standing.
 - **A9 (the loop that wrote this paper):** Z_i = (C_i, E_i, S_i, D_i,
   B_i); E_i(c) ∈ {UNKNOWN, SUPPORTED, REFUTED, CONFLICTED}; narrowing
-  C_{i+1} ⊆ C_i; gate PublishableCandidate(D_i) ⟺ ∧_k ρ_{i,k} ≥ τ_k.
+  C_{i+1} ⊆ C_i; gate PublishableCandidate(D_i) ⟺ ∧_k ρ_{i,k} ≥ τ_k, with
+  ρ = (claim-support coverage, citation completeness, novelty statement,
+  falsifiability, reproducibility, logical validity, editorial
+  completeness) and τ = (0.95, 1.00, present, present, present, valid,
+  complete) — a conjunction, so no strength averages away a weakness. The
+  instantiated audit trail for this paper is research/EPOCH_LOG.md and its
+  gate receipt.
 
 ## Appendix B — Test Matrix
 

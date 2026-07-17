@@ -17,5 +17,6 @@ Run start 2026-07-17T01:28Z · min 8 epochs, target 12-16, hard max 24.
 | E9 | 01:56-02:20 | FIRST FULL DRAFT complete: 14 sections + references (76) + appendices A/B/C | E4b narrowings folded in (C3 embodiment positioning, near-transfer only, C4 vs governance role-play games) |
 | E4b | 01:55-02:05 | (landed) gap sweep: 24 new sources; verdicts: no kills, C3+C4+CLAIM-MAIN narrowed with exact positioning | ledger now 84 sources, all verified |
 | E10 | 02:15-02:20 | citation audit pass 1: 76 cited, 0 missing from ledger, 8 ledger entries uncited (kept in ledger, excluded from references) | fabricated citations = 0 by construction (ledger-only cites) |
-| E11 | planned | adversarial reviews #2 and #3 (two independent reviewers, whole article) | gate requires 2 passed |
-| E12 | planned | editorial pass + ARTICLE_GATE conjunction check | on FAIL: narrow claims, loop |
+| E11 | 02:25-02:40 | adversarial reviews #2 (venue, Opus) and #3 (rigor, Sonnet, everything re-executed) | #2 REJECT-on-unrevised (6 critiques); #3 PASS_WITH_CORRECTIONS (5/5 suites match, 8/8 citations verified, 0 fabrications, 3 corrections) |
+| E12 | 02:40-02:55 | REVISION: all #3 corrections + all #2 majors applied (framing demoted to position/roadmap, 6 experiential sites re-hedged, boundary attributed per-artifact, formalism constructed, composition owned, quiz gate reclassified); reviews + dispositions persisted (COUNTEREVIDENCE.md) | re-verification pass dispatched on revised draft |
+| E13 | 02:55-03:15 | re-verification (5/6 SATISFIED, C-2 residue: 3 phrases) → residues removed, sweep clean → abstract trimmed to 250 → ARTICLE_GATE run: ALL CRITERIA PASS | AUTORESEARCH_ARTICLE_RECEIPT.md written; status PUBLISHABLE_CANDIDATE; operator seal required |
