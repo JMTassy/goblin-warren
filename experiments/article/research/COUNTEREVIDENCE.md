@@ -23,6 +23,9 @@ presented as conflict, never converted to artificial consensus.
 | Agentic competencies already codified (OECD-EC AILit "Manage AI"; agentic-literacy-debt) | narrowing | ACCEPTED_AND_REVISED — we operationalize what frameworks name |
 | HITL formalized game-theoretically (Oversight Game) | citation_only | ACCEPTED_AND_REVISED — C4 experiential, not a formal result |
 
+| Commercial AI pets (Moxie, Loona, Moflin, character.ai, Curio, Miko) | none — NO_NEW_THREAT | ANSWERED — no product makes governance the content; Moxie shutdown + Fairplay advisory absorbed as motivating evidence (§2) |
+| Intermediate AI-testimony statuses already exist (quasi-testimony 2020, proto-assertion 2024); authority rung debated as AI preemptionism | narrowing (one sentence) | ACCEPTED_AND_REVISED — C4 positioned as the four-rung ladder crossing the epistemic/deontic boundary, each transition a playable gate; ancestry cited (§2) |
+
 ## Seam review (HAL review #1) — 7 forbidden wordings
 All ACCEPTED_AND_REVISED; transcribed as law into CLAIM_MATRIX and §11.
 

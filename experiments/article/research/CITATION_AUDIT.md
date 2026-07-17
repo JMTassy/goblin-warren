@@ -2,10 +2,10 @@
 
 <!-- authority=false · canon=false · ledger_effect=none -->
 
-- Total distinct citations in ARTICLE.md: 76
-- Reference entries rendered: 76
+- Total distinct citations in ARTICLE.md: 87 (E14 delta pass)
+- Reference entries rendered: 87
 - Citations missing from SOURCE_LEDGER.ndjson: 0
-- Ledger entries: 84 (all confidence_real = verified_via_search_result)
+- Ledger entries: 98 (all confidence_real = verified_via_search_result)
 - Fabricated citations: 0 by construction — the article may cite only ledger
   keys, and every ledger row was captured from a live search result.
 - Independent spot-check (review #3): 8/8 sampled citations VERIFIED against

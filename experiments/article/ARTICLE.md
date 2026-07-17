@@ -119,7 +119,14 @@ the nature of the agents themselves, and the pet is designed as the first
 rung of a progression the game deliberately moves the player beyond —
 attachment is the on-ramp, not the destination. A recent field review
 surfaces no prior pet-based design targeting agentic-AI concepts
-[dodd2025purrogrammed].
+[dodd2025purrogrammed]. The commercial LLM-era pet tier sharpens the
+motivation rather than the threat: products frame their pedagogy as
+social-emotional growth or STEM coding, never governance
+[fairplay2025aitoys, arxiv2025safecompanions], and when Embodied's Moxie
+shut down in 2024, its cloud-dependent companions simply died — signal,
+permission, and authority had all lived in vendor infrastructure,
+invisibly to the child [register2024moxie, embodied2024closingfaq]. That
+conflation is exactly what the Pet scale is designed to make visible.
 
 **Generative agents and believable NPCs.** Agent villages exist as
 celebrated research artifacts: Smallville's 25 interacting generative agents
@@ -217,7 +224,19 @@ interruptibility [orseau2016_interruptible]. This paper contributes the
 playable operationalization of those named competencies — the design
 mechanisms the frameworks lack — and C4 is an experiential contribution
 (the distinctions are staged for players to enact in play), explicitly
-not a new formal result.
+not a new formal result. The ladder itself has ancestry the paper claims
+rather than hides: grading the epistemic force of another agent's say-so
+is the structured, century-old debate of testimony epistemology
+[leonard-sep-testimony, lackey2008learning, goldberg2006monitoring];
+performative force and uptake are Austin's [austin1962words]; and
+intermediate statuses for machine outputs already exist — quasi-testimony
+[freiman-miller2020quasi], proto-assertion [williams-bayne2024proto] —
+while the authority rung is independently debated as AI preemptionism
+[ferrario2024experts]. C4's contribution is therefore not the observation
+that AI outputs occupy graded intermediate statuses; it is the four-rung
+ladder that carries status across the epistemic/deontic boundary —
+signal ≠ proof ≠ permission ≠ authority — with each transition realized
+as a distinct, playable admission gate.
 
 **Human-agent authority and trust.** Leveled accounts of human-agent
 authority are well established, from levels of automation
@@ -816,7 +835,7 @@ them; it narrowed them. What survived is what the receipts can carry.
 
 ## References
 
-All entries were verified against live search results during the sweep
+All entries were verified against live search results during the sweeps
 (2026-07-17); the machine-readable ledger with per-source stance and
 claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 
@@ -827,6 +846,8 @@ claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 - **[andersen2012tutorials]** Erik Andersen, Eleanor O'Rourke, Yun-En Liu, Richard Snider, Jeff Lowdermilk, David Truong, Seth Cooper, Zoran Popovic (2012). *The Impact of Tutorials on Games of Varying Complexity*. Proceedings of CHI 2012, ACM. https://dl.acm.org/doi/abs/10.1145/2207676.2207687
 - **[anthropic2025multiagent]** Anthropic engineering team (2025). *How we built our multi-agent research system*. Anthropic (engineering report). https://www.anthropic.com/engineering/multi-agent-research-system
 - **[anthropy2014vocabulary]** Anna Anthropy, Naomi Clark (2014). *A Game Design Vocabulary: Exploring the Foundational Principles Behind Good Game Design*. Addison-Wesley. https://dl.acm.org/citation.cfm?id=2655286
+- **[arxiv2025safecompanions]** (arXiv preprint authors, 2510.11185) (2025). *Principles of Safe AI Companions for Youth: Parent and Expert Perspectives*. arXiv:2510.11185. https://arxiv.org/html/2510.11185v1
+- **[austin1962words]** J. L. Austin (1962). *How to Do Things with Words*. Harvard University Press / Oxford (posthumous William James Lectures, 1955). https://en.wikipedia.org/wiki/How_to_Do_Things_with_Words
 - **[bansal2019beyond]** Gagan Bansal, Besmira Nushi, Ece Kamar, Walter S. Lasecki, Daniel S. Weld, Eric Horvitz (2019). *Beyond Accuracy: The Role of Mental Models in Human-AI Team Performance*. AAAI HCOMP, 7(1), 2-11. https://ojs.aaai.org/index.php/HCOMP/article/view/5285
 - **[bates1994believable]** Joseph Bates (1994). *The Role of Emotion in Believable Agents*. Communications of the ACM 37(7), CMU Oz Project. https://dl.acm.org/doi/10.1145/176789.176803
 - **[beurerkellner2025patterns]** Luca Beurer-Kellner, Beat Buesser, Ana-Maria Creţu, Edoardo Debenedetti, et al. (2025). *Design Patterns for Securing LLM Agents against Prompt Injections*. arXiv:2506.08837 (ETH Zurich, Google, Microsoft, IBM consortium). https://arxiv.org/abs/2506.08837
@@ -842,13 +863,18 @@ claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 - **[debenedetti2025camel]** Edoardo Debenedetti, Ilia Shumailov, Tianqi Fan, Jamie Hayes, Nicholas Carlini, Daniel Fabian, Christoph Kern, Chongyang Shi, Andreas Terzis, Florian Tramèr (2025). *Defeating Prompt Injections by Design (CaMeL)*. arXiv:2503.18813 (Google DeepMind / ETH Zurich). https://arxiv.org/abs/2503.18813
 - **[dodd2025purrogrammed]** Michaela Dodd, Allan Fowler, Danielle Lottridge (2025). *Purr-ogrammed Love: A Narrative Review of Virtual Pets*. Entertainment Computing, 54, 100958. https://www.sciencedirect.com/science/article/pii/S1875952125000382
 - **[dourish2001action]** Paul Dourish (2001). *Where the Action Is: The Foundations of Embodied Interaction*. MIT Press. https://direct.mit.edu/books/monograph/3875/Where-the-Action-IsThe-Foundations-of-Embodied
+- **[embodied2024closingfaq]** Embodied Inc (2024). *Closing FAQs – Moxie Robot (incl. OpenMoxie open-sourcing effort)*. moxierobot.com (official product site). https://www.moxierobot.com/pages/closing-faqs
 - **[euaiact2024art14]** European Parliament and Council of the European Union (2024). *Regulation (EU) 2024/1689 (AI Act), Article 14: Human Oversight*. Official Journal of the European Union. https://artificialintelligenceact.eu/article/14/
+- **[fairplay2025aitoys]** Fairplay for Kids (2025). *AI Toys are NOT Safe for Kids — Advisory (150+ expert/org signatories incl. Sherry Turkle, Jenny Radesky)*. Fairplay (advisory PDF), covered by NPR. https://fairplayforkids.org/wp-content/uploads/2025/11/AI-Toys-Advisory.pdf
 - **[feng2025autonomy]** K. J. Kevin Feng, David W. McDonald, Amy X. Zhang (2025). *Levels of Autonomy for AI Agents*. Knight First Amendment Institute working paper / arXiv:2506.12469. https://arxiv.org/abs/2506.12469
+- **[ferrario2024experts]** Andrea Ferrario, Alessandro Facchini, Alberto Termine (authorship from prior knowledge; title/venue/year verified in search result) (2024). *Experts or Authorities? The Strange Case of the Presumed Epistemic Superiority of Artificial Intelligence Systems*. Minds and Machines. https://link.springer.com/article/10.1007/s11023-024-09681-1
 - **[fowler2005eventsourcing]** Martin Fowler (2005). *Event Sourcing*. martinfowler.com (with CQRS as named by Greg Young, QCon SF 2006). https://martinfowler.com/eaaDev/EventSourcing.html
+- **[freiman-miller2020quasi]** Ori Freiman and Boaz Miller (2020). *Can Artificial Entities Assert?*. The Oxford Handbook of Assertion (Oxford University Press). https://philarchive.org/rec/FRECAE-5
 - **[friedman2003hardware]** Batya Friedman, Peter H. Kahn Jr., Jennifer Hagman (2003). *Hardware Companions? What Online AIBO Discussion Forums Reveal about the Human-Robotic Relationship*. CHI 2003, ACM Press, pp. 273-280. https://www.researchgate.net/publication/221519735_Hardware_companions_What_online_AIBO_discussion_forums_reveal_about_the_human-robot_relationship
 - **[gallotta2024llmgames]** Roberto Gallotta, Graham Todd, Marvin Zammit, Sam Earle, Antonios Liapis, Julian Togelius, Georgios N. Yannakakis (2024). *Large Language Models and Games: A Survey and Roadmap*. IEEE Transactions on Games. https://arxiv.org/abs/2402.18659
 - **[gee2003videogames]** James Paul Gee (2003). *What Video Games Have to Teach Us About Learning and Literacy*. Palgrave Macmillan. https://en.wikipedia.org/wiki/What_Video_Games_Have_to_Teach_Us_About_Learning_and_Literacy
 - **[gero2020mentalmodels]** Katy Ilonka Gero, Zahra Ashktorab, Casey Dugan, et al. (2020). *Mental Models of AI Agents in a Cooperative Game Setting*. CHI 2020 (Best Paper), ACM. https://dl.acm.org/doi/10.1145/3313831.3376316
+- **[goldberg2006monitoring]** Sanford C. Goldberg (with David Henderson) (2006). *Monitoring and Anti-Reductionism in the Epistemology of Testimony*. Philosophy and Phenomenological Research. https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1933-1592.2006.tb00586.x
 - **[goldinmeadow2003hearing]** Susan Goldin-Meadow (2003). *Hearing Gesture: How Our Hands Help Us Think*. Harvard University Press (Belknap). https://www.jstor.org/stable/j.ctv1w9m9ds
 - **[greshake2023injection]** Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph Endres, Thorsten Holz, Mario Fritz (2023). *Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection*. AISec 2023; arXiv:2302.12173. https://arxiv.org/abs/2302.12173
 - **[gruetzemacher2025_ai_race_gaming]** Ross Gruetzemacher, Shahar Avin, James Fox, Alexander K. Saeri (2025). *Strategic Insights from Simulation Gaming of AI Race Dynamics*. Futures (Elsevier); arXiv:2410.03092. https://arxiv.org/abs/2410.03092
@@ -856,8 +882,10 @@ claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 - **[howison2011mit]** Mark Howison, Dragan Trninic, Daniel Reinholz, Dor Abrahamson (2011). *The Mathematical Imagery Trainer: From Embodied Interaction to Conceptual Learning*. Proceedings of CHI 2011 (ACM). https://www.researchgate.net/publication/221514954_The_Mathematical_Imagery_Trainer_from_embodied_interaction_to_conceptual_learning
 - **[intelligence_rising]** Shahar Avin, Ross Gruetzemacher, et al. (Cambridge CSER / Oxford / Wichita State) (2020). *Intelligence Rising: A Strategic Simulation of AI Futures*. Intelligence Rising / Centre for the Study of Existential Risk (facilitated scenario role-play exercise). https://www.intelligencerising.org/
 - **[johnsonglenberg2017physics]** Mina C. Johnson-Glenberg, Colleen Megowan-Romanowicz (2017). *Embodied Science and Mixed Reality: How Gesture and Motion Capture Affect Physics Education*. Cognitive Research: Principles and Implications 2:24 (Springer). https://cognitiveresearchjournal.springeropen.com/articles/10.1186/s41235-017-0060-9
+- **[lackey2008learning]** Jennifer Lackey (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press. https://www.researchgate.net/publication/240608883_Learning_from_Words_Testimony_as_a_Source_of_Knowledge_-_Jennifer_Lackey
 - **[laird2001killer]** John E. Laird, Michael van Lent (2001). *Human-Level AI's Killer Application: Interactive Computer Games*. AI Magazine 22(2). https://onlinelibrary.wiley.com/doi/abs/10.1609/aimag.v22i2.1558
 - **[lee2004trust]** John D. Lee, Katrina A. See (2004). *Trust in Automation: Designing for Appropriate Reliance*. Human Factors, 46(1), 50-80. https://journals.sagepub.com/doi/10.1518/hfes.46.1.50_30392
+- **[leonard-sep-testimony]** Nick Leonard (current edition; earlier editions by Jonathan Adler) (2015 (rev. entry; archives 2013/2015 verified)). *Epistemological Problems of Testimony (Stanford Encyclopedia of Philosophy)*. Stanford Encyclopedia of Philosophy. https://plato.stanford.edu/entries/testimony-episprob/
 - **[li2023camelrole]** Guohao Li, Hasan Abed Al Kader Hammoud, Hani Itani, Dmitrii Khizbullin, Bernard Ghanem (2023). *CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society*. NeurIPS 2023. https://arxiv.org/abs/2303.17760
 - **[lindgren2013emboldened]** Robb Lindgren, Mina C. Johnson-Glenberg (2013). *Emboldened by Embodiment: Six Precepts for Research on Embodied Learning and Mixed Reality*. Educational Researcher 42(8), 445-452. https://journals.sagepub.com/doi/abs/10.3102/0013189x13511661
 - **[lindner2019unplugged]** Annabel Lindner, Stefan Seegerer, Ralf Romeike (2019). *Unplugged Activities in the Context of AI*. ISSEP 2019, Springer LNCS. https://link.springer.com/chapter/10.1007/978-3-030-33759-9_10
@@ -880,6 +908,7 @@ claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 - **[qian2024chatdev]** Chen Qian, Wei Liu, Hongzhang Liu, Nuo Chen, Yufan Dang, et al. (2024). *ChatDev: Communicative Agents for Software Development*. ACL 2024 (Long Papers, pp. 15174-15186). https://aclanthology.org/2024.acl-long.810/
 - **[reddig2026aiunplugged]** Reddig et al. (Georgia Tech TAIL lab) (2026). *AI Unplugged: Embodied Interactions for AI Literacy in Higher Education*. EAAI-26 (AAAI Symposium on Educational Advances in Artificial Intelligence); arXiv:2602.13242. https://tail.cc.gatech.edu/files/reddig-eaai-2026.pdf
 - **[reeves1996media]** Byron Reeves, Clifford Nass (1996). *The Media Equation: How People Treat Computers, Television, and New Media Like Real People and Places*. Cambridge University Press / CSLI Publications. https://press.uchicago.edu/ucp/books/book/distributed/M/bo3618528.html
+- **[register2024moxie]** The Register staff (Thomas Claburn) (2024). *$800 'AI' robot for kids bites the dust along with its maker*. The Register. https://www.theregister.com/2024/12/16/moxie_cloud_services_lessons/
 - **[rowe2021zoombinis]** Elizabeth Rowe, Jodi Asbell-Clarke, et al. (TERC EdGE) (2021). *Assessing Implicit Computational Thinking in Zoombinis Puzzle Gameplay*. Computers in Human Behavior. https://www.sciencedirect.com/science/article/abs/pii/S0747563221000297
 - **[ruan2024toolemu]** Yangjun Ruan, Honghua Dong, Andrew Wang, Silviu Pitis, Yongchao Zhou, Jimmy Ba, Yann Dubois, Chris J. Maddison, Tatsunori Hashimoto (2024). *Identifying the Risks of LM Agents with an LM-Emulated Sandbox (ToolEmu)*. ICLR 2024 (Spotlight). https://arxiv.org/abs/2309.15817
 - **[ruangtanusak2025talkless]** Saksorn Ruangtanusak, Pittawat Taveekitworachai, Kunat Pipatanakul (2025). *Talk Less, Call Right: Enhancing Role-Play LLM Agents with Automatic Prompt Optimization and Role Prompting*. arXiv:2509.00482. https://arxiv.org/abs/2509.00482
@@ -891,11 +920,13 @@ claim-bearing metadata is `research/SOURCE_LEDGER.ndjson`.
 - **[turkle2011alone]** Sherry Turkle (2011). *Alone Together: Why We Expect More from Technology and Less from Each Other*. Basic Books. https://books.google.com/books/about/Alone_Together.html?id=hc7SYAPVlXwC
 - **[wada2007paro]** Kazuyoshi Wada, Takanori Shibata (2007). *Living With Seal Robots — Its Sociopsychological and Physiological Influences on the Elderly at a Care House*. IEEE Transactions on Robotics, 23(5), 972-980. https://www.semanticscholar.org/paper/f029ba4c9628622aecfd99accf88e233145703b7
 - **[wang2024nemobot]** Yuchen Wang, Shangxin Guo, Lin Ling, Chee Wei Tan (2024). *Nemobot: Crafting Strategic Gaming LLM Agents for K-12 AI Education*. ACM Learning @ Scale (L@S '24). https://dl.acm.org/doi/10.1145/3657604.3664671
+- **[williams-bayne2024proto]** Iwan Williams and Tim Bayne (2024). *Chatting with Bots: AI, Speech Acts, and the Edge of Assertion*. Inquiry (also arXiv:2410.16645). https://www.tandfonline.com/doi/full/10.1080/0020174X.2024.2434874
 - **[willison2023dualllm]** Simon Willison (2023). *The Dual LLM pattern for building AI assistants that can resist prompt injection*. simonwillison.net (widely cited practitioner essay). https://simonwillison.net/2023/Apr/25/dual-llm-pattern/
 - **[wood1976scaffolding]** David Wood, Jerome S. Bruner, Gail Ross (1976). *The Role of Tutoring in Problem Solving*. Journal of Child Psychology and Psychiatry, 17, 89-100. https://acamh.onlinelibrary.wiley.com/doi/10.1111/j.1469-7610.1976.tb00381.x
 - **[wouters2013meta]** Pieter Wouters, Christof van Nimwegen, Herre van Oostendorp, Erik D. van der Spek (2013). *A Meta-Analysis of the Cognitive and Motivational Effects of Serious Games*. Journal of Educational Psychology, 105(2), 249-265. https://eric.ed.gov/?id=EJ1008015
 - **[wu2023autogen]** Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, et al. (2023). *AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation*. Microsoft Research / arXiv:2308.08155 (COLM 2024). https://arxiv.org/abs/2308.08155
 - **[yang2024embodiedai]** Weipeng Yang, Xinyun Hu, Ibrahim H. Yeter, Jiahong Su, Yuqin Yang, John Chi-Kin Lee (2024). *Artificial Intelligence Education for Young Children: A Case Study of Technology-Enhanced Embodied Learning*. Journal of Computer Assisted Learning 40(2), 465-477. https://onlinelibrary.wiley.com/doi/abs/10.1111/jcal.12892
+
 ## Appendix A — Formal Definitions
 
 Collected from §5; working notes with per-definition receipt tags are in
