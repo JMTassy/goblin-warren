@@ -95,6 +95,22 @@ to any Warren app.
 Run: `node experiments/epoch3/epoch3.test.js` (16/16, matches the EPOCH-3
 adversarial spec test verbatim).
 
+### `warren-codex.html`
+A single-file, zero-dependency scroll experience that renders the Warren's
+doctrine as **running demonstrations** rather than prose: a WebGL2
+domain-warped-FBM ember hero (scroll-ignited, pointer-warmed), a playable
+admission-gate miniature (HAL's bypass regex quoted verbatim from the V0
+game), a live 200-agent stigmergy lab (real ant-colony sensing/steering/
+deposit math with the decay constant ρ on a slider), the epoch3
+typed-relation kernel made interactive (laundered edges rejected with
+reason codes), and a capability≠authority gate demo. Uses native CSS
+scroll-driven animations (`animation-timeline: scroll()/view()`),
+`@property`-registered custom properties, OKLCH, IntersectionObserver-gated
+simulation scheduling, FNV-1a-deterministic interactions, and honors
+`prefers-reduced-motion`. Zero network requests; open directly in any
+browser. Verified headlessly: WebGL2 compiled and rendered, all four demos
+exercised by pointer/click automation, zero console/page errors.
+
 ## Law
 
 - Nothing here reads or writes `localStorage`/cookies/a backend.

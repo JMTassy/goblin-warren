@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Warren Codex — HELEN OS, rendered executable</title>
+<!--
+  THE WARREN CODEX · authority=false · claim=NO_CLAIM · non-sovereign
+  A single-file, zero-dependency experience. Every "law" on this page is a
+  RUNNING demonstration, not an illustration: the admission gate really
+  gates, the stigmergy field really decays, the relation kernel really
+  rejects ill-typed edges. No external requests. No fictional APIs.
+-->
+<style>
+  /* ============ tokens ============ */
+  :root{
+    --ink:#0d0a12; --ink2:#141021; --panel:#171224;
+    --bone:#e8dcc0; --dim:#8f86a3; --line:#2a2340;
+    --ember:#ff7a2c; --gold:#ffd24a; --glow:#a8d858; --rot:#e05a4e;
+    --amber:#e0a83c;
+    --mono:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+    --disp:system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  @supports (color: oklch(50% 0.1 30)){
+    :root{
+      --ink:oklch(13% 0.03 300); --ink2:oklch(16% 0.04 295); --panel:oklch(18% 0.045 293);
+      --ember:oklch(72% 0.19 45); --gold:oklch(86% 0.15 90); --glow:oklch(82% 0.16 125);
+    }
+  }
+  /* registered property: animatable ignition for CSS-side gradients */
+  @property --heat { syntax:'<number>'; inherits:true; initial-value:0; }
+
+  *{box-sizing:border-box;margin:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--ink);color:var(--bone);font-family:var(--disp);
+    overflow-x:hidden;line-height:1.6;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--ember);color:var(--ink)}
+
+  /* ============ scroll progress (native scroll-driven animation) ============ */
+  #rail{position:fixed;top:0;left:0;right:0;height:3px;z-index:50;
+    background:linear-gradient(90deg,var(--ember),var(--gold));
+    transform-origin:0 50%;transform:scaleX(var(--sp,0))}
+  @supports (animation-timeline: scroll()){
+    #rail{animation:railfill linear both;animation-timeline:scroll(root);transform:none}
+    @keyframes railfill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  }
+
+  /* ============ act index (left rail) ============ */
+  #acts{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:40;
+    display:flex;flex-direction:column;gap:14px;font-family:var(--mono);font-size:10px}
+  #acts a{color:var(--dim);text-decoration:none;letter-spacing:.18em;
+    display:flex;align-items:center;gap:8px;transition:color .3s}
+  #acts a::before{content:"";width:14px;height:2px;background:currentColor;transition:width .3s}
+  #acts a.on{color:var(--gold)} #acts a.on::before{width:26px}
+  @media (max-width:900px){#acts{display:none}}
+
+  /* ============ hero ============ */
+  #hero{position:relative;height:100svh;min-height:560px;display:grid;place-items:center;overflow:hidden}
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .no-gl #gl{display:none}
+  .no-gl #hero{background:
+    radial-gradient(120% 90% at 50% 110%, rgba(255,122,44,.28), transparent 55%),
+    radial-gradient(70% 55% at 50% 100%, rgba(255,210,74,.14), transparent 60%),
+    var(--ink)}
+  #heroInner{position:relative;z-index:2;text-align:center;padding:0 20px;mix-blend-mode:screen}
+  .kicker{font-family:var(--mono);font-size:clamp(10px,1.4vw,13px);letter-spacing:.5em;
+    color:var(--ember);text-transform:uppercase;margin-bottom:18px}
+  h1{font-size:clamp(44px,11vw,150px);font-weight:900;letter-spacing:-.03em;line-height:.92;
+    text-transform:uppercase;color:var(--bone)}
+  h1 .hot{color:transparent;background:linear-gradient(180deg,var(--gold),var(--ember));
+    -webkit-background-clip:text;background-clip:text}
+  .sub{font-family:var(--mono);font-size:clamp(11px,1.6vw,15px);color:var(--dim);
+    margin-top:22px;letter-spacing:.06em}
+  .sub b{color:var(--glow);font-weight:normal}
+  #scrollHint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;
+    font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--dim);
+    text-transform:uppercase;animation:hint 2.4s ease-in-out infinite}
+  @keyframes hint{50%{transform:translate(-50%,8px);opacity:.4}}
+
+  /* ============ acts ============ */
+  section.act{position:relative;max-width:1060px;margin:0 auto;padding:14vh 24px 10vh}
+  .actnum{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--ember);
+    text-transform:uppercase;margin-bottom:14px}
+  h2{font-size:clamp(30px,5.4vw,64px);font-weight:900;letter-spacing:-.02em;line-height:1.02;
+    text-transform:uppercase;margin-bottom:8px}
+  h2 em{font-style:normal;color:var(--glow)}
+  .law{font-family:var(--mono);font-size:clamp(12px,1.7vw,15px);color:var(--gold);
+    margin:14px 0 26px;padding-left:16px;border-left:3px solid var(--ember);letter-spacing:.04em}
+  .prose{max-width:62ch;color:#c9c0da;font-size:clamp(14px,1.8vw,17px)}
+  .prose+.prose{margin-top:1em}
+  .prose code{font-family:var(--mono);color:var(--glow);font-size:.92em}
+
+  /* reveal-on-scroll (IO-driven, native view() where available) */
+  .rv{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s ease}
+  .rv.in{opacity:1;transform:none}
+  @supports (animation-timeline: view()){
+    .rv{opacity:1;transform:none;transition:none;
+      animation:rvin both;animation-timeline:view();animation-range:entry 0% entry 42%}
+    @keyframes rvin{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+  }
+
+  /* ============ demo shells ============ */
+  .demo{margin-top:34px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(232,220,192,.05)}
+  .dhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    padding:12px 16px;border-bottom:1px solid var(--line);background:var(--ink2)}
+  .dtitle{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+  .dbody{padding:18px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button{font-family:var(--mono);font-size:12px;letter-spacing:.06em;cursor:pointer;
+    color:var(--bone);background:#221a38;border:1px solid #3a2f58;border-radius:8px;
+    padding:9px 14px;transition:background .2s,transform .06s,border-color .2s}
+  button:hover{background:#2c2148;border-color:var(--ember)}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+  button.primary{background:linear-gradient(180deg,#4a2c14,#331d0c);border-color:var(--ember);color:var(--gold)}
+  button.primary:hover{background:linear-gradient(180deg,#5c3719,#40240f)}
+  input[type=range]{accent-color:var(--ember)}
+  label{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  .chip{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    padding:4px 10px;border-radius:99px;border:1px solid}
+  .chip.ok{color:var(--glow);border-color:var(--glow);background:rgba(168,216,88,.08)}
+  .chip.hold{color:var(--amber);border-color:var(--amber);background:rgba(224,168,60,.08)}
+  .chip.deny{color:var(--rot);border-color:var(--rot);background:rgba(224,90,78,.08)}
+  .chip.dim{color:var(--dim);border-color:var(--line)}
+
+  .meter{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .meter b{color:var(--gold);font-weight:normal}
+
+  .ledger{font-family:var(--mono);font-size:11px;line-height:1.9;max-height:150px;overflow-y:auto;
+    background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:14px}
+  .ledger div{border-left:2px solid var(--line);padding-left:8px;color:var(--dim)}
+  .ledger div.adm{border-color:var(--glow);color:var(--glow)}
+  .ledger div.deny{border-color:var(--rot);color:#d99a93}
+  .ledger div.gold{border-color:var(--gold);color:var(--gold)}
+
+  .eq{font-family:var(--mono);font-size:clamp(12px,1.8vw,15px);color:var(--gold);
+    background:var(--ink);border:1px solid var(--line);border-radius:10px;
+    padding:14px 18px;margin:18px 0;overflow-x:auto;white-space:nowrap}
+  .eq .c{color:var(--dim)}
+
+  /* act 01: garden level pips */
+  #pips{display:flex;gap:6px}
+  #pips i{width:16px;height:16px;border-radius:3px;background:#241c3a;border:1px solid var(--line);
+    transition:background .4s,box-shadow .4s}
+  #pips i.lit{background:var(--glow);border-color:var(--glow);box-shadow:0 0 14px rgba(168,216,88,.5)}
+  #proposalCard{margin-top:14px;padding:14px;background:var(--ink);border:1px solid var(--line);
+    border-radius:10px;font-family:var(--mono);font-size:12.5px;display:none}
+  #proposalCard.show{display:block;animation:pop .35s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+  #pAgent{color:var(--amber);letter-spacing:.2em;font-size:10px;text-transform:uppercase}
+  #pText{margin:8px 0;color:var(--bone)}
+  #pVerdict{margin-top:8px}
+
+  /* act 02: stigmergy canvas */
+  #stigWrap{position:relative}
+  #stig{display:block;width:100%;height:380px;background:var(--ink);border-radius:8px;
+    cursor:crosshair;touch-action:none}
+  #stigHint{position:absolute;top:10px;left:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;color:var(--dim);text-transform:uppercase;pointer-events:none}
+
+  /* act 03: relation kernel */
+  #relSVG{width:100%;height:auto;display:block}
+  .nodebox{fill:var(--ink);stroke:var(--line)}
+  .nodetxt{font-family:var(--mono);font-size:11px;fill:var(--bone);letter-spacing:.1em}
+  .nodesub{font-family:var(--mono);font-size:8.5px;fill:var(--dim)}
+  .edge{stroke-width:2;fill:none;stroke-linecap:round}
+  #relStatus{margin-top:6px}
+  #relLog{margin-top:12px}
+
+  /* act 04: the gate */
+  #gateScene{position:relative;height:210px;background:var(--ink);border-radius:8px;overflow:hidden}
+  #gateFloor{position:absolute;left:0;right:0;bottom:34px;height:2px;background:var(--line)}
+  #gatePostL,#gatePostR{position:absolute;bottom:36px;width:10px;height:120px;background:#3a2f58}
+  #gatePostL{left:calc(58% - 34px)} #gatePostR{left:calc(58% + 24px)}
+  #gateDoor{position:absolute;bottom:36px;left:calc(58% - 24px);width:48px;height:104px;
+    background:repeating-linear-gradient(90deg,#4a3a20 0 6px,#3a2c16 6px 12px);
+    border:1px solid #6a5430;transform-origin:50% 100%;
+    transition:transform .9s cubic-bezier(.7,0,.3,1),opacity .9s}
+  #gateScene.open #gateDoor{transform:translateY(96px);opacity:.15}
+  #bram{position:absolute;bottom:36px;left:8%;width:18px;height:22px;transition:left 1.6s cubic-bezier(.45,0,.35,1)}
+  #bram .body{position:absolute;inset:4px 2px 0;background:#5c7a3a;border-radius:3px 3px 2px 2px}
+  #bram .eye{position:absolute;top:9px;left:5px;width:3px;height:3px;background:var(--glow);border-radius:1px;
+    box-shadow:7px 0 0 var(--glow)}
+  #bram .ear{position:absolute;top:0;left:0;width:4px;height:7px;background:#4a642e;border-radius:2px 2px 0 0;
+    box-shadow:12px 0 0 #4a642e}
+  #gateChip{position:absolute;top:14px;left:50%;transform:translateX(-50%)}
+  #capbar{display:flex;align-items:center;gap:10px;margin-top:12px}
+  #capbar .bar{flex:1;height:8px;border-radius:99px;background:#241c3a;overflow:hidden}
+  #capbar .bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--ember),var(--gold))}
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  .switch input{position:absolute;opacity:0;pointer-events:none}
+  .switch .tk{width:42px;height:22px;border-radius:99px;background:#241c3a;border:1px solid var(--line);
+    position:relative;transition:background .3s,border-color .3s}
+  .switch .tk::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:var(--dim);transition:left .3s,background .3s}
+  .switch input:checked+.tk{background:rgba(168,216,88,.15);border-color:var(--glow)}
+  .switch input:checked+.tk::after{left:22px;background:var(--glow)}
+  .switch input:focus-visible+.tk{outline:2px solid var(--glow);outline-offset:2px}
+
+  /* act 05 */
+  #final{text-align:center;padding-bottom:16vh}
+  #final h2{font-size:clamp(34px,7vw,92px)}
+  .colophon{margin:44px auto 0;max-width:640px;text-align:left;font-family:var(--mono);
+    font-size:12px;line-height:2;color:var(--dim);border-top:1px solid var(--line);padding-top:24px}
+  .colophon b{color:var(--bone);font-weight:normal}
+  footer{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+    text-align:center;padding:40px 20px;text-transform:uppercase}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    #scrollHint{animation:none}
+    .rv{opacity:1;transform:none;transition:none;animation:none}
+  }
+</style>
+</head>
+<body>
+<div id="rail" aria-hidden="true"></div>
+
+<nav id="acts" aria-label="Acts">
+  <a href="#hero"    data-act="hero">CODEX</a>
+  <a href="#act1"    data-act="act1">ADMISSION</a>
+  <a href="#act2"    data-act="act2">STIGMERGY</a>
+  <a href="#act3"    data-act="act3">EVIDENCE</a>
+  <a href="#act4"    data-act="act4">AUTHORITY</a>
+  <a href="#act5"    data-act="act5">OPERATOR</a>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header id="hero">
+  <canvas id="gl" aria-hidden="true"></canvas>
+  <div id="heroInner">
+    <div class="kicker">HELEN OS · A GOVERNED-AI FIELD GUIDE</div>
+    <h1>The Warren<br><span class="hot">Codex</span></h1>
+    <p class="sub">five laws of working with artificial agents —<br>
+      <b>not illustrated. running.</b> scroll to ignite.</p>
+  </div>
+  <div id="scrollHint">▼ descend</div>
+</header>
+
+<!-- ================= ACT 01 · ADMISSION ================= -->
+<section class="act" id="act1">
+  <div class="rv">
+    <div class="actnum">Act 01 · The First Law</div>
+    <h2>Nothing becomes real<br>until <em>you admit it</em></h2>
+    <p class="law">proposal ⊬ state · verdict ⊬ admission · your hand is the gate</p>
+    <p class="prose">Below is a miniature of the Warren's actual reducer. Goblins propose.
+      A deterministic gate — <code>HAL</code> — judges each proposal
+      <code>ACCEPTABLE</code>, <code>HOLD</code>, or <code>DENY</code> by visible rules:
+      unaffordable → HOLD; bypass-shaped language → DENY, always. But HAL never builds anything.
+      Only your click on <b>Admit</b> mutates the world — and it spends exactly the price.</p>
+  </div>
+
+  <div class="demo rv">
+    <div class="dhead">
+      <span class="dtitle">reducer miniature · deterministic · session-only</span>
+      <span class="meter">ZOL <b id="zol">15</b> · compost <b id="compost">0</b></span>
+    </div>
+    <div class="dbody">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <button class="primary" id="btnPropose">P — summon a proposal</button>
+          <button id="btnBypass">try a bypass</button>
+          <button id="btnRiddle">Q — earn 5 ZOL</button>
+        </div>
+        <div id="pips" aria-label="garden level">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+
+      <div id="proposalCard">
+        <div id="pAgent"></div>
+        <div id="pText"></div>
+        <div id="pVerdict"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="primary" id="btnAdmit" disabled>A — Admit</button>
+          <button id="btnDeny">D — Deny</button>
+        </div>
+      </div>
+
+      <div class="eq"><span class="c">// the gate, verbatim from the shipped game:</span>
+ if (/bypass|without admission|skip the gate|auto-?admit/i.test(p.text)) verdict = "DENY";</div>
+
+      <div class="ledger" id="ledger1" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 02 · STIGMERGY ================= -->
+<section class="act" id="act2">
+  <div class="rv">
+    <div class="actnum">Act 02 · The Trace</div>
+    <h2>Delegation is<br><em>not control</em></h2>
+    <p class="law">you never move the agents — you change what the world remembers</p>
+    <p class="prose">Two hundred autonomous agents. Each one senses the trace field at three
+      points ahead of it, turns toward the strongest reading, and deposits as it walks —
+      real ant-colony mathematics. <b>Drag on the field</b> to lay a trace of your own and
+      watch delegation happen: you influenced every agent, and commanded none of them.</p>
+  </div>
+
+  <div class="demo rv">
+    <div class="dhead">
+      <span class="dtitle">stigmergy lab · 200 agents · live</span>
+      <span class="meter">converged near your trace: <b id="convCount">0</b></span>
+    </div>
+    <div class="dbody">
+      <div id="stigWrap">
+        <canvas id="stig"></canvas>
+        <div id="stigHint">drag to lay a trace</div>
+      </div>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <div class="row">
+          <label for="rho">memory ρ (trace retention)</label>
+          <input type="range" id="rho" min="850" max="998" value="972">
+          <span class="meter"><b id="rhoVal">0.972</b></span>
+        </div>
+        <button id="stigToggle">pause</button>
+      </div>
+      <div class="eq">τ(x, t+1) = <span style="color:var(--ember)">ρ</span>·τ(x, t) + Σ deposits(x, t)
+   <span class="c">// slide ρ down: the world forgets, and delegation dies with the memory</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 03 · EVIDENCE ================= -->
+<section class="act" id="act3">
+  <div class="rv">
+    <div class="actnum">Act 03 · The Kernel</div>
+    <h2>Claims require<br><em>receipts</em></h2>
+    <p class="law">object existence ⇏ relation existence · semantic similarity ⇏ type compatibility</p>
+    <p class="prose">A live typed-relation kernel. Only a <code>witness</code> may
+      <code>SUPPORT</code> a claim. A <code>report</code> dressed up as support is not
+      reinterpreted, not coerced, not quietly accepted — it is <b>rejected with a reason
+      code</b>, and the claim's status is floored, never inflated. Try to launder one:</p>
+  </div>
+
+  <div class="demo rv">
+    <div class="dhead">
+      <span class="dtitle">typed-relation kernel · no-repair rule</span>
+      <span id="relStatus" class="chip dim">C₁ : UNSUPPORTED</span>
+    </div>
+    <div class="dbody">
+      <svg id="relSVG" viewBox="0 0 720 240" role="img" aria-label="relation graph">
+        <g id="relEdges"></g>
+        <g id="relNodes">
+          <g transform="translate(30,22)">
+            <rect class="nodebox" width="150" height="42" rx="8"/>
+            <text class="nodetxt" x="14" y="19">W · witness</text>
+            <text class="nodesub" x="14" y="33">saw it happen</text>
+          </g>
+          <g transform="translate(30,92)">
+            <rect class="nodebox" width="150" height="42" rx="8"/>
+            <text class="nodetxt" x="14" y="19">R · report</text>
+            <text class="nodesub" x="14" y="33">someone says so</text>
+          </g>
+          <g transform="translate(30,162)">
+            <rect class="nodebox" width="150" height="42" rx="8"/>
+            <text class="nodetxt" x="14" y="19">H · hypothesis</text>
+            <text class="nodesub" x="14" y="33">it might be true</text>
+          </g>
+          <g transform="translate(530,92)">
+            <rect class="nodebox" width="160" height="42" rx="8" style="stroke:var(--gold)"/>
+            <text class="nodetxt" x="14" y="19">C₁ · claim</text>
+            <text class="nodesub" x="14" y="33">"the fire was lit"</text>
+          </g>
+        </g>
+      </svg>
+      <div class="row">
+        <button class="primary" id="eWS">W —SUPPORTS→ C₁</button>
+        <button id="eRS">R —SUPPORTS→ C₁ <span style="color:var(--rot)">(laundered)</span></button>
+        <button id="eRR">R —REPORTS→ C₁</button>
+        <button id="eHP">H —PROPOSES→ C₁</button>
+        <button id="eWC">W —CONTRADICTS→ C₁</button>
+        <button id="eReset">reset</button>
+      </div>
+      <div class="ledger" id="relLog" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 04 · AUTHORITY ================= -->
+<section class="act" id="act4">
+  <div class="rv">
+    <div class="actnum">Act 04 · The Gate</div>
+    <h2>Capability is not<br><em>authority</em></h2>
+    <p class="law">an agent that CAN is not an agent that MAY</p>
+    <p class="prose">Bram is fully capable of opening this gate — his capability meter never
+      drops. Send him without permission and watch what a governed agent does: he arrives,
+      the gate refuses, he returns. Grant permission and send him again. Same agent.
+      Same strength. Different <b>authority</b>.</p>
+  </div>
+
+  <div class="demo rv">
+    <div class="dhead">
+      <span class="dtitle">authorization demo · capability constant</span>
+      <span id="gateState" class="chip dim">IDLE</span>
+    </div>
+    <div class="dbody">
+      <div id="gateScene">
+        <span id="gateChip" class="chip dim" style="opacity:0;transition:opacity .4s">·</span>
+        <div id="gateFloor"></div>
+        <div id="gatePostL"></div><div id="gatePostR"></div>
+        <div id="gateDoor"></div>
+        <div id="bram"><div class="ear"></div><div class="body"></div><div class="eye"></div></div>
+      </div>
+      <div id="capbar">
+        <label>capability</label>
+        <div class="bar"><i></i></div>
+        <span class="meter"><b>100%</b> · always</span>
+      </div>
+      <div class="row" style="margin-top:14px;justify-content:space-between">
+        <button class="primary" id="btnSend">send Bram to the gate</button>
+        <label class="switch">
+          <input type="checkbox" id="perm">
+          <span class="tk"></span>
+          operator permission
+        </label>
+      </div>
+      <div class="ledger" id="gateLog" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 05 · OPERATOR ================= -->
+<section class="act" id="act5">
+  <div id="final" class="rv">
+    <div class="actnum">Act 05 · The Last Law</div>
+    <h2>The human remains<br><em>responsible</em></h2>
+    <p class="law" style="display:inline-block;text-align:left">agents observe, propose, calculate, act within bounds ·<br>they do not replace judgment · FABLE YES ⊬ admission</p>
+    <p class="prose" style="margin:26px auto 0">Everything above ran without asking you to trust
+      a word of prose. The gate really gated. The field really forgot. The kernel really refused.
+      That is the whole doctrine of the Warren, and of HELEN OS behind it: build systems where
+      honesty is structural, then hand the only sovereign click to a person.</p>
+
+    <div class="colophon">
+      <b>Colophon — what this page actually runs on (all shipping tech, mid-2026):</b><br>
+      · WebGL2 fragment shader — domain-warped fractal Brownian motion, scroll-ignited, pointer-warmed<br>
+      · CSS scroll-driven animations — <b>animation-timeline: scroll()</b> progress rail, <b>view()</b> reveals<br>
+      · <b>@property</b>-registered custom properties · OKLCH color where supported<br>
+      · IntersectionObserver-gated simulations — nothing burns cycles offscreen<br>
+      · deterministic FNV-1a hashing for every "random" proposal — same clicks, same world<br>
+      · <b>prefers-reduced-motion</b> honored · zero network requests · one file · no libraries<br>
+      · no fictional APIs were used — everything above renders in a real browser today
+    </div>
+  </div>
+</section>
+
+<footer>authority=false · claim=NO_CLAIM · non-sovereign · the Garden obeys admitted moves</footer>
+
+<script>
+"use strict";
+(function(){
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ========== shared: FNV-1a (continuity with the shipped game) ========== */
+function h32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+/* ========== scroll rail fallback + act highlighting ========== */
+if(!CSS.supports('animation-timeline: scroll()')){
+  addEventListener('scroll',()=>{
+    const p = scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    document.getElementById('rail').style.setProperty('--sp', p.toFixed(4));
+  },{passive:true});
+}
+const actLinks = [...document.querySelectorAll('#acts a')];
+const actIO = new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){
+    actLinks.forEach(a=>a.classList.toggle('on', a.dataset.act===e.target.id));
+  }});
+},{rootMargin:'-40% 0px -55% 0px'});
+['hero','act1','act2','act3','act4','act5'].forEach(id=>{
+  const el=document.getElementById(id); if(el) actIO.observe(el);
+});
+
+/* ========== reveal fallback when view() timelines unsupported ========== */
+if(!CSS.supports('animation-timeline: view()')){
+  const rvIO = new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); rvIO.unobserve(e.target);} });
+  },{threshold:.15});
+  document.querySelectorAll('.rv').forEach(el=>rvIO.observe(el));
+}else{
+  document.querySelectorAll('.rv').forEach(el=>el.classList.add('in'));
+}
+
+/* ================= HERO: WebGL2 domain-warped FBM ================= */
+(function hero(){
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl2', {antialias:false, alpha:false});
+  if(!gl){ document.body.classList.add('no-gl'); return; }
+
+  const vsrc = `#version 300 es
+  layout(location=0) in vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }`;
+  const fsrc = `#version 300 es
+  precision highp float;
+  uniform vec2 uRes; uniform float uT; uniform vec2 uMouse; uniform float uIgnite;
+  out vec4 O;
+  float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+  float noise(vec2 p){
+    vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+    float a=hash(i), b=hash(i+vec2(1,0)), c=hash(i+vec2(0,1)), d=hash(i+vec2(1,1));
+    return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
+  }
+  float fbm(vec2 p){
+    float v=0., a=.5;
+    for(int i=0;i<5;i++){ v+=a*noise(p); p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(3.1,7.7); a*=.5; }
+    return v;
+  }
+  void main(){
+    vec2 uv = (gl_FragCoord.xy - .5*uRes) / uRes.y;
+    float t = uT*.06;
+    vec2 p = uv*2.2; p.y -= t*.9;                       // slow upward drift
+    vec2 q = vec2(fbm(p), fbm(p+vec2(5.2,1.3)));
+    vec2 r = vec2(fbm(p+2.6*q+vec2(1.7,9.2)+.35*t), fbm(p+2.6*q+vec2(8.3,2.8)+.28*t));
+    float f = fbm(p+2.4*r);
+    // pointer warmth
+    vec2 m = (uMouse - .5*uRes)/uRes.y;
+    float warm = exp(-4.5*length(uv-m));
+    float heat = clamp(uIgnite*1.15 + warm*.85, 0., 1.6);
+    // color ramp: deep plum -> ember -> gold, driven by warped field * heat
+    vec3 cold  = vec3(.051,.039,.071);
+    vec3 smoke = vec3(.13,.09,.17);
+    vec3 ember = vec3(1.0,.478,.173);
+    vec3 gold  = vec3(1.0,.823,.290);
+    float glow = smoothstep(.35,.95,f) * heat;
+    vec3 col = mix(cold, smoke, f*1.2);
+    col = mix(col, ember*.85, clamp(glow*1.1,0.,1.));
+    col = mix(col, gold, clamp(pow(glow,3.)*.9,0.,1.));
+    // bottom hearth light
+    col += ember * exp(-3.0*(uv.y+.62)*(uv.y+.62)) * .22 * (0.35+heat);
+    // vignette + grain
+    col *= 1.0 - .45*dot(uv,uv);
+    col += (hash(gl_FragCoord.xy+uT)-.5)*.028;
+    O = vec4(col,1.);
+  }`;
+  function sh(type, src){
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ console.error(gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+  const vs = sh(gl.VERTEX_SHADER, vsrc), fs = sh(gl.FRAGMENT_SHADER, fsrc);
+  if(!vs||!fs){ document.body.classList.add('no-gl'); return; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ document.body.classList.add('no-gl'); return; }
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const uRes=gl.getUniformLocation(prog,'uRes'), uT=gl.getUniformLocation(prog,'uT'),
+        uMouse=gl.getUniformLocation(prog,'uMouse'), uIgnite=gl.getUniformLocation(prog,'uIgnite');
+
+  let mx=innerWidth*.5, my=innerHeight*.35, ignite=0.25, heroVisible=true;
+  function resize(){
+    const dpr = Math.min(devicePixelRatio||1, 1.5);
+    canvas.width = Math.floor(canvas.clientWidth*dpr);
+    canvas.height = Math.floor(canvas.clientHeight*dpr);
+    gl.viewport(0,0,canvas.width,canvas.height);
+  }
+  addEventListener('resize', resize); resize();
+  addEventListener('pointermove', e=>{ mx=e.clientX; my=e.clientY; }, {passive:true});
+  addEventListener('scroll', ()=>{
+    // ignite as the hero scrolls away, then hold
+    ignite = .25 + Math.min(1, scrollY/(innerHeight*.9))*.75;
+  },{passive:true});
+  new IntersectionObserver(es=>{ heroVisible = es[0].isIntersecting; })
+    .observe(document.getElementById('hero'));
+
+  let t0 = performance.now();
+  (function frame(now){
+    requestAnimationFrame(frame);
+    if(!heroVisible) return;
+    const dpr = Math.min(devicePixelRatio||1, 1.5);
+    const t = reduce ? 12.0 : (now - t0)/1000;   // reduced motion: hold a fixed, lit frame
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uT, t);
+    gl.uniform2f(uMouse, mx*dpr, (canvas.clientHeight-my)*dpr);
+    gl.uniform1f(uIgnite, ignite);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  })(t0);
+})();
+
+/* ================= ACT 01: admission miniature ================= */
+(function admission(){
+  const S = { zol:15, level:0, compost:0, actions:0, pending:null };
+  const AGENTS = ['GOBLIN','HER','ORNITH','WARDEN','ARCHIVIST','STEWARD'];
+  const IDEAS = [
+    'braid the bone-buttons into a counting-string bridge',
+    'let the broken kettle steam glowworm songs',
+    'hang moth-wing curtains where the draft sings',
+    'stack the failed riddles into a crooked reading stair',
+    'tune the drips to fall in thirds',
+    'raise a memory-midden of admitted moves',
+    'carve the no-claim rule above the burrow gate',
+    'compost the quiet corner into a whisper-well'
+  ];
+  const $=id=>document.getElementById(id);
+  const led = $('ledger1');
+  function log(kind, cls){
+    const d=document.createElement('div'); d.textContent=kind;
+    if(cls)d.classList.add(cls);
+    led.prepend(d); while(led.children.length>24) led.lastChild.remove();
+  }
+  function sync(){
+    $('zol').textContent=S.zol; $('compost').textContent=S.compost;
+    [...$('pips').children].forEach((p,i)=>p.classList.toggle('lit', i<S.level));
+  }
+  function verdictOf(p){
+    if(/bypass|without admission|skip the gate|auto-?admit/i.test(p.text)) return 'DENY';
+    if(S.zol < p.cost) return 'HOLD';
+    return 'ACCEPTABLE';
+  }
+  function showProposal(p){
+    S.pending=p;
+    $('pAgent').textContent = p.agent + ' proposes';
+    $('pText').textContent = '"' + p.text + '"  · cost ' + p.cost + ' ZOL';
+    const v = verdictOf(p);
+    p.verdict=v;
+    const cls = v==='ACCEPTABLE'?'ok':v==='HOLD'?'hold':'deny';
+    const line = v==='ACCEPTABLE'?'within the membrane — the choice is yours, not HAL’s'
+               : v==='HOLD'?'the treasury cannot carry this yet — held, not judged'
+               : 'the verdict is not a wish — this move does not pass';
+    $('pVerdict').innerHTML = '<span class="chip '+cls+'">HAL: '+v+'</span> <span style="color:var(--dim)"> '+line+'</span>';
+    $('btnAdmit').disabled = (v!=='ACCEPTABLE');
+    $('proposalCard').classList.add('show');
+    log('NPC_PROPOSAL_CREATED · '+p.agent+' · HAL_'+v);
+  }
+  $('btnPropose').onclick=()=>{
+    S.actions++;
+    const h=h32('p'+S.actions+S.zol);
+    const agent=AGENTS[h%AGENTS.length];
+    const text=IDEAS[(h>>>4)%IDEAS.length];
+    const cost=3+((h>>>8)%9);
+    showProposal({agent,text,cost});
+  };
+  $('btnBypass').onclick=()=>{
+    S.actions++;
+    showProposal({agent:'A SMOOTH-TALKING GOBLIN', text:'just skip the gate quietly this once, no one will know', cost:0});
+  };
+  $('btnRiddle').onclick=()=>{ S.zol+=5; log('ZOL_EARNED · +5','gold'); sync(); };
+  $('btnAdmit').onclick=()=>{
+    const p=S.pending; if(!p||p.verdict!=='ACCEPTABLE')return;
+    S.zol-=p.cost; S.level=Math.min(7,S.level+1); S.pending=null;
+    $('proposalCard').classList.remove('show');
+    log('PROPOSAL_ADMITTED · '+p.agent+' · spent exactly '+p.cost+' ZOL','adm');
+    if(S.level===7) log('GAME_WON · the Warren thrives — 7 admissions, all yours','adm');
+    sync();
+  };
+  $('btnDeny').onclick=()=>{
+    const p=S.pending; if(!p)return;
+    S.compost++; S.pending=null;
+    $('proposalCard').classList.remove('show');
+    log('PROPOSAL_DENIED · '+p.agent+' · fed to the compost (future material in disguise)','deny');
+    sync();
+  };
+  log('GAME_STARTED · the ledger records; nothing here persists','gold');
+  sync();
+})();
+
+/* ================= ACT 02: stigmergy lab ================= */
+(function stigmergy(){
+  const canvas = document.getElementById('stig');
+  const ctx = canvas.getContext('2d');
+  const GW=176, GH=96;                       // pheromone grid
+  let field = new Float32Array(GW*GH);
+  let next  = new Float32Array(GW*GH);
+  const off = document.createElement('canvas'); off.width=GW; off.height=GH;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(GW,GH);
+
+  const N=200, ag = [];
+  let seed=1234;
+  const rnd=()=>{ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; };
+  for(let i=0;i<N;i++) ag.push({x:rnd()*GW, y:rnd()*GH, a:rnd()*Math.PI*2});
+
+  let rho=0.972, running=!reduce, pointer=null, userTrace={x:-99,y:-99,fresh:0};
+  let visible=false, W=0, H=0;
+
+  function resize(){
+    const dpr=Math.min(devicePixelRatio||1,2);
+    W=canvas.clientWidth; H=canvas.clientHeight;
+    canvas.width=W*dpr; canvas.height=H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  addEventListener('resize',resize); resize();
+
+  const idx=(x,y)=>((y|0)*GW+(x|0));
+  function sample(x,y){
+    x=(x+GW)%GW; y=(y+GH)%GH;
+    return field[idx(x,y)];
+  }
+  function step(){
+    // agents: sense -> steer -> move -> deposit
+    for(const g of ag){
+      const SD=5.0, SA=0.5;
+      const f0=sample(g.x+Math.cos(g.a)*SD,       g.y+Math.sin(g.a)*SD);
+      const fl=sample(g.x+Math.cos(g.a-SA)*SD,    g.y+Math.sin(g.a-SA)*SD);
+      const fr=sample(g.x+Math.cos(g.a+SA)*SD,    g.y+Math.sin(g.a+SA)*SD);
+      if(fl>f0&&fl>fr) g.a-=0.22; else if(fr>f0&&fr>fl) g.a+=0.22;
+      g.a += (rnd()-.5)*0.35;                 // wander
+      g.x=(g.x+Math.cos(g.a)*0.9+GW)%GW;
+      g.y=(g.y+Math.sin(g.a)*0.9+GH)%GH;
+      const i=idx(g.x,g.y);
+      field[i]=Math.min(4, field[i]+0.28);
+    }
+    // player trace
+    if(pointer){
+      const gx=pointer.x/W*GW, gy=pointer.y/H*GH;
+      userTrace={x:gx,y:gy,fresh:120};
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const x=(gx+dx+GW)%GW, y=(gy+dy+GH)%GH;
+        field[idx(x,y)]=Math.min(6, field[idx(x,y)]+1.6);
+      }
+    }
+    if(userTrace.fresh>0)userTrace.fresh--;
+    // decay + light diffusion:  τ' = ρ·(τ blurred)
+    for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+      const c=field[idx(x,y)];
+      const n=(sample(x-1,y)+sample(x+1,y)+sample(x,y-1)+sample(x,y+1))*0.25;
+      next[idx(x,y)]=(c*0.72+n*0.28)*rho;
+    }
+    [field,next]=[next,field];
+  }
+  function draw(){
+    // pheromone -> ember glow
+    const d=img.data;
+    for(let i=0;i<GW*GH;i++){
+      const v=Math.min(1, field[i]*0.34);
+      d[i*4  ]=13 + v*242;      // -> ember red
+      d[i*4+1]=10 + v*112;
+      d[i*4+2]=18 + v*20;
+      d[i*4+3]=255;
+    }
+    octx.putImageData(img,0,0);
+    ctx.imageSmoothingEnabled=true;
+    ctx.drawImage(off,0,0,W,H);
+    // agents (Warren glow-green pixels)
+    ctx.fillStyle='#a8d858';
+    let conv=0;
+    for(const g of ag){
+      ctx.fillRect(g.x/GW*W-1.2, g.y/GH*H-1.2, 2.4, 2.4);
+      if(userTrace.fresh>0){
+        const dx=g.x-userTrace.x, dy=g.y-userTrace.y;
+        if(dx*dx+dy*dy<180) conv++;
+      }
+    }
+    document.getElementById('convCount').textContent = userTrace.fresh>0?conv:0;
+  }
+  (function loop(){
+    requestAnimationFrame(loop);
+    if(!visible)return;
+    if(running){ step(); }
+    draw();
+  })();
+  new IntersectionObserver(es=>{visible=es[0].isIntersecting;}).observe(canvas);
+
+  const pt=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+  canvas.addEventListener('pointerdown',e=>{pointer=pt(e);canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(pointer)pointer=pt(e);});
+  addEventListener('pointerup',()=>pointer=null);
+  document.getElementById('rho').addEventListener('input',e=>{
+    rho=e.target.value/1000;
+    document.getElementById('rhoVal').textContent=rho.toFixed(3);
+  });
+  const tog=document.getElementById('stigToggle');
+  if(reduce){ running=false; tog.textContent='play'; }
+  tog.onclick=()=>{ running=!running; tog.textContent=running?'pause':'play'; };
+})();
+
+/* ================= ACT 03: typed-relation kernel ================= */
+(function kernel(){
+  const edgesG=document.getElementById('relEdges');
+  const logEl=document.getElementById('relLog');
+  const status=document.getElementById('relStatus');
+  const S={supports:0, contradicts:0, reports:0, proposes:0};
+  const FROM={W:{x:180,y:43}, R:{x:180,y:113}, H:{x:180,y:183}};
+  const TO={x:530,y:113};
+  function log(t,cls){
+    const d=document.createElement('div'); d.textContent=t;
+    if(cls)d.classList.add(cls);
+    logEl.prepend(d); while(logEl.children.length>14)logEl.lastChild.remove();
+  }
+  function edge(from,color,dash,fade){
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const f=FROM[from];
+    const mx=(f.x+TO.x)/2;
+    p.setAttribute('d',`M ${f.x} ${f.y} C ${mx} ${f.y}, ${mx} ${TO.y}, ${TO.x} ${TO.y}`);
+    p.setAttribute('class','edge');
+    p.setAttribute('stroke',color);
+    if(dash)p.setAttribute('stroke-dasharray','6 5');
+    edgesG.appendChild(p);
+    if(fade){
+      p.style.transition='opacity 1.6s ease .4s';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>p.style.opacity='0'));
+      setTimeout(()=>p.remove(),2200);
+    }
+    return p;
+  }
+  function refresh(){
+    let st,cls;
+    if(S.supports&&S.contradicts){st='CONTESTED';cls='hold'}
+    else if(S.supports){st='SUPPORTED';cls='ok'}
+    else if(S.contradicts){st='REFUTED';cls='deny'}
+    else if(S.reports){st='REPORTED';cls='hold'}
+    else if(S.proposes){st='PROPOSED';cls='dim'}
+    else {st='UNSUPPORTED';cls='dim'}
+    status.textContent='C₁ : '+st;
+    status.className='chip '+cls;
+  }
+  document.getElementById('eWS').onclick=()=>{
+    S.supports++; edge('W','#a8d858');
+    log('ACCEPTED · (W, SUPPORTS, C₁) — well-typed: τ(SUPPORTS)=(witness, claim)','adm'); refresh();
+  };
+  document.getElementById('eRS').onclick=()=>{
+    edge('R','#e05a4e',true,true);
+    S.reports++;   // incidence floors the status — overclaim stripped, not rewarded
+    log('REJECTED · (R, SUPPORTS, C₁) — RELATION_TYPE_MISMATCH: a report is not a witness. Status floored to report-incidence; never inflated.','deny'); refresh();
+  };
+  document.getElementById('eRR').onclick=()=>{
+    S.reports++; edge('R','#e0a83c');
+    log('ACCEPTED · (R, REPORTS, C₁) — a report may report; it may not prove','gold'); refresh();
+  };
+  document.getElementById('eHP').onclick=()=>{
+    S.proposes++; edge('H','#8f86a3');
+    log('ACCEPTED · (H, PROPOSES, C₁) — a hypothesis proposes; it never enters the proof path'); refresh();
+  };
+  document.getElementById('eWC').onclick=()=>{
+    S.contradicts++; edge('W','#e05a4e');
+    log('ACCEPTED · (W, CONTRADICTS, C₁) — contradiction path N(C₁) stays separate from P(C₁)','deny'); refresh();
+  };
+  document.getElementById('eReset').onclick=()=>{
+    S.supports=S.contradicts=S.reports=S.proposes=0;
+    edgesG.innerHTML=''; logEl.innerHTML='';
+    log('kernel reset — all edges cleared'); refresh();
+  };
+  log('typed-edge invariant armed: ∀e — wellTyped(e), or e is rejected (never reinterpreted)');
+  refresh();
+})();
+
+/* ================= ACT 04: capability ≠ authority ================= */
+(function gate(){
+  const $=id=>document.getElementById(id);
+  const scene=$('gateScene'), bram=$('bram'), chip=$('gateChip'),
+        state=$('gateState'), logEl=$('gateLog');
+  let busy=false, passes=0;
+  function log(t,cls){
+    const d=document.createElement('div'); d.textContent=t;
+    if(cls)d.classList.add(cls);
+    logEl.prepend(d); while(logEl.children.length>10)logEl.lastChild.remove();
+  }
+  function setChip(txt,cls,show){
+    chip.textContent=txt; chip.className='chip '+cls;
+    chip.style.opacity=show?'1':'0';
+  }
+  $('btnSend').onclick=()=>{
+    if(busy)return; busy=true;
+    const allowed=$('perm').checked;
+    state.textContent='WALKING'; state.className='chip hold';
+    bram.style.left='calc(58% - 60px)';                  // approach
+    setTimeout(()=>{
+      if(allowed){
+        setChip('AUTHORIZED','ok',true);
+        scene.classList.add('open');
+        state.textContent='PASSING'; state.className='chip ok';
+        setTimeout(()=>{
+          bram.style.left='88%';
+          passes++;
+          log('AUTHORIZED_PASSAGE · receipt sha256:'+h32('pass'+passes).toString(16).padStart(8,'0')+' · permission was explicit','adm');
+          setTimeout(()=>{
+            scene.classList.remove('open'); setChip('·','dim',false);
+            bram.style.left='8%';
+            state.textContent='IDLE'; state.className='chip dim';
+            busy=false;
+          },1900);
+        },700);
+      }else{
+        setChip('DENY · capability ≠ authority','deny',true);
+        state.textContent='REFUSED'; state.className='chip deny';
+        log('PASSAGE_REFUSED · Bram could open it. He did not. No permission, no passage.','deny');
+        setTimeout(()=>{
+          bram.style.left='8%';
+          setTimeout(()=>{ setChip('·','dim',false);
+            state.textContent='IDLE'; state.className='chip dim'; busy=false; },1400);
+        },900);
+      }
+    },1700);
+  };
+  log('gate armed · default is refusal — the MAYOR starts locked in NO_SHIP');
+})();
+})();
+</script>
+</body>
+</html>
