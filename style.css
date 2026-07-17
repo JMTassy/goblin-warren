@@ -862,6 +862,10 @@ html, body {
   cursor: pointer;
   z-index: 5;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  /* rub gestures (the hearth) must never start a native text-selection drag —
+     a selected label silently swallows every later pointermove (bad-player F1) */
+  user-select: none;
+  -webkit-user-select: none;
 }
 /* the singing halo: a slow warm bloom while the bowl/drum rings — gentle
    on purpose (no strobe, no snap) so the eye relaxes with the ear */

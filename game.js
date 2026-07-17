@@ -557,7 +557,32 @@ if (!S.progress.onboarding || typeof S.progress.onboarding !== "object") {
    a save that graduated through the staged path keeps its earned world. */
 if (_graduated && !S.progress.worldStaged && S.progress.rung < 12) S.progress.rung = 12;
 
+/* NUMERIC SANITY BELT — a well-SHAPED save sails past validAndComplete
+   whole, skipping mergeDefaults, so range-check the load-bearing numbers
+   here on EVERY boot (both load paths). A tampered/corrupt save must not
+   walk a negative wallet or an impossible rung into a live session. */
+(function sanitizeNumbers() {
+  function num(v, lo, hi, dflt) {
+    v = typeof v === "number" && isFinite(v) ? v : dflt;
+    return Math.min(hi, Math.max(lo, Math.round(v)));
+  }
+  S.learning.zolBalance = num(S.learning.zolBalance, 0, 999999, 0);   /* the wallet law: never negative */
+  S.progress.rung = num(S.progress.rung, 1, 12, 12);
+  S.progress.glowOrbs = num(S.progress.glowOrbs, 0, 9999, 0);
+  S.progress.magicSap = num(S.progress.magicSap, 0, 9999, 0);
+  S.flags.fauxGemLessons = num(S.flags.fauxGemLessons, 0, 9999, 0);
+  S.flags.quizRight = num(S.flags.quizRight, 0, 9999, 0);
+  S.flags.proposalsResolved = num(S.flags.proposalsResolved, 0, 9999, 0);
+})();
+
+/* WIPE LATCH — Warden law: the guard lives INSIDE. wipe() only deleted the
+   storage key; any live scheduler's next saveState() resurrected the stale
+   save within a tick (the G5 flake's confirmed mechanism). Once wiped, this
+   session never writes again; the latch dies with the page (next boot is
+   naturally fresh). */
+var stateWiped = false;
 function saveState() {
+  if (stateWiped) return;                 /* a wiped session stays wiped until reload */
   S.lastSavedAt = Date.now();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: still playable this session */ }
 }
@@ -4027,13 +4052,23 @@ function lastEventText() {
   return S.replay[S.replay.length - 1].visibleChange;
 }
 function fillTemplate(tpl) {
+  /* staged worlds: chatter must not name-drop zones/goblins the player has
+     never seen (a Mycelial Gate line in World 1 leaks the reveal — QA P2-1) */
+  var zones = ZONES.filter(function (z) { return zoneRevealedForChat(z.id); });
+  var names = GOBLIN_DEFS.filter(function (d) { return goblinRevealed(d.id); });
   var t = tpl
     .replace("{event}", lastEventText())
     .replace("{object}", lastObjectName())
-    .replace("{zone}", zoneName(pick(ZONES).id))
-    .replace("{name}", pick(GOBLIN_DEFS).name);
+    .replace("{zone}", zoneName(pick(zones.length ? zones : ZONES).id))
+    .replace("{name}", pick(names.length ? names : GOBLIN_DEFS).name);
   if (t.length > 90) t = t.slice(0, 89) + "…";
   return t;
+}
+function zoneRevealedForChat(zoneId) {
+  if (!stagedActive()) return true;
+  var w = currentWorld();
+  for (var i = 1; i <= w && i <= 4; i++) if (WORLD_TABLE[i].zones.indexOf(zoneId) !== -1) return true;
+  return false;
 }
 
 /* Visible props (Gerald's apartment, shrines, mushrooms…) live on S.objects
@@ -4136,7 +4171,8 @@ function tickGoblin(id) {
     }
   }
 
-  if (id === "pip" && S.worldSigns.westPath.clarified && Math.random() < 0.1) {
+  if (mg.active) { /* a minigame overlay is up: chatter behind it is noise (QA P2-4) */ }
+  else if (id === "pip" && S.worldSigns.westPath.clarified && Math.random() < 0.1) {
     showBubble(id, pipRecallLine(), 4200);
   } else if (Math.random() < 0.32) {
     showBubble(id, fillTemplate(pick(DIALOGUE_TEMPLATES)));
@@ -4564,6 +4600,7 @@ function ambientBugEscape() {
 }
 
 function resumeAfterReload() {
+  if (stagedActive() && currentWorld() < 3) return;  // same Worlds gate as bootScriptedArc: the arc opens World 3
   if (!S.flags.greeted) { bootScriptedArc(); return; }
   if (!S.flags.firstSignalSeen) {
     setTimeout(ambientBugEscape, 3000);
@@ -4974,20 +5011,24 @@ function luluSpeak(text) {
   } catch (e) { /* voice is a gift, not a dependency */ }
 }
 
-function showBubble(goblinId, text, duration, noSpeak) {
+function showBubble(goblinId, text, duration, noSpeak, hold) {
   /* noSpeak lets a caller supply its own real voice line (e.g. the crib plays
-     a bundled Luna mp3) instead of the default browser TTS — avoids two mouths. */
-  if (goblinId === "lulu" && !noSpeak) luluSpeak(text);
+     a bundled Luna mp3) instead of the default browser TTS — avoids two mouths.
+     hold marks a SIGNATURE beat (fire lit, world opened, Bram's arrival): while
+     it speaks, ambient tick lines wait instead of stomping it (QA P2-1). */
   var host = goblinEls[goblinId];
   if (!host) return;
-  if (text.length > 90) text = text.slice(0, 89) + "…";
   var old = host.querySelector(".bubble");
+  if (old && !hold && old.dataset.holdUntil && Date.now() < +old.dataset.holdUntil) return;
+  if (goblinId === "lulu" && !noSpeak) luluSpeak(text);
+  if (text.length > 90) text = text.slice(0, 89) + "…";
   if (old) old.remove();
   var g = S.goblins[goblinId];
   var b = document.createElement("div");
   var edge = g && g.x < 16 ? "edge-left" : (g && g.x > 84 ? "edge-right" : "");
   b.className = "bubble" + (edge ? " " + edge : "");
   b.textContent = text;
+  if (hold) b.dataset.holdUntil = String(Date.now() + (duration || 3200));
   host.appendChild(b);
   clearTimeout(bubbleTimers[goblinId]);
   bubbleTimers[goblinId] = setTimeout(function () { if (b.parentNode) b.remove(); }, duration || 3200);
@@ -5164,7 +5205,9 @@ function renderReplayStrip() {
   var CHIP_ICONS = { try: "🌱", hold: "⏳", compost: "🍂", boop: "🎉", quiz: "🦋", goldfall: "🪙", humor: "🌘", adopt: "🥺", ethics: "💭", verdict: "📜" };
   items.forEach(function (r) {
     var chip = document.createElement("div");
-    chip.className = "replay-chip " + r.choice + (r.composted ? " composted" : "");
+    /* a receipt chip must never share a selector with a live world element
+       (the falling hazard owns .faux-gem — QA F3) */
+    chip.className = "replay-chip " + (r.choice === "faux-gem" ? "faux-receipt" : r.choice) + (r.composted ? " composted" : "");
     var d = new Date(r.timestamp);
     var hh = ("0" + d.getHours()).slice(-2), mm = ("0" + d.getMinutes()).slice(-2);
     if (r.composted) {
@@ -6057,7 +6100,7 @@ function bramArrive() {
   setTimeout(function () {
     if (goblinEls.bram) {
       flashClass(goblinEls.bram, "booped", 600);
-      showBubble("bram", "Someone kept a fire alive. Good. I fix things — holler if something cracks.", 6200);
+      showBubble("bram", "Someone kept a fire alive. Good. I fix things — holler if something cracks.", 6200, true, true);
     }
   }, 2400);
   pushReplay("Bram", "A repairer arrived", "arrival",
@@ -6986,8 +7029,11 @@ function answerHallucinationQuiz(choiceIdx) {
     /* -- STEP 6: persist state */
     saveState();
     renderTopbar();
-    /* -- STEP 7: Lulu reaction line */
-    setTimeout(function () { showBubble("lulu", currentQuiz.luluReaction, 4800); }, 350);
+    checkWorldAdvance();   /* an earned world falls at the milestone, not on the next reload */
+    /* -- STEP 7: Lulu reaction line — capture the quiz NOW: the global can be
+       nulled (forceCloseQuiz) before the 350ms timer fires */
+    var reactionQuiz = currentQuiz;
+    setTimeout(function () { if (reactionQuiz) showBubble("lulu", reactionQuiz.luluReaction, 4800); }, 350);
     pushReplay("Lulu", "Hallucination corrected", "quiz-zol",
       "player spotted the hallucination in Lulu’s claim." + (firstTime ? " +" + QUIZ_ZOL_V1_REWARD_ZOL + " ZOL. Knowledge Lantern lit." : " (no additional ZOL — already rewarded)"), "");
   } else {
@@ -7311,6 +7357,7 @@ function answerQuizZol(choiceIdx) {
     var line = streakBonus ? pick(QUIZ_ZOL_REACTIONS.streak) : pick(QUIZ_ZOL_REACTIONS.correct);
     setTimeout(function () { showBubble("lulu", line, 4600); }, 350);
     saveState(); renderTopbar();
+    checkWorldAdvance();   /* the milestone moment IS the sky's cue: an earned world falls now, not on the next reload */
     pushReplay("Lulu", "Fun fact learned", "quiz-zol",
       "answered '" + def.topic + "' correctly." + (reward > 0 ? " +" + reward + " ZOL. " + (isNewEffect ? "world responded (" + def.effect + ")." : "") : " (no ZOL — already learned)"), "");
   } else {
@@ -7524,6 +7571,7 @@ function answerQuiz(option) {
   if (right) {
     S.flags.quizRight = (S.flags.quizRight || 0) + 1;
     checkLevelGateProgress(); /* VISION_V1_30 §2 — legible progress toward the next gate */
+    checkWorldAdvance();      /* an earned world falls at the milestone, not on the next reload */
     S.world.warmth = clamp(S.world.warmth + 2, 0, 100);
     S.world.soil = clamp(S.world.soil + 1, 0, 100);
     earn(0, 2);
@@ -9170,6 +9218,7 @@ function wireInput() {
     treeZone.style.cursor = "pointer";
     treeZone.addEventListener("click", function () {
       checkTreeDisco(); /* VISION_V1_29 §2d — 5 taps in 2.5s wakes the disco mushroom */
+      if (stagedActive() && currentWorld() < 2) return;  /* the Moth's riddles are World 2's toy — a stray World-1 tap must not summon hidden goblins */
       openRiddle();
     });
   }
@@ -9582,7 +9631,7 @@ function kindleHearth(objId) {
   if (window.Sound && Sound.tibetanBowl) Sound.tibetanBowl(396);
   var g = S.goblins.lulu;
   if (g) { g.mood = "delighted"; renderGoblins(); dropParticle(g, "🔥", true); }
-  showBubble("lulu", "Fire... you MADE it. Warm hands, warm Warren.", 5200, true);
+  showBubble("lulu", "Fire... you MADE it. Warm hands, warm Warren.", 5200, true, true);
   luluVoiceLine("relic");
   earn(0, 1);
   pushReplay("You", "The first fire", "hearth",
@@ -9620,7 +9669,7 @@ function spawnArrivalStar(next) {
   requestAnimationFrame(function () {
     requestAnimationFrame(function () { el.style.top = "22%"; });   // falls TO the tree, then rests
   });
-  showBubble("lulu", "Look up... something is falling. For you. Catch it!", 5200, true);
+  showBubble("lulu", "Look up... something is falling. For you. Catch it!", 5200, true, true);
   setTimeout(function () {
     /* uncaught: it rests by the Tree, pulsing — tap whenever you're ready */
     if (arrivalStarEl === el) el.classList.add("crib-cue");
@@ -9639,12 +9688,13 @@ function openWorld(next) {
   S.progress.rung = WORLD_RUNGS[next - 1];
   saveState();
   applyWorldReveal(true);
-  showBubble("lulu", WORLD_LINES[next], 5600, true);
+  showBubble("lulu", WORLD_LINES[next], 5600, true, true);
   luluVoiceLine("travel");
   if (window.Sound && Sound.bloom) Sound.bloom();
   startWorldAmbient(next);
   pushReplay("The Warren", "World " + next + " opened", "world-open",
     "a star fell, you caught it — World " + next + " is awake.", "the paths grew longer.");
+  saveState();   /* receipts law: the world-open receipt must not be lost to an instant reload while its effect persists */
   setTimeout(function () { worldAdvanceBusy = false; }, 1500);
 }
 
@@ -10461,7 +10511,7 @@ window.WARREN_DEBUG = {
   playSfx: function (key) { playSfx(key, SFX_SYNTH_FNS[key]); },
   getSfxSynthCount: function () { return sfxSynthCount; },
   resetSfxSynthCount: function () { sfxSynthCount = 0; },
-  wipe: function () { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} },
+  wipe: function () { stateWiped = true; try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} },
   /* v-local.1: generateGoblinLine test surface */
   generateGoblinLine: function (id, mood, events, cb) { generateGoblinLine(id, mood, events, cb); },
   /* QUIZ_TO_ZOL_V1 test surface */
