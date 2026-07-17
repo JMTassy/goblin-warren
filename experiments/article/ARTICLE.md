@@ -1,7 +1,7 @@
 # From Attachment to Orchestration: A Three-Scale Playable Architecture for Human–AI Agent Literacy
 
 <!-- authority=false · canon=false · ledger_effect=none · non-sovereign -->
-<!-- STATUS: E15 SOLFEGE REDESIGN complete (core 33/33, browser v2 drive-to-DONE receipt) — focused re-review of changed sections (§6/§8/§9) pending before re-freeze -->
+<!-- STATUS: PUBLISHABLE_CANDIDATE v2 — E15 redesign re-reviewed (focused pass: all claims re-executed and confirmed, 1 stale term corrected); gate criteria hold; operator seal required -->
 
 *Subtitle: Goblin Warren as an epistemic interface for learning the governance of agentic systems.*
 
@@ -652,7 +652,7 @@ unchanged; expression view mutates nothing); L0 (context gate, decay,
 shape, failed quiz refuses admission and preserves the candidate, passed
 quiz admits — and is the sole admission site by static scan); L1 (overlap,
 fallible hints including a confidently-wrong one within the first 60
-drops, VERIFY ground truth, False-Jewel mistake with lesson event, reset
+drops, VERIFY ground truth, Fausse-Note mistake with lesson event, reset
 on the fourth mistake, on-beat catch gate — off-beat bounces are
 rewardless and penalty-free, five on-beat notes → candidate); L2 (rest
 structurally
