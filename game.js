@@ -7413,22 +7413,54 @@ function scheduleGoldfall(delay) {
   goldfallTimer = setTimeout(spawnGoldfall, delay == null ? randi(45000, 100000) : delay);
 }
 
-function spawnGoldfall() {
+/* SKYFALL TABLE — witness #7: "more things falling, at different speeds,
+   some to catch, some NOT to catch." The sky's gift table grows with the
+   Worlds — progression you can literally watch fall. Odd items pay
+   nothing and earn a giggle: discrimination is the skill, never punished. */
+var SKYFALL_TABLE = [
+  { glyph: "🪙", world: 2, weight: 5, fall: 6.5, kind: "zol"    },  // the classic
+  { glyph: "🔮", world: 1, weight: 4, fall: 9.5, kind: "sap"    },  // slow and gentle: World 1's gift
+  { glyph: "💎", world: 3, weight: 1, fall: 3.6, kind: "zolBig" },  // fast + rare: the skill catch
+  { glyph: "🍂", world: 1, weight: 3, fall: 12,  kind: "odd"    },  // a drifting leaf. it is a leaf.
+  { glyph: "🪰", world: 2, weight: 2, fall: 5,   kind: "odd"    }   // the bog-fly. you'll learn.
+];
+var SKYFALL_ODD_LINES = {
+  "🍂": "...a leaf. You caught a leaf. Keep it, I guess?",
+  "🪰": "EW. Why. WHY."
+};
+var goldfallItem = null;
+function pickSkyfallItem() {
+  var w = stagedActive() ? currentWorld() : 4;
+  var pool = SKYFALL_TABLE.filter(function (it) { return it.world <= w; });
+  var total = 0, i;
+  for (i = 0; i < pool.length; i++) total += pool[i].weight;
+  var roll = Math.random() * total;
+  for (i = 0; i < pool.length; i++) { roll -= pool[i].weight; if (roll <= 0) return pool[i]; }
+  return pool[0];
+}
+function spawnGoldfall(forceGlyph) {
   if (goldfallEl) { scheduleGoldfall(); return; }
   var world = document.getElementById("world");
   if (!world) { scheduleGoldfall(); return; }
+  var item = null;
+  if (forceGlyph) {
+    for (var i = 0; i < SKYFALL_TABLE.length; i++) if (SKYFALL_TABLE[i].glyph === forceGlyph) { item = SKYFALL_TABLE[i]; break; }
+  }
+  if (!item) item = pickSkyfallItem();
+  goldfallItem = item;
   var el = document.createElement("div");
   el.className = "goldfall";
-  el.textContent = "🪙";
+  el.textContent = item.glyph;
   el.style.left = randi(10, 90) + "%";
   el.style.top = "-6%";
+  el.style.transition = "top " + item.fall + "s linear";  // per-item speed (witness #7)
   world.appendChild(el);
   goldfallEl = el;
   el.addEventListener("pointerdown", function (e) {
     e.stopPropagation();
     catchGoldfall(e);
   });
-  /* let layout settle, then fall — a 6.5s glide, catchable the whole way */
+  /* let layout settle, then fall — catchable the whole way down */
   requestAnimationFrame(function () {
     requestAnimationFrame(function () { el.style.top = "104%"; });
   });
@@ -7437,26 +7469,43 @@ function spawnGoldfall() {
     if (goldfallEl === el) {
       el.remove();
       goldfallEl = null;
+      goldfallItem = null;
       scheduleGoldfall();
     }
-  }, 7000);
+  }, item.fall * 1000 + 700);
 }
 
 function catchGoldfall(e) {
   var el = goldfallEl;
   if (!el) return;
+  var item = goldfallItem || SKYFALL_TABLE[0];
   goldfallEl = null;
+  goldfallItem = null;
   clearTimeout(goldfallMissTimer);
   ensureAudio(); resumeAudio();
-  var amt = randi(2, 5);
-  S.learning.zolBalance += amt;
-  Sound.glingGling(amt);
   var r = el.getBoundingClientRect();
-  zolCelebrate(amt, r.left + r.width / 2, r.top + r.height / 2);
+  if (item.kind === "zol" || item.kind === "zolBig") {
+    var amt = item.kind === "zolBig" ? randi(6, 10) : randi(2, 5);
+    S.learning.zolBalance += amt;
+    Sound.glingGling(amt);
+    zolCelebrate(amt, r.left + r.width / 2, r.top + r.height / 2);
+    pushReplay("The Sky", "Gold fell from the sky", "goldfall",
+      "a falling " + (item.kind === "zolBig" ? "gem" : "coin") + " was caught mid-air. +" + amt + " ZOL",
+      "I caught gold falling from the sky.");
+  } else if (item.kind === "sap") {
+    earn(0, 1);
+    if (window.Sound && Sound.chirp) Sound.chirp();
+    pushReplay("The Sky", "A drop of sap fell", "goldfall-sap",
+      "a slow violet drop, caught. +1 sap", "the sky feeds the Warren too.");
+  } else {
+    /* odd catch: no pay, one giggle — discrimination is learned, not punished */
+    var voice = Object.keys(S.goblins).filter(goblinRevealed);
+    if (voice.length) showBubble(pick(voice), SKYFALL_ODD_LINES[item.glyph] || "...huh.", 3200);
+    pushReplay("The Sky", "Something odd fell", "skyfall-odd",
+      "you caught " + item.glyph + ". it was " + item.glyph + ".", "not everything that falls is treasure.");
+  }
   el.classList.add("caught");
   setTimeout(function () { el.remove(); }, 500);
-  pushReplay("The Sky", "Gold fell from the sky", "goldfall",
-    "a falling coin was caught mid-air. +" + amt + " ZOL", "I caught gold falling from the sky.");
   saveState();
   renderTopbar();
   renderReplayStrip();
@@ -8625,11 +8674,49 @@ function kindleHearth(objId) {
 }
 
 var worldAdvanceBusy = false;
+var arrivalStarEl = null, arrivalStarNext = 0;
+/* witness #7: new arrivals FALL FROM THE SKY and are caught — the sky is
+   the delivery system for progression. Earned world → a slow star falls;
+   catching it opens the world. Missed → it rests glowing by the Tree,
+   tappable forever (never traps). */
 function checkWorldAdvance() {
-  if (!stagedActive() || prologueActive || worldAdvanceBusy) return;
+  if (!stagedActive() || prologueActive || worldAdvanceBusy || arrivalStarEl) return;
   var cur = currentWorld();
   if (cur >= 4 || earnedWorld() <= cur) return;
-  var next = cur + 1;                                    // one world per beat, always ceremonial
+  spawnArrivalStar(cur + 1);
+}
+function spawnArrivalStar(next) {
+  var world = document.getElementById("world");
+  if (!world) return;
+  var el = document.createElement("div");
+  el.className = "goldfall arrival-star";
+  el.textContent = "🌟";
+  el.style.left = randi(25, 75) + "%";
+  el.style.top = "-6%";
+  el.style.transition = "top 13s linear";                // slow: a gift, not a test
+  el.style.fontSize = "34px";
+  world.appendChild(el);
+  arrivalStarEl = el;
+  arrivalStarNext = next;
+  el.addEventListener("pointerdown", function (e) { e.stopPropagation(); catchArrivalStar(); });
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { el.style.top = "22%"; });   // falls TO the tree, then rests
+  });
+  showBubble("lulu", "Look up... something is falling. For you. Catch it!", 5200, true);
+  setTimeout(function () {
+    /* uncaught: it rests by the Tree, pulsing — tap whenever you're ready */
+    if (arrivalStarEl === el) el.classList.add("crib-cue");
+  }, 13500);
+}
+function catchArrivalStar() {
+  if (!arrivalStarEl) return;
+  var el = arrivalStarEl, next = arrivalStarNext;
+  arrivalStarEl = null; arrivalStarNext = 0;
+  el.classList.add("caught");
+  setTimeout(function () { el.remove(); }, 500);
+  openWorld(next);
+}
+function openWorld(next) {
   worldAdvanceBusy = true;
   S.progress.rung = WORLD_RUNGS[next - 1];
   saveState();
@@ -8639,7 +8726,7 @@ function checkWorldAdvance() {
   if (window.Sound && Sound.bloom) Sound.bloom();
   startWorldAmbient(next);
   pushReplay("The Warren", "World " + next + " opened", "world-open",
-    "The Warren grew — World " + next + " is awake.", "the paths grew longer.");
+    "a star fell, you caught it — World " + next + " is awake.", "the paths grew longer.");
   setTimeout(function () { worldAdvanceBusy = false; }, 1500);
 }
 
@@ -9350,7 +9437,7 @@ window.WARREN_DEBUG = {
   adoptWanderer: function (name) { return adoptWanderer(name); },
   getAdopted: function () { return S.adopted; },
   /* goldfall */
-  spawnGoldfall: function () { spawnGoldfall(); },
+  spawnGoldfall: function (glyph) { spawnGoldfall(glyph || "\ud83e\ude99"); },
   catchGoldfall: function () { catchGoldfall(); },
   goldfallActive: function () { return !!goldfallEl; },
   /* matcha craving (VISION_V1_28 §3) */
@@ -9446,6 +9533,8 @@ window.WARREN_DEBUG = {
   rubHearth: function (px) { var o = null; for (var i = 0; i < S.objects.length; i++) if (S.objects[i].sign === "A Cold Hearth") { o = S.objects[i]; break; } if (o) hearthRubFriction(px || 500, o.id); return !!S.flags.hearthLit; },
   spawnHearth: function () { spawnHearth(); },
   checkWorldAdvance: function () { checkWorldAdvance(); return currentWorld(); },
+  arrivalPending: function () { return !!arrivalStarEl; },
+  catchArrival: function () { catchArrivalStar(); return currentWorld(); },
   getLuluPrologueURLs: function () { return LULU_PROLOGUE_URLS; }
 };
 

@@ -225,11 +225,16 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
     const S = window.WARREN_DEBUG.getState();
     S.quizState = S.quizState || {}; S.quizState.rewardPaid = { q1: true, q2: true, q3: true, q4: true };
     S.flags.quizRight = 5; S.flags.proposalsResolved = 2;
-    const seq = [];
-    seq.push(window.WARREN_DEBUG.checkWorldAdvance());
-    return { seq, world: window.WARREN_DEBUG.getWorld() };
+    // witness #7: the advance now FALLS as a star — checkWorldAdvance spawns
+    // it (world unchanged), catching it opens the world. One star at a time.
+    const preCatch = window.WARREN_DEBUG.checkWorldAdvance();
+    const starPending = window.WARREN_DEBUG.arrivalPending();
+    window.WARREN_DEBUG.checkWorldAdvance();               // must NOT stack a second star
+    const caught = window.WARREN_DEBUG.catchArrival();
+    return { preCatch, starPending, caught, world: window.WARREN_DEBUG.getWorld() };
   });
-  log('GW1_one_world_per_beat', gw.seq[0] === 2 && gw.world.rung === 7 && gw.world.earned === 4,
+  log('GW1_advance_falls_as_star_one_per_beat',
+    gw.preCatch === 1 && gw.starPending && gw.caught === 2 && gw.world.rung === 7 && gw.world.earned === 4,
     JSON.stringify(gw));
   await page.waitForTimeout(1700); // ceremony cooldown between advances
   const gw2 = await page.evaluate(({ visSrc }) => {
@@ -240,7 +245,7 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
   log('GW2_world2_reveals_pip_forge_riddle_only',
     gw2.pipVisible && gw2.forgeVisible && gw2.riddleVisible && gw2.nibStillHidden && gw2.levelStillHidden,
     JSON.stringify(gw2));
-  await page.evaluate(() => window.WARREN_DEBUG.checkWorldAdvance());
+  await page.evaluate(() => { window.WARREN_DEBUG.checkWorldAdvance(); window.WARREN_DEBUG.catchArrival(); });
   await page.waitForTimeout(1700);
   const gw3 = await page.evaluate(({ visSrc }) => {
     const vis = eval('(' + visSrc + ')');
@@ -254,7 +259,7 @@ const dotsSrc = `function () { const w = document.getElementById('crib-progress'
     gw3.world.world === 3 && gw3.world.rung === 9 && gw3.nibVisible && gw3.nurseryVisible &&
     gw3.gateVisible && gw3.signalVisible && gw3.questsBack && gw3.levelStillHidden,
     JSON.stringify(gw3));
-  await page.evaluate(() => window.WARREN_DEBUG.checkWorldAdvance());
+  await page.evaluate(() => { window.WARREN_DEBUG.checkWorldAdvance(); window.WARREN_DEBUG.catchArrival(); });
   await page.waitForTimeout(1700);
   const gw4 = await page.evaluate(({ visSrc }) => {
     const vis = eval('(' + visSrc + ')');

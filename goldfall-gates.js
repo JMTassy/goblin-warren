@@ -57,6 +57,32 @@ function log(n, p, d) { results[n] = p; console.log((p ? 'PASS ' : 'FAIL ') + n 
   log('G3_miss_costs_nothing', g3.gained === 0 && g3.newReceipts === 0 && !g3.active && g3.domGone,
     JSON.stringify(g3));
 
+  // G5 (SKYFALL, witness #7): odd items pay NOTHING — a giggle, no ZOL, no sap
+  const g5 = await page.evaluate(async () => {
+    const D = window.WARREN_DEBUG;
+    const before = { zol: D.getState().learning.zolBalance, sap: D.getState().progress.magicSap };
+    D.spawnGoldfall('🍂');
+    D.catchGoldfall();
+    await new Promise(r => setTimeout(r, 600));
+    return { zolDelta: D.getState().learning.zolBalance - before.zol,
+      sapDelta: D.getState().progress.magicSap - before.sap,
+      oddReceipt: D.getReplay().some(r => r.choice === 'skyfall-odd') };
+  });
+  log('G5_odd_catch_pays_nothing_but_a_giggle',
+    g5.zolDelta === 0 && g5.sapDelta === 0 && g5.oddReceipt, JSON.stringify(g5));
+
+  // G6: the sap-drop pays exactly +1 sap, no ZOL
+  const g6 = await page.evaluate(async () => {
+    const D = window.WARREN_DEBUG;
+    const before = { zol: D.getState().learning.zolBalance, sap: D.getState().progress.magicSap };
+    D.spawnGoldfall('🔮');
+    D.catchGoldfall();
+    await new Promise(r => setTimeout(r, 600));
+    return { zolDelta: D.getState().learning.zolBalance - before.zol,
+      sapDelta: D.getState().progress.magicSap - before.sap };
+  });
+  log('G6_sapdrop_pays_one_sap', g6.zolDelta === 0 && g6.sapDelta === 1, JSON.stringify(g6));
+
   log('G4_no_page_errors', errs.length === 0, errs.join(' | ') || 'clean');
 
   await b.close();
