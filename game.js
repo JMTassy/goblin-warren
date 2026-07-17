@@ -2947,6 +2947,10 @@ function endMinigame(success, line, reward, consequence) {
   clearTimeout(mg.timer);
   if (mg.data && mg.data.bellTimeout) clearTimeout(mg.data.bellTimeout);
   if (mg.data && mg.data.hopTimer) clearTimeout(mg.data.hopTimer);
+  /* matcha ritual timers — cleaned on ANY close, so nothing whisks a ghost */
+  if (mg.data && mg.data.sweepInt) { clearInterval(mg.data.sweepInt); mg.data.sweepInt = null; }
+  if (mg.data && mg.data.whiskTimeout) { clearTimeout(mg.data.whiskTimeout); mg.data.whiskTimeout = null; }
+  if (mg.data && mg.data.serveTimeout) { clearTimeout(mg.data.serveTimeout); mg.data.serveTimeout = null; }
   var res = document.getElementById("mg-result");
   if (res) {
     res.classList.remove("hidden");
@@ -3477,6 +3481,14 @@ var MINIGAMES = {
     title: "THE STARING CONTEST 😐",
     problem: "Don't tap for 5 seconds. Don't even blink. Okay, blink.",
     play: function () { mgStaringPlay(); }
+  },
+  /* LEVEL 2: THE MATCHA RITUAL (operator-locked) — never pooled into a
+     level's random side quests; it only opens through startMatchaRitual()
+     when a carried cup finds its asking goblin. Whisk, serve, delight. */
+  matcharitual: {
+    title: "THE MATCHA RITUAL 🍵",
+    problem: "Stir in circles until the foam stands — then serve on the golden glow.",
+    play: function () { mgMatchaPlay(); }
   }
 };
 
@@ -7601,7 +7613,7 @@ function onTapGoblin(id) {
   /* VISION_V1_33 §2 beat 2 — the taming beat: while the Prologue is
      waiting on Lulu's first tap, route to her instead of a normal boop. */
   if (prologueActive && id === "lulu" && prologueStep === 1) { tapLuluPrologue(); return; }
-  if (matchaHeld && id === matchaGoblinId) { deliverMatcha(); return; } /* the carried cup finds its goblin */
+  if (matchaHeld && id === matchaGoblinId) { startMatchaRitual(); return; } /* the carried cup finds its goblin — the ritual begins */
   /* QUIZ_TO_ZOL_V2 — once, in the graduated Warren, Lulu offers her first fun
      fact (discovery). After that the lit Knowledge Lantern is the repeat door. */
   if (id === "lulu" && !S.flags.quizZolMet && quizZolAvailable() && quizZolHasUnanswered()) {
@@ -8061,15 +8073,48 @@ function echoDelight() {
 /* ---------------------------------------------------------------------
    MATCHA CRAVING — a small want, a small tending. Every so often a goblin
    asks for matcha; a cup appears near the Receipt Forge. Carry it to the
-   right goblin within the window and they light up. Ignore it and they're
-   quietly a little lonely for a while — never punished, just noticed.
-   Membrane: moods + exactly 1 magic sap. No ZOL, no world mutation.
+   right goblin within the window and THE MATCHA RITUAL opens (operator-
+   locked Level 2): whisk the bowl in circles, serve on the golden glow.
+   Ignore the craving and the goblin is quietly a little lonely for a
+   while — never punished, just noticed.
+   Membrane: the ambient delivery (debug hook, reduced-motion / crib /
+   busy-overlay fallback) stays moods + exactly 1 magic sap. The played
+   ritual additionally pays minigame-class ZOL through endMinigame (8/4/1
+   by quality) — same wallet every other side quest pays into. Quality is
+   never persisted; the worst cup still pays and still delights.
 --------------------------------------------------------------------- */
 var matchaGoblinId = null, matchaHeld = false, matchaCupEl = null;
 var matchaTimer = null, matchaExpireTimer = null, matchaMoodTimer = null;
 var MATCHA_ASK_LINES = ["...matcha? for me?", "matcha would be nice. just saying.", "is there... matcha? no rush."];
 var MATCHA_THANKS_LINES = ["MATCHA! for me?! today is GOOD.", "warm cup, warm goblin. thank you.", "you remembered. that's the whole gift."];
 var MATCHA_LONELY_LINES = ["...nobody came. it's fine. (it's not, a little.)", "the cup never came. okay. okay."];
+var MATCHA_GRIMACE_LINES = ["*sip* ...the foam is very honest today. *drinks every drop anyway* ...mine."];
+
+/* --- ritual law (pure, node-checkable shapes) --- */
+var MATCHA_WHISK_TARGET = 24;     /* transitions that end the whisk early */
+var MATCHA_WHISK_MS = 20000;      /* whisk phase auto-ends */
+var MATCHA_SWEEP_MS = 3000;       /* one lap of the golden glow */
+var MATCHA_SERVE_AUTO_MS = 12000; /* the glow serves itself, gently */
+var MATCHA_RITUAL_ZOL = { excellent: 8, good: 4, funny: 1 };
+
+/* signed whisk step over 8 sectors: adjacent = ±1 (7↔0 wraps), anything
+   else — a multi-sector jump or no move — is 0: IGNORED, never punished. */
+function matchaWhiskStep(prev, cur) {
+  if (prev == null || cur == null) return 0;
+  if ((cur - prev + 8) % 8 === 1) return 1;
+  if ((prev - cur + 8) % 8 === 1) return -1;
+  return 0;
+}
+/* exactly three foam states — light < 12 ≤ soft ≤ 20 < perfect */
+function matchaFoamState(n) { return n >= 21 ? "perfect" : n >= 12 ? "soft" : "light"; }
+/* quality law: light foam is FUNNY (never hurt), perfect foam served on
+   the gold is EXCELLENT, everything in between is a GOOD honest cup. */
+function matchaQuality(trans, inWindow) {
+  var foam = matchaFoamState(trans || 0);
+  if (foam === "light") return "funny";
+  if (foam === "perfect" && inWindow) return "excellent";
+  return "good";
+}
 
 function scheduleMatchaCraving(delay) {
   clearTimeout(matchaTimer);
@@ -8133,8 +8178,13 @@ function showMatchaChip() {
   app.appendChild(chip);
 }
 
-function deliverMatcha() {
+/* PHASE 3 — RELATION. quality ∈ excellent/good/funny (default GOOD: the
+   debug hook and every no-ritual fallback resolve here instantly). The
+   old contract holds: resolves, pays exactly +1 sap once, writes a
+   receipt. FUNNY grimaces and drinks it all anyway — never a hurt feeling. */
+function deliverMatcha(quality) {
   if (!matchaGoblinId || !matchaHeld) return false;
+  var q = (quality === "excellent" || quality === "funny") ? quality : "good";
   clearTimeout(matchaExpireTimer);
   clearTimeout(matchaMoodTimer);
   var id = matchaGoblinId, g = S.goblins[id];
@@ -8143,17 +8193,19 @@ function deliverMatcha() {
   if (app) app.classList.remove("carrying-matcha");
   hideMatchaChip();
   if (g) {
-    g.mood = "delighted";
-    g.memory = "someone remembered my matcha.";
-    earn(0, 1); /* exactly +1 sap — the only currency this ritual touches */
+    g.mood = q === "funny" ? "content" : "delighted";
+    g.memory = q === "funny" ? "the foam was... brave. it was still my cup." : "someone remembered my matcha.";
+    earn(0, 1); /* exactly +1 sap, always, exactly once */
     dropParticle(g, "🍵", true);
-    dropParticle(g, "✨", true);
+    dropParticle(g, q === "funny" ? "✨" : "💚", true);
     matchaCelebrate(g);
-    showBubble(id, pick(MATCHA_THANKS_LINES), 3200);
+    showBubble(id, q === "funny" ? pick(MATCHA_GRIMACE_LINES) : pick(MATCHA_THANKS_LINES), 3200);
   }
-  luluVoiceLine("matcha");
+  if (id === "lulu") luluVoiceLine("matcha"); /* Lulu's line belongs to Lulu's cup */
   pushReplay(g ? g.name : "A goblin", "Matcha delivered", "matcha",
-    "matcha delivered — " + (g ? g.name : "a goblin") + " lit up. +1 sap", "someone remembered my matcha.");
+    "matcha delivered (" + q + ") — " + (g ? g.name : "a goblin") +
+    (q === "funny" ? " grimaced, then drank it all. +1 sap" : " lit up. +1 sap"),
+    g ? g.memory : "someone remembered my matcha.");
   renderGoblins();
   renderReplayStrip();
   saveState();
@@ -8161,8 +8213,174 @@ function deliverMatcha() {
   return true;
 }
 
+/* ---------------------------------------------------------------------
+   THE MATCHA RITUAL — Level 2 (operator-locked, 30-45s). Delivery is no
+   longer instant: tapping the asking goblin while carrying opens the
+   #minigame overlay through the established startMinigame plumbing.
+   PHASE 1 WHISK: hold and circle the bowl — 8 invisible atan2 sectors;
+   adjacent-sector transitions raise the foam (jumps ignored). The 8 dots
+   around the bowl are the REQUIRED accessibility path: tapping them in
+   order counts identically, same max quality. PHASE 2 SERVE: a golden
+   glow laps the bowl every 3s with a ≥1.2s visible window. PHASE 3 is
+   deliverMatcha(quality) above. Fallbacks (reduced motion, the crib, a
+   busy overlay) keep the old instant GOOD delivery.
+--------------------------------------------------------------------- */
+function startMatchaRitual() {
+  if (!matchaGoblinId || !matchaHeld) return false;
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* the ritual is a flourish, never a wall — and never during the crib */
+  if (reduce || prologueActive || mg.active) return deliverMatcha("good");
+  if (!startMinigame("matcharitual")) return deliverMatcha("good");
+  /* the bowl is out — the craving cannot expire mid-ritual */
+  clearTimeout(matchaExpireTimer);
+  return true;
+}
+
+function mgMatchaPlay() {
+  var arena = document.getElementById("mg-arena");
+  if (!arena || mg.active !== "matcharitual") return;
+  var d = mg.data;
+  d.phase = "whisk"; d.trans = 0; d.prevSector = null; d.whisking = false;
+  d.dotNext = 0; d.served = false; d.quality = null; d.windowOpen = false;
+  var html = '<div id="mg-whisk-zone"><div id="mg-foam" class="foam-light"></div><div id="mg-bowl">🍵</div>';
+  for (var i = 0; i < 8; i++) {
+    var a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    html += '<button class="mg-whisk-dot" data-i="' + i + '" aria-label="whisk step ' + (i + 1) + ' of 8" style="left:' +
+      (50 + 44 * Math.cos(a)).toFixed(1) + '%;top:' + (50 + 44 * Math.sin(a)).toFixed(1) + '%"></button>';
+  }
+  html += '</div><div class="mg-note" id="mg-matcha-note">hold and stir in circles — or tap the glowing dots in order</div>';
+  arena.innerHTML = html;
+  var zone = document.getElementById("mg-whisk-zone");
+  zone.addEventListener("pointerdown", function (e) { e.stopPropagation(); d.whisking = true; d.prevSector = null; });
+  zone.addEventListener("pointermove", mgMatchaMove);
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+    zone.addEventListener(ev, function () { d.whisking = false; d.prevSector = null; });
+  });
+  [].forEach.call(zone.querySelectorAll(".mg-whisk-dot"), function (b) {
+    b.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      mgMatchaTapDot(parseInt(b.getAttribute("data-i"), 10));
+    });
+  });
+  mgMatchaLightDots();
+  d.whiskTimeout = setTimeout(mgMatchaServePhase, MATCHA_WHISK_MS);
+}
+
+function mgMatchaLightDots() {
+  var d = mg.data;
+  var dots = document.querySelectorAll("#mg-whisk-zone .mg-whisk-dot");
+  [].forEach.call(dots, function (b) {
+    b.classList.toggle("lit", parseInt(b.getAttribute("data-i"), 10) === d.dotNext);
+  });
+}
+
+/* pointer circling — sector via atan2 around the bowl's center */
+function mgMatchaMove(e) {
+  var d = mg.data;
+  if (mg.active !== "matcharitual" || d.phase !== "whisk" || !d.whisking) return;
+  var zone = document.getElementById("mg-whisk-zone");
+  if (!zone) return;
+  var r = zone.getBoundingClientRect();
+  var dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  if (dx * dx + dy * dy < 324) return; /* dead center (18px) — angle means nothing there */
+  var cur = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * 8) % 8;
+  if (d.prevSector == null) { d.prevSector = cur; return; }
+  if (cur === d.prevSector) return;
+  var step = matchaWhiskStep(d.prevSector, cur);
+  d.prevSector = cur; /* jumps re-anchor silently: ignored, not punished */
+  if (step !== 0) mgMatchaTransition();
+}
+
+/* accessibility path — tapping the lit dots in order counts equally */
+function mgMatchaTapDot(i) {
+  var d = mg.data;
+  if (mg.active !== "matcharitual" || d.phase !== "whisk") return false;
+  if (i !== d.dotNext) return false; /* wrong dot: nothing happens, nothing lost */
+  d.dotNext = (d.dotNext + 1) % 8;
+  mgMatchaLightDots();
+  mgMatchaTransition();
+  return true;
+}
+
+/* one valid transition — the foam rises (3 visual states only) */
+function mgMatchaTransition() {
+  var d = mg.data;
+  if (mg.active !== "matcharitual" || d.phase !== "whisk") return;
+  var before = matchaFoamState(d.trans);
+  d.trans++;
+  var after = matchaFoamState(d.trans);
+  var foam = document.getElementById("mg-foam");
+  if (foam) {
+    foam.style.height = Math.min(46, 6 + d.trans * 1.7) + "px";
+    foam.style.opacity = String(Math.min(1, 0.25 + d.trans * 0.035));
+    foam.className = "foam-" + after;
+  }
+  Sound.uiClick();
+  if (after !== before) Sound.sparkle(); /* the foam finds a new stand */
+  if (d.trans >= MATCHA_WHISK_TARGET) mgMatchaServePhase();
+}
+
+/* PHASE 2 — SERVE. The golden glow laps the bowl; serve on the gold. */
+function mgMatchaServePhase() {
+  var d = mg.data;
+  if (mg.active !== "matcharitual" || d.phase !== "whisk") return;
+  d.phase = "serve";
+  clearTimeout(d.whiskTimeout); d.whiskTimeout = null;
+  var zone = document.getElementById("mg-whisk-zone");
+  var arena = document.getElementById("mg-arena");
+  if (zone) zone.classList.add("serving");
+  var note = document.getElementById("mg-matcha-note");
+  if (note) note.textContent = "now — serve it on the golden glow.";
+  if (zone && arena) {
+    var sweep = document.createElement("div");
+    sweep.id = "mg-sweep";
+    sweep.innerHTML = '<div id="mg-sweep-dot">✨</div>';
+    zone.appendChild(sweep);
+    var btn = document.createElement("button");
+    btn.id = "mg-serve";
+    btn.textContent = "SERVE 🍵";
+    btn.addEventListener("pointerdown", function (e) { e.stopPropagation(); mgMatchaServe(false); });
+    arena.appendChild(btn);
+  }
+  Sound.chirp();
+  d.sweepT0 = Date.now();
+  d.windowOpen = false;
+  d.sweepInt = setInterval(function () {
+    var ph = ((Date.now() - d.sweepT0) % MATCHA_SWEEP_MS) / MATCHA_SWEEP_MS;
+    d.windowOpen = ph >= 0.3 && ph < 0.7; /* 1.2s of gold every 3s lap — generous on purpose */
+    var sw = document.getElementById("mg-sweep");
+    if (sw) sw.style.transform = "rotate(" + Math.round(ph * 360) + "deg)";
+    var z2 = document.getElementById("mg-whisk-zone");
+    if (z2) z2.classList.toggle("mg-window-open", d.windowOpen);
+    var sb = document.getElementById("mg-serve");
+    if (sb) sb.classList.toggle("golden", d.windowOpen);
+  }, 50);
+  /* never a wall: eventually the glow serves it for you (out-of-window) */
+  d.serveTimeout = setTimeout(function () { mgMatchaServe(true); }, MATCHA_SERVE_AUTO_MS);
+}
+
+/* a cup is served exactly once */
+function mgMatchaServe(auto) {
+  var d = mg.data;
+  if (mg.active !== "matcharitual" || d.phase !== "serve" || d.served) return false;
+  d.served = true;
+  d.phase = "done";
+  clearInterval(d.sweepInt); d.sweepInt = null;
+  clearTimeout(d.serveTimeout); d.serveTimeout = null;
+  var q = matchaQuality(d.trans, !auto && d.windowOpen);
+  d.quality = q;
+  if (q === "excellent") Sound.tibetanBowl(528);
+  var line = q === "excellent" ? "Foam like a tiny cloud, served right on the gold. A legendary cup."
+    : q === "good" ? "A warm, honest cup, served with care."
+      : (auto ? "The glow got tired of waiting and served it for you. The foam is... a rumor. Still a gift."
+        : "Served! The foam is... a rumor. The goblin drinks it anyway.");
+  endMinigame(true, line, MATCHA_RITUAL_ZOL[q], function () { deliverMatcha(q); });
+  return true;
+}
+
 function expireMatcha() {
   if (!matchaGoblinId) return;
+  if (mg.active === "matcharitual") return; /* the bowl is out — the ritual finishes this story */
   var id = matchaGoblinId, g = S.goblins[id];
   matchaGoblinId = null; matchaHeld = false;
   if (matchaCupEl && matchaCupEl.parentNode) matchaCupEl.parentNode.removeChild(matchaCupEl);
@@ -8198,7 +8416,7 @@ function expireMatcha() {
 document.addEventListener("visibilitychange", function () {
   if (document.visibilityState !== "visible") return;
   try {
-    if (matchaGoblinId) {
+    if (matchaGoblinId && mg.active !== "matcharitual") { /* a mid-ritual return never re-arms expiry against the bowl */
       clearTimeout(matchaExpireTimer);
       matchaExpireTimer = setTimeout(expireMatcha, matchaHeld ? 25000 : 45000);
     }
@@ -10042,6 +10260,24 @@ window.WARREN_DEBUG = {
   deliverMatcha: function () { if (matchaGoblinId && !matchaHeld) onTapMatchaCup(); return deliverMatcha(); },
   expireMatcha: function () { expireMatcha(); },
   getMatcha: function () { return { active: !!matchaGoblinId, goblinId: matchaGoblinId, held: matchaHeld }; },
+  /* THE MATCHA RITUAL (Level 2, operator-locked) */
+  startMatchaRitual: function () { if (matchaGoblinId && !matchaHeld) onTapMatchaCup(); return startMatchaRitual(); },
+  matchaWhiskStep: function (a, b) { return matchaWhiskStep(a, b); },
+  matchaFoamState: function (n) { return matchaFoamState(n); },
+  matchaQuality: function (t, w) { return matchaQuality(t, w); },
+  matchaRitualRewards: function () { return MATCHA_RITUAL_ZOL; },
+  matchaTapDot: function (i) { return mgMatchaTapDot(i); },
+  matchaServe: function (auto) { return mgMatchaServe(!!auto); },
+  getMatchaRitual: function () {
+    return mg.active === "matcharitual" ? {
+      phase: mg.data.phase, trans: mg.data.trans || 0, foam: matchaFoamState(mg.data.trans || 0),
+      served: !!mg.data.served, windowOpen: !!mg.data.windowOpen, dotNext: mg.data.dotNext || 0,
+      quality: mg.data.quality || null
+    } : null;
+  },
+  matchaTimersLive: function () {
+    return { sweep: !!(mg.data && mg.data.sweepInt), whisk: !!(mg.data && mg.data.whiskTimeout), serve: !!(mg.data && mg.data.serveTimeout) };
+  },
   /* healing sound layers */
   shamanicBurst: function (i) { Sound.shamanicBurst(i); },
   didgeridoo: function () { Sound.didgeridoo(); },
