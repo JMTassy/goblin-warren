@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Goblin Warren — Start</title>
+<!--
+  Levels 1–2 shell. Level 3 = day1.html (unchanged).
+  authority=false · claim=NO_CLAIM · experience before terminology
+  One new thing per level. Never two.
+-->
+<style>
+  :root {
+    --bg: #0c1410; --panel: #142018; --ink: #e8f0e4; --dim: #8aa090;
+    --gold: #e6b84a; --green: #6ecf7a; --warn: #e07a6a; --pulse: #a8d858;
+    --edge: #2a4030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, sans-serif; padding: 18px;
+    max-width: 560px; margin-inline: auto;
+    display: flex; flex-direction: column;
+  }
+  h1 { font-size: 1.05rem; color: var(--gold); margin: 0 0 2px; }
+  .lvl-tag { font-size: 0.72rem; color: var(--dim); letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 14px; }
+
+  .stage {
+    position: relative; height: 240px;
+    background: #0a120e; border: 1px solid var(--edge);
+    border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+  }
+  .ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 46px;
+    background: #102216; border-top: 1px solid var(--edge);
+  }
+  .prop {
+    position: absolute; display: flex; flex-direction: column;
+    align-items: center; gap: 2px; transition: filter 0.3s;
+  }
+  .prop-icon { font-size: 2.6rem; line-height: 1; transition: transform 0.25s, filter 0.3s; }
+  .prop.bloomed .prop-icon { filter: brightness(1.35) saturate(1.5); }
+  .prop.glowing .prop-icon {
+    filter: drop-shadow(0 0 6px #e07a6a) drop-shadow(0 0 16px #e07a6a88);
+  }
+  .prop.shake .prop-icon { animation: shake 0.45s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-5px) rotate(-3deg); }
+    40% { transform: translateX(5px) rotate(3deg); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .prop-check {
+    position: absolute; top: -8px; right: -10px; font-size: 0.85rem;
+    color: var(--green); background: #0a1810; border: 1px solid var(--green);
+    border-radius: 50%; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .prop.resolved .prop-check { opacity: 1; }
+
+  .agent {
+    position: absolute; bottom: 40px; width: 44px; height: 44px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; border: 2px solid var(--edge); background: #3a4a38;
+    transition: left 1.1s cubic-bezier(0.45,0,0.25,1), border-color 0.3s,
+                box-shadow 0.3s, opacity 0.4s;
+  }
+  .agent.working { border-color: var(--pulse); box-shadow: 0 0 12px #a8d85855; }
+  .agent.wander { animation: wander 5s ease-in-out infinite alternate; }
+  @keyframes wander {
+    from { left: 62%; } to { left: 74%; }
+  }
+
+  .droplet, .pulse-dot, .burst {
+    position: absolute; pointer-events: none; opacity: 0;
+  }
+  .droplet { font-size: 1.6rem; }
+  .droplet.fire { animation: drop 0.7s ease-in forwards; }
+  @keyframes drop {
+    0% { opacity: 1; transform: translateY(-34px) scale(0.8); }
+    75% { opacity: 1; transform: translateY(0) scale(1.05); }
+    100% { opacity: 0; transform: translateY(4px) scale(1.2); }
+  }
+  .pulse-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--warn); }
+  .pulse-dot.fire { animation: radiate 0.7s ease-out forwards; }
+  @keyframes radiate {
+    0% { opacity: 1; transform: scale(0.4); box-shadow: 0 0 0 0 rgba(224,122,106,0.9); }
+    100% { opacity: 0; transform: scale(2.9); box-shadow: 0 0 0 26px rgba(224,122,106,0); }
+  }
+  .burst { font-size: 1.7rem; }
+  .burst.fire { animation: burstUp 0.75s ease-out forwards; }
+  @keyframes burstUp {
+    0% { opacity: 1; transform: scale(0.7); }
+    55% { opacity: 1; transform: scale(1.5) translateY(-10px); }
+    100% { opacity: 0; transform: scale(1) translateY(-24px); }
+  }
+
+  .speech {
+    position: absolute; background: #1a2820; border: 1px solid var(--edge);
+    border-radius: 10px; padding: 6px 12px; font-size: 0.82rem;
+    opacity: 0; transition: opacity 0.3s; max-width: 200px;
+    pointer-events: none; z-index: 10;
+  }
+  .speech.show { opacity: 1; }
+
+  .hint { min-height: 26px; font-size: 0.92rem; color: var(--dim);
+    margin-bottom: 10px; transition: color 0.3s; }
+  .hint.warm { color: var(--gold); }
+
+  .verb-row { display: flex; gap: 10px; }
+  .verb-row button {
+    flex: 1; padding: 16px 10px; font: 700 1.02rem system-ui;
+    border-radius: 12px; border: 1px solid var(--edge);
+    background: #1e3a28; color: var(--ink); cursor: pointer;
+    transition: background 0.15s, opacity 0.2s, transform 0.1s;
+  }
+  .verb-row button:active:not(:disabled) { transform: scale(0.97); }
+  .verb-row button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .verb-row button.fix  { background: #1c3828; border-color: #2e5838; }
+  .verb-row button.mark { background: #3a2810; border-color: #7a5020; color: #f0c870; }
+  .verb-row button.mark.arrive { animation: arrive 0.8s ease-out; }
+  @keyframes arrive {
+    0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+    60% { opacity: 1; transform: translateY(-3px) scale(1.04); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .banner {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    background: rgba(10, 18, 14, 0.93); z-index: 50;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s;
+  }
+  .banner.show { opacity: 1; pointer-events: auto; }
+  .banner .big { font-size: 2.2rem; }
+  .banner .msg { font-size: 1.05rem; color: var(--gold); font-weight: 700; }
+  .banner .sub2 { font-size: 0.85rem; color: var(--dim); max-width: 320px; text-align: center; }
+  .banner button {
+    padding: 14px 26px; font: 700 1rem system-ui; border-radius: 12px;
+    border: 1px solid #3f6b33; background: #2c4d24; color: #e6f0c8; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1 id="title">The Seedlings</h1>
+<div class="lvl-tag" id="lvlTag">Level 1</div>
+
+<div class="stage" id="stage">
+  <div class="ground"></div>
+  <!-- props/agents injected -->
+  <div class="droplet" id="droplet">💧</div>
+  <div class="pulse-dot" id="pulseDot"></div>
+  <div class="burst" id="burst">✨</div>
+  <div class="speech" id="speech"></div>
+</div>
+
+<div class="hint" id="hint"></div>
+
+<div class="verb-row" id="verbRow"></div>
+
+<div class="banner" id="banner">
+  <div class="big" id="bnIcon">🌱</div>
+  <div class="msg" id="bnMsg"></div>
+  <div class="sub2" id="bnSub"></div>
+  <button type="button" id="bnNext"></button>
+</div>
+
+<script src="ramp_sim.js"></script>
+<script>
+(function () {
+  "use strict";
+  var R = window.RampSim;
+  if (!R) { document.getElementById("hint").textContent = "ramp_sim.js failed to load."; return; }
+
+  var stage   = document.getElementById("stage");
+  var hint    = document.getElementById("hint");
+  var verbRow = document.getElementById("verbRow");
+  var banner  = document.getElementById("banner");
+  var speech  = document.getElementById("speech");
+  var busy    = false;
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function say(x, y, text, ms) {
+    speech.style.left = x; speech.style.top = y;
+    speech.textContent = text;
+    speech.classList.add("show");
+    setTimeout(function () { speech.classList.remove("show"); }, ms || 1600);
+  }
+
+  function fireAt(id, left, top) {
+    var n = document.getElementById(id);
+    n.style.left = left; n.style.top = top;
+    n.classList.remove("fire");
+    void n.offsetWidth;
+    n.classList.add("fire");
+  }
+
+  function showBanner(icon, msg, sub, btnText, onNext) {
+    document.getElementById("bnIcon").textContent = icon;
+    document.getElementById("bnMsg").textContent = msg;
+    document.getElementById("bnSub").textContent = sub;
+    var b = document.getElementById("bnNext");
+    b.textContent = btnText;
+    b.onclick = function () { banner.classList.remove("show"); onNext(); };
+    banner.classList.add("show");
+  }
+
+  /* ═══ LEVEL 1 — The Seedlings ═══════════════════════════ */
+  function loadLevel1() {
+    var state = R.makeLevel1();
+    document.getElementById("title").textContent = "The Seedlings";
+    document.getElementById("lvlTag").textContent = "Level 1";
+    stage.querySelectorAll(".prop, .agent").forEach(function (n) { n.remove(); });
+
+    var seed = el("div", "prop", '<div class="prop-icon">🌱</div><div class="prop-check">✓</div>');
+    seed.id = "prop-seed";
+    seed.style.left = "44%"; seed.style.bottom = "44px";
+    stage.appendChild(seed);
+
+    hint.textContent = "The seedlings are dry.";
+    hint.classList.remove("warm");
+
+    verbRow.innerHTML = "";
+    var b = el("button", "fix", "✋ Fix it");
+    b.onclick = function () {
+      if (busy) return;
+      busy = true;
+      var done = R.runLevel1(state, { verb: "FIX", target: "dry_seedlings" });
+      b.disabled = true;
+      // 💧 water pours → bloom → banner
+      fireAt("droplet", "46%", "38%");
+      setTimeout(function () {
+        seed.classList.add("bloomed", "resolved");
+        fireAt("burst", "45%", "34%");
+        hint.textContent = "They drink. They grow.";
+        hint.classList.add("warm");
+      }, 650);
+      setTimeout(function () {
+        busy = false;
+        showBanner("🌱", "You fixed it!", "Some problems just need your hands.",
+          "Level 2 →", loadLevel2);
+      }, 1700);
+    };
+    verbRow.appendChild(b);
+  }
+
+  /* ═══ LEVEL 2 — The Heavy Rock ══════════════════════════ */
+  function loadLevel2() {
+    var state = R.makeLevel2();
+    document.getElementById("title").textContent = "The Heavy Rock";
+    document.getElementById("lvlTag").textContent = "Level 2";
+    stage.querySelectorAll(".prop, .agent").forEach(function (n) { n.remove(); });
+
+    var rock = el("div", "prop", '<div class="prop-icon">🪨</div><div class="prop-check">✓</div>');
+    rock.id = "prop-rock";
+    rock.style.left = "20%"; rock.style.bottom = "44px";
+    stage.appendChild(rock);
+
+    var bram = el("div", "agent wander", "🛠️");
+    bram.id = "ag-bram";
+    bram.title = "Bram";
+    stage.appendChild(bram);
+
+    hint.textContent = "A root cracked under this rock. It looks heavy…";
+    hint.classList.remove("warm");
+
+    verbRow.innerHTML = "";
+    var bFix = el("button", "fix", "✋ Fix it");
+    var bMark = el("button", "mark", "✨ Mark it");
+    bMark.style.display = "none"; // MARK is discovered, not offered
+    verbRow.appendChild(bFix);
+    verbRow.appendChild(bMark);
+
+    bFix.onclick = function () {
+      if (busy || state.complete) return;
+      busy = true;
+      state = R.runLevel2(state, { verb: "FIX", target: "cracked_root" });
+      rock.classList.remove("shake");
+      void rock.offsetWidth;
+      rock.classList.add("shake");
+      hint.textContent = "Too heavy for you.";
+      hint.classList.remove("warm");
+      setTimeout(function () {
+        say("52%", "26%", "Bram is strong…", 1800);
+        if (bMark.style.display === "none") {
+          bMark.style.display = "";
+          bMark.classList.add("arrive");
+          hint.textContent = "Too heavy for you. But maybe someone could notice it…";
+          hint.classList.add("warm");
+        }
+        busy = false;
+      }, 700);
+    };
+
+    bMark.onclick = function () {
+      if (busy || state.complete) return;
+      busy = true;
+      state = R.runLevel2(state, { verb: "MARK", target: "cracked_root" });
+      bFix.disabled = true;
+      bMark.disabled = true;
+
+      // ✨ pulse at rock
+      fireAt("pulseDot", "22%", "52%");
+      rock.classList.add("glowing");
+      hint.textContent = "A sign glows on the rock.";
+      hint.classList.remove("warm");
+
+      // 👀 Bram notices
+      setTimeout(function () {
+        bram.classList.remove("wander");
+        bram.style.left = "66%";
+        say("60%", "22%", "Hm? What's that?", 1200);
+      }, 800);
+
+      // 👣 Bram walks to the rock
+      setTimeout(function () {
+        bram.style.left = "26%";
+        hint.textContent = "Bram saw your mark!";
+        hint.classList.add("warm");
+      }, 1700);
+
+      // 🛠️ repair
+      setTimeout(function () {
+        bram.classList.add("working");
+        say("24%", "24%", "Heavy? Not for me.", 1400);
+      }, 3000);
+
+      // 🌱 done
+      setTimeout(function () {
+        rock.classList.remove("glowing");
+        rock.classList.add("resolved", "bloomed");
+        bram.classList.remove("working");
+        fireAt("burst", "21%", "36%");
+        hint.textContent = "Bram fixed it — because you marked it.";
+      }, 4200);
+
+      setTimeout(function () {
+        busy = false;
+        showBanner("✨", "Bram heard you!", "You didn't lift the rock. You made Bram notice it. That's a different kind of power.",
+          "Level 3 →", function () { window.location.href = "day1.html"; });
+      }, 5400);
+    };
+  }
+
+  loadLevel1();
+})();
+</script>
+</body>
+</html>
