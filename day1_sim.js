@@ -14,13 +14,21 @@
  */
 "use strict";
 
-var SCHEMA = "DAY1_SIM_V0";
+var SCHEMA = "DAY1_SIM_V1";
 var MAX_ACTIONS = 2;
 var MARK_DELTA = 1; // integer strength units — no floats, no rng
 // P0: Bram only acts when a garden warning is loud enough.
 // Initial cracked_root warning strength is BELOW this; MARK raises it over the line.
 // Empty day / no MARK ⇒ no free repair (MARK = influence).
 var BRAM_ACT_THRESHOLD = 3;
+// Day 1.1 (MARK_INTERVENE_SURFACE_CONTRACT_V0 §3.3): INTERVENE has a material
+// cost — the asymmetry that keeps MARK from dominating. Fails closed without it.
+var INTERVENE_COST = {
+  dry_seedlings: { material: "water", amount: 1 },
+  cracked_root: { material: "resin", amount: 1 },
+  fading_memory: { material: "ink", amount: 1 },
+};
+var BRAM_RULE_ID = "BRAM_REPAIR_01";
 
 /** @returns {object} fresh initial state (never mutated by runDay) */
 function makeInitialState() {
@@ -28,6 +36,9 @@ function makeInitialState() {
     schema: SCHEMA,
     day: 1,
     actionsRemaining: MAX_ACTIONS,
+    // Day 1.1: scarce materials for INTERVENE (contract §3.3). One of each —
+    // enough for any single day's plans, scarce enough that cost is real.
+    materials: { water: 1, resin: 1, ink: 1 },
     zones: {
       garden: { id: "garden", name: "Garden" },
       archive: { id: "archive", name: "Archive" },
@@ -46,13 +57,20 @@ function makeInitialState() {
         role: "repairer",
         zone: "garden",
         // warning traces only; strongest with strength >= BRAM_ACT_THRESHOLD
+        // Day 1.1: Bram has his own capacity — he is not the player's tool
+        actionsRemaining: 1,
       },
     },
+    // Day 1.1: `condition` is the canonical Garden field (active|inactive);
+    // `durability` stays "unknown" until a future VERIFY verb exists;
+    // `resolved` is kept as a derived legacy mirror (resolved ⇔ condition inactive).
     needs: {
       dry_seedlings: {
         id: "dry_seedlings",
         label: "Dry seedlings",
         zone: "garden",
+        condition: "active",
+        durability: "unknown",
         resolved: false,
         // no warning trace — INTERVENE only on Day 1
       },
@@ -60,12 +78,16 @@ function makeInitialState() {
         id: "cracked_root",
         label: "Cracked root",
         zone: "garden",
+        condition: "active",
+        durability: "unknown",
         resolved: false,
       },
       fading_memory: {
         id: "fading_memory",
         label: "Fading memory",
         zone: "archive",
+        condition: "active",
+        durability: "unknown",
         resolved: false,
       },
     },
@@ -181,14 +203,32 @@ function applyPlayerAction(s, action) {
     return;
   }
 
-  // INTERVENE — direct resolve, no goblin training
-  need.resolved = true;
+  // INTERVENE — direct Garden inactivation. Costs material; fails closed
+  // (typed event, no partial mutation, no action consumed) if unaffordable.
+  var cost = INTERVENE_COST[target];
+  if (cost && (s.materials[cost.material] || 0) < cost.amount) {
+    pushEvent(s, {
+      kind: "INTERVENE_FAILED",
+      who: "world",
+      needId: target,
+      reason: "INSUFFICIENT_MATERIALS",
+      material: cost.material,
+      ui: "intervene_fails_closed",
+    });
+    return;
+  }
+  if (cost) s.materials[cost.material] -= cost.amount;
+  need.condition = "inactive";
+  need.durability = "unknown"; // INTERVENE never certifies durability
+  need.resolved = true; // legacy mirror
+  need.addressSource = { actor: "player", actionId: "intervene_" + target };
   s.actionsRemaining -= 1;
   pushEvent(s, {
     kind: "INTERVENE",
     who: "player",
     needId: target,
-    ui: "need_resolves_immediately",
+    materialSpent: cost || null,
+    ui: "need_condition_inactive",
   });
 }
 
@@ -227,6 +267,17 @@ function releaseAgents(s) {
 
   // Bram: warning traces only, strongest ABOVE threshold, repair if unresolved.
   // P0: strength < BRAM_ACT_THRESHOLD ⇒ idle (no free autopilot).
+  // Day 1.1: Bram also needs his own action capacity (he is not player-fuelled).
+  if ((s.agents.bram.actionsRemaining || 0) <= 0) {
+    s.bramPath = "idle";
+    pushEvent(s, {
+      kind: "BRAM_IDLE",
+      who: "bram",
+      detail: "no action capacity left today",
+      ui: "bram_idle",
+    });
+    return;
+  }
   var best = null;
   var loudestFaint = null;
   for (var j = 0; j < tids.length; j++) {
@@ -293,20 +344,28 @@ function releaseAgents(s) {
     kind: "BRAM_PATH",
     who: "bram",
     needId: best.needId,
+    ruleId: BRAM_RULE_ID,
     ui: "bram_changes_path",
   });
   pushEvent(s, {
     kind: "BRAM_REPAIR_START",
     who: "bram",
     needId: best.needId,
+    ruleId: BRAM_RULE_ID,
     ui: "repair_starts",
   });
 
-  s.needs[best.needId].resolved = true;
+  var repaired = s.needs[best.needId];
+  repaired.condition = "inactive";
+  repaired.durability = "unknown"; // Bram's repair is not verification either
+  repaired.resolved = true; // legacy mirror
+  repaired.addressSource = { actor: "bram", actionId: BRAM_RULE_ID };
+  s.agents.bram.actionsRemaining -= 1;
   pushEvent(s, {
     kind: "BRAM_REPAIR_COMPLETE",
     who: "bram",
     needId: best.needId,
+    ruleId: BRAM_RULE_ID,
     ui: "repair_completes",
   });
 }
@@ -388,6 +447,8 @@ var api = {
   MAX_ACTIONS: MAX_ACTIONS,
   MARK_DELTA: MARK_DELTA,
   BRAM_ACT_THRESHOLD: BRAM_ACT_THRESHOLD,
+  INTERVENE_COST: INTERVENE_COST,
+  BRAM_RULE_ID: BRAM_RULE_ID,
   makeInitialState: makeInitialState,
   runDay: runDay,
   summarize: summarize,

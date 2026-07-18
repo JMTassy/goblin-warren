@@ -317,6 +317,7 @@
     BRAM_REPAIR_START:    "🛠️",
     BRAM_REPAIR_COMPLETE: "🌱",
     BRAM_SIGNAL_FAINT:    "🔇",
+    INTERVENE_FAILED:     "🚫",
     BRAM_IDLE:            "😴",
   };
 
@@ -335,6 +336,7 @@
       case "BRAM_REPAIR_START":    return "Bram starts repairing.";
       case "BRAM_REPAIR_COMPLETE": return "Bram finishes. " + n + " is fixed.";
       case "BRAM_SIGNAL_FAINT":    return "Bram hears only a faint warning — mark it louder.";
+      case "INTERVENE_FAILED":     return "Not enough " + (ev.material || "materials") + " to fix " + n + " yourself.";
       case "BRAM_IDLE":            return "Bram finds nothing to repair.";
       default: return ev.kind;
     }
@@ -544,7 +546,7 @@
           sigHtml = '<div class="nc-sig">' + dots + " signal</div>";
         }
       });
-      var doneHtml = resolvedInPlan ? '<div class="nc-done">✓ resolved</div>' : "";
+      var doneHtml = resolvedInPlan ? '<div class="nc-done">✓ addressed</div>' : "";
 
       return (
         '<div class="' + cls + '" data-id="' + id + '">' +

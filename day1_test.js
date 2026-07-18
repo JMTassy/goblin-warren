@@ -228,6 +228,66 @@ ok(
   "Lulu never resolves a need"
 );
 
+// ── Day 1.1 (MARK_INTERVENE_SURFACE_CONTRACT_V0 deltas) ─────────────────
+
+// 14. Materials: INTERVENE consumes declared cost
+var sM = sim.runDay(s0, [{ verb: "INTERVENE", target: "dry_seedlings" }]);
+ok(sM.materials.water === 0, "14. INTERVENE dry_seedlings consumes 1 water");
+ok(sM.materials.resin === 1 && sM.materials.ink === 1, "14. other materials untouched");
+ok(
+  sM.events.some(function (e) { return e.kind === "INTERVENE" && e.materialSpent && e.materialSpent.material === "water"; }),
+  "14. INTERVENE event records materialSpent"
+);
+
+// 15. Fail closed without materials: typed event, no mutation, no action spent
+var broke = sim.makeInitialState();
+broke.materials.water = 0;
+var sF = sim.runDay(broke, [{ verb: "INTERVENE", target: "dry_seedlings" }]);
+ok(sF.needs.dry_seedlings.condition === "active", "15. need stays active on failed INTERVENE");
+ok(sF.needs.dry_seedlings.resolved === false, "15. legacy mirror stays false");
+ok(
+  sF.events.some(function (e) { return e.kind === "INTERVENE_FAILED" && e.reason === "INSUFFICIENT_MATERIALS"; }),
+  "15. INTERVENE_FAILED typed event with reason"
+);
+// action not consumed: player can still act (second action in same day succeeds)
+var sF2 = sim.runDay(broke, [
+  { verb: "INTERVENE", target: "dry_seedlings" },
+  { verb: "INTERVENE", target: "cracked_root" },
+]);
+ok(sF2.needs.cracked_root.condition === "inactive", "15. failed INTERVENE does not consume the action");
+
+// 16. condition/durability split
+var sC = sim.runDay(s0, [{ verb: "INTERVENE", target: "cracked_root" }]);
+ok(sC.needs.cracked_root.condition === "inactive", "16. INTERVENE sets condition inactive");
+ok(sC.needs.cracked_root.durability === "unknown", "16. durability stays unknown (no VERIFY yet)");
+ok(sC.needs.cracked_root.addressSource.actor === "player", "16. addressSource = player");
+// MARK never touches condition or materials
+var sMk = sim.runDay(s0, [{ verb: "MARK", target: "fading_memory" }]);
+ok(sMk.needs.fading_memory.condition === "active", "16. MARK leaves condition active");
+ok(sMk.materials.water === 1 && sMk.materials.resin === 1 && sMk.materials.ink === 1,
+  "16. MARK consumes no materials (support test)");
+
+// 17. Bram capacity + provenance
+var sB = sim.runDay(s0, [{ verb: "MARK", target: "cracked_root" }]);
+ok(sB.agents.bram.actionsRemaining === 0, "17. Bram repair consumes HIS capacity, not player's");
+ok(sB.needs.cracked_root.addressSource.actor === "bram", "17. addressSource = bram");
+ok(
+  sB.events.some(function (e) { return e.kind === "BRAM_REPAIR_COMPLETE" && e.ruleId === sim.BRAM_RULE_ID; }),
+  "17. Bram events carry inspectable ruleId"
+);
+var noCap = sim.makeInitialState();
+noCap.agents.bram.actionsRemaining = 0;
+var sB0 = sim.runDay(noCap, [{ verb: "MARK", target: "cracked_root" }]);
+ok(!sim.bramInvoked(sB0), "17. Bram with zero capacity idles even above threshold");
+ok(sB0.needs.cracked_root.condition === "active", "17. need untouched when Bram lacks capacity");
+
+// 18. No semantic promotion in event vocabulary
+var allKinds = sB.events.concat(sM.events, sF.events).map(function (e) { return e.kind; });
+ok(
+  !allKinds.some(function (k) { return /VERIFIED|ADMITTED|CANONICAL|VALIDATED|SUCCEEDED/.test(k); }),
+  "18. no event kind implies verification or admission"
+);
+
 // Print path summaries
 console.log("\n--- Path A events ---\n" + sim.eventKinds(A).join(" → "));
 console.log("--- Path B events ---\n" + sim.eventKinds(B).join(" → "));
