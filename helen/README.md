@@ -76,6 +76,32 @@ Dynamic graph optimization · worker spawning · weighted voting ·
 reputation · LLM-based independence judgments · automatic canonical
 mutation · generalized ontology · Village simulation.
 
+## WITNESSED_LOOP_GRAPH_SCHEMA_V0
+
+The second cell. The seam proved the anchor-cut for one hand-labelled
+claim; the schema makes it **structural and replayable**.
+
+- **state = fold(event_log)** — append-only, deletion-free, replay-identical
+  (`CLAIM_PROPOSED · REVIEW_ADDED · WITNESS_OBSERVED · DECISION_MADE ·
+  CLAIM_SUPERSEDED`).
+- **epistemic-lineage components** — a node's identity is its *machinery*
+  (model family · prompt lineage · retrieval corpus), never the per-input
+  packet. Ten differently-named reviewers on one model collapse to one
+  source; a witness that fakes a "different input" but runs the same
+  machinery is caught here (the schema's added lock over the seam).
+- **graph anchor-cut** — a claim is admissible only if a confirming node
+  lives *outside* the claim's epistemic component and is independent.
+- **supersede / rollback** — an admitted claim later contradicted is
+  SUPERSEDED by an appended event; the original claim, decision and
+  evidence stay in the log. Forgetting is itself an event.
+
+```bash
+node helen/witnessed-loop-graph-schema.test.js   # 9/9; exit 0 iff the law holds
+```
+
+Deterministic (G9 scans the code, not the prose, for `Date.now`/`Math.random`/
+network) — so a `node` run is again the independent anchor.
+
 ## Growth sequence
 
 ```
