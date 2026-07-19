@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Dream of Conquest — The Goblin Warren</title>
+<style>
+  :root{
+    --bone:#d9c8a3; --bone-2:#f0e3c8; --bone-dim:#7a6642;
+    --swamp:#0f1a12; --swamp-2:#16251a; --panel:rgba(12,20,15,.78);
+    --parch:#d9c8a3; --ink:#0a0e0b;
+    --moss:#6fb86a; --ember:#c96e2e; --spore:#a8d070; --glow:#f0c070;
+    --line:rgba(169,200,140,.32);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a120d;color:var(--parch);
+    font-family:"Courier New", "Lucida Console", monospace, Georgia,serif; image-rendering:pixelated;}
+  #cv{position:fixed;inset:0;display:block;z-index:0;image-rendering:pixelated;image-rendering:crisp-edges;width:100%;height:100%}
+  .panel{position:fixed;z-index:3;background:var(--panel);border:2px solid var(--line);
+    border-radius:3px;backdrop-filter:blur(2px);box-shadow:0 4px 20px -4px #000, inset 0 1px 0 rgba(255,255,255,.04)}
+  .cap{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ember);opacity:.9}
+  .disp{font-family:Georgia,"Times New Roman",serif;letter-spacing:.02em}
+
+  /* LEFT */
+  #left{left:16px;top:16px;width:224px;padding:16px 16px 14px}
+  #left .house{font-family:"Courier New",monospace;font-size:17px;color:var(--bone-2);letter-spacing:.06em;line-height:1.1}
+  #left .motto{font-style:italic;font-size:12px;color:var(--parch);opacity:.75;margin-top:1px}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dotted rgba(230,196,106,.16);font-size:13px}
+  .stat .k{color:var(--parch);opacity:.8}
+  .stat .v{font-family:"Courier New",monospace;color:var(--bone-2);font-size:15px}
+  .zol .v{color:var(--gold-2)}
+  .zolnote{font-size:9.5px;font-style:italic;color:var(--ember);opacity:.9;margin-top:6px;line-height:1.3}
+  .law{margin-top:12px;font-size:11px;font-style:italic;color:var(--spore);border-top:1px solid var(--line);padding-top:9px;line-height:1.4}
+
+  /* RIGHT */
+  #right{right:16px;top:16px;width:300px;max-height:calc(100vh - 32px);overflow:auto;padding:14px}
+  #right::-webkit-scrollbar{width:6px}#right::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:4px}
+  .card{border:2px solid var(--line);border-radius:2px;padding:10px;margin-top:10px;background:rgba(12,20,15,.6)}
+  .card h4{margin:0 0 6px;font-family:Georgia,serif;font-size:14px;color:var(--gold-2)}
+  .terrname{font-family:Georgia,serif;font-size:17px;color:var(--gold-2)}
+  .terrmeta{font-size:12px;color:var(--parch);opacity:.8;margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+  .badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:2px 8px;border-radius:20px;border:1px solid currentColor;display:inline-block}
+  .b-available{color:var(--parch)} .b-owned{color:var(--gold)} .b-evolved{color:var(--leaf)} .b-locked{color:#6a6f88}
+  .qopt{display:block;width:100%;text-align:left;margin:5px 0;padding:8px 10px;border:1px solid var(--line);
+    border-radius:7px;background:rgba(6,10,28,.5);color:var(--parch);font-family:inherit;font-size:12.5px;cursor:pointer;transition:.12s}
+  .qopt:hover{border-color:var(--ember);background:rgba(201,110,46,.12)}
+  .qopt.ok{border-color:var(--moss);background:rgba(111,184,106,.14);color:var(--moss)}
+  .qopt.no{border-color:#c45c26;background:rgba(201,110,46,.12);color:#c45c26}
+  .cat{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.8}
+  .agentline{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:5px}
+  .agdot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+  .prop-text{font-size:13px;font-style:italic;color:var(--parch);margin:6px 0;line-height:1.4}
+  .verdict{font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;border-radius:6px;display:inline-block;margin:4px 0}
+  .v-ok{color:var(--moss);border:1px solid var(--moss)} .v-no{color:#c45c26;border:1px solid #c45c26}
+  .btnrow{display:flex;gap:6px;margin-top:8px}
+  .btn{flex:1;font-family:"Courier New",monospace;font-size:12px;padding:7px;border-radius:2px;cursor:pointer;border:3px solid var(--line);
+    background:rgba(169,200,140,.08);color:var(--parch);transition:none;letter-spacing:.02em} /* hard pixel edges, no smooth */
+  .btn:hover{border-color:var(--ember);color:var(--bone-2)}
+  .btn.prime{background:linear-gradient(180deg,rgba(201,110,46,.25),rgba(169,200,140,.1));border-color:var(--ember);color:var(--bone-2)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .hint{font-size:11px;color:var(--parch);opacity:.6;margin-top:8px;line-height:1.4}
+  .flash{color:var(--rose);font-size:12px;min-height:15px;margin-top:6px;font-style:italic}
+
+  /* BOTTOM ledger */
+  #ledger{left:16px;bottom:16px;width:224px;max-height:44vh;overflow:auto;padding:12px 14px}
+  #ledger::-webkit-scrollbar{width:5px}#ledger::-webkit-scrollbar-thumb{background:var(--gold-dim)}
+  .lrow{font-size:10.5px;padding:3px 0;border-bottom:1px dotted rgba(230,196,106,.12);display:flex;gap:6px;align-items:baseline}
+  .lrow .lt{color:var(--gold);opacity:.9;flex:0 0 auto}
+  .lrow .ld{color:var(--parch);opacity:.72}
+  .seal{color:var(--moss)}
+
+  /* keycaps */
+  #keys{right:16px;bottom:16px;z-index:3;font-size:10px;color:var(--parch);opacity:.55;text-align:right;line-height:1.7;pointer-events:none}
+  kbd{font-family:inherit;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--gold-2);background:rgba(0,0,0,.3)}
+
+  /* overlays */
+  .over{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(60% 60% at 50% 40%,rgba(20,26,68,.72),rgba(5,7,15,.94));backdrop-filter:blur(3px)}
+  .over .box{max-width:560px;text-align:center;padding:24px;border:2px solid var(--line);border-radius:2px}
+  .over h1{font-family:"Courier New",monospace;font-weight:600;font-size:36px;color:var(--bone-2);margin:0;letter-spacing:.04em;
+    text-shadow:0 2px 24px rgba(201,110,46,.35)}
+  .over .sub{font-style:italic;color:var(--parch);opacity:.85;margin:10px 0 4px;font-size:15px}
+  .over .fine{font-size:11px;color:var(--ember);font-style:italic;opacity:.9;margin-top:6px}
+  .over .go{margin-top:22px;font-family:"Courier New",monospace;font-size:15px;color:#0a120d;background:linear-gradient(180deg,var(--bone-2),var(--ember));
+    border:none;border-radius:4px;padding:12px 26px;cursor:pointer;letter-spacing:.05em;box-shadow:0 8px 30px -8px rgba(201,110,46,.5)}
+  .over .row{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .over .cell{border:1px solid var(--line);border-radius:9px;padding:10px 16px;min-width:110px}
+  .over .cell .n{font-family:Georgia,serif;font-size:24px;color:var(--gold-2)} .over .cell .l{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+  .hidden{display:none!important}
+  .sealstamp{position:fixed;z-index:9;left:50%;top:46%;transform:translate(-50%,-50%) scale(.6);opacity:0;
+    font-family:"Courier New",monospace;font-size:40px;color:var(--moss);text-shadow:0 0 30px rgba(111,184,106,.7);pointer-events:none;transition:.1s}
+  .sealstamp.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- LEFT PANEL -->
+<div id="left" class="panel">
+  <div class="house">GOBLIN WARREN</div>
+  <div class="motto">Shiny-Shiny • Rot &amp; Rise</div>
+  <div style="height:10px"></div>
+  <div class="stat zol"><span class="k">ZOL</span><span class="v" id="s-zol">0</span></div>
+  <div class="stat"><span class="k">Knowledge</span><span class="v" id="s-kno">0</span></div>
+  <div class="stat"><span class="k">Cohesion</span><span class="v" id="s-coh">100</span></div>
+  <div class="stat"><span class="k">Reputation</span><span class="v" id="s-rep">0</span></div>
+  <div class="stat"><span class="k">Warrens</span><span class="v" id="s-terr">0 / 12</span></div>
+  <div class="zolnote">ZOL — shiny-shiny, gone at dawn. Expires on close.</div>
+  <div class="law">“GOBLIN never decides. The Warren obeys admitted moves.”</div>
+  <div id="aura" style="margin-top:8px;font-size:10px;letter-spacing:.12em;color:var(--spore);opacity:.8">AURA: spore-fog</div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="right" class="panel">
+  <div class="cap">Selected Warren Site</div>
+  <div id="terrcard" class="card"><div class="hint">Click a spore-node in the Warren to select a site. Press <kbd>Q</kbd> to earn ZOL.</div></div>
+  <div id="qcmcard"></div>
+  <div id="propcard"></div>
+  <div id="flash" class="flash"></div>
+</div>
+
+<!-- BOTTOM LEDGER -->
+<div id="ledger" class="panel">
+  <div class="cap" style="margin-bottom:6px">Midden Ledger · last 8</div>
+  <div id="ledgerfeed"></div>
+</div>
+
+<div id="keys">
+  <kbd>Q</kbd> question &nbsp; <kbd>B</kbd> buy &nbsp; <kbd>P</kbd> proposal<br>
+  <kbd>A</kbd> admit &nbsp; <kbd>D</kbd> deny &nbsp; <kbd>H</kbd> hold &nbsp; <kbd>R</kbd> restart
+</div>
+
+<div class="sealstamp" id="sealstamp">✦ SEALED ✦</div>
+
+<!-- START -->
+<div class="over" id="start">
+  <div class="box">
+    <div class="cap">Dream of Conquest</div>
+    <h1>The Goblin Warren</h1>
+    <div class="sub">Answer QCM. Earn ZOL. Buy warren sites. Admit proposals. Grow the Warren.</div>
+    <div class="fine">ZOL — shiny-shiny, gone at dawn.</div>
+    <div class="sub" style="font-size:12.5px;opacity:.7">A knowledge economy where the Tall Ones convene. GOBLIN proposes the most — but only <b>admitted</b> moves become real.</div>
+    <button class="go" id="startbtn">Press Enter to Begin</button>
+  </div>
+</div>
+
+<!-- VICTORY -->
+<div class="over hidden" id="victory">
+  <div class="box">
+    <div class="cap">The Warren has flourished</div>
+    <h1 id="wintitle">Shiny-Shiny Rises</h1>
+    <div class="row" id="winstats"></div>
+    <div class="sub" style="margin-top:16px">“The Warren is built on what the Tall Ones admit.”</div>
+    <button class="go" id="restartbtn">Dig a New Warren &nbsp;(R)</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================================
+   Dream of Conquest — The Goblin Warren
+   V1 architecture clone, goblin reskin. Separate file.
+   GOBLIN hosts (biggest proposal pool). ZOL session only. HAL unchanged.
+   Visuals: Great Compost Heap + spore-motes + warren sites.
+   ========================================================================= */
+
+/* ===== REDUCER-BEGIN */
+// Pure reducer zone (questions, territories, state, HAL checks, mutations).
+// Selftest extracts this block. No DOM, no THREE, no side effects except the exported data + functions.
+const QUESTIONS = [
+  // General knowledge core kept
+  {q:"In which year did the French Revolution begin?",c:["1776","1789","1804","1815"],a:1,r:6,cat:"History"},
+  {q:"What is the capital of Australia?",c:["Sydney","Melbourne","Canberra","Perth"],a:2,r:6,cat:"Geography"},
+  {q:"Which gas do plants primarily absorb for photosynthesis?",c:["Oxygen","Nitrogen","Carbon dioxide","Hydrogen"],a:2,r:5,cat:"Science"},
+  {q:"Who wrote “One Hundred Years of Solitude”?",c:["Borges","García Márquez","Neruda","Cortázar"],a:1,r:7,cat:"Literature"},
+  {q:"The Amazon River flows mainly through which continent?",c:["Africa","Asia","South America","Australia"],a:2,r:5,cat:"Geography"},
+  {q:"What is the chemical symbol for gold?",c:["Go","Gd","Au","Ag"],a:2,r:5,cat:"Science"},
+  {q:"How many planets are in our solar system?",c:["7","8","9","10"],a:1,r:5,cat:"Science"},
+  {q:"Which language has the most native speakers?",c:["English","Spanish","Mandarin Chinese","Hindi"],a:2,r:6,cat:"Culture"},
+  {q:"What force keeps planets in orbit around the sun?",c:["Magnetism","Gravity","Inertia alone","Friction"],a:1,r:5,cat:"Science"},
+  {q:"What is the smallest sovereign country in the world?",c:["Monaco","Nauru","Vatican City","San Marino"],a:2,r:7,cat:"Geography"},
+  // ~8 goblin/compost-lore swaps
+  {q:"What does GOBLIN never do?",c:["decide","compost","hoard shiny","rot things"],a:0,r:8,cat:"Warren Law"},
+  {q:"Where do the shiny-shiny go at dawn?",c:["to the moon","into the compost","back to the Tall Ones","they stay"],a:1,r:7,cat:"Warren Law"},
+  {q:"What is the heart of the Great Compost Heap?",c:["a throne","rot and spore","gold coins","starlight"],a:1,r:6,cat:"Warren Lore"},
+  {q:"Which three sites are the Portals?",c:["Mushroom, Bone, Fungal","Trash, Echo, Moon","Scrap, Whisper, Crooked","all of them"],a:1,r:5,cat:"Warren Lore"},
+  {q:"What do goblins call ZOL?",c:["tax","shiny-shiny","debt","star-dust"],a:1,r:6,cat:"Warren Law"},
+  {q:"GOBLIN's favorite sound in the Warren?",c:["hammer on bone","the drip of rot","silence","wind in caps"],a:1,r:5,cat:"Warren Lore"},
+  {q:"What feeds the Glowworm Farm?",c:["starlight","compost and bone","pure water","moonbeams only"],a:1,r:6,cat:"Warren Lore"},
+  {q:"The Tall Ones convene as what?",c:["the Council","the Warren","the Heap","the Spore Ring"],a:0,r:7,cat:"Warren Law"},
+  {q:"What never changes the world without admission?",c:["a proposal","a thought","a shiny","a rot"],a:0,r:6,cat:"Warren Law"},
+];
+
+const TERRITORY_DEFS = [
+  {name:"Mushroom Cellar", price:9, prestige:8},
+  {name:"Bone-Button Market", price:11, prestige:9},
+  {name:"Fungal Vault", price:12, prestige:10},
+  {name:"Moth Chapel", price:13, prestige:11},
+  {name:"Scrap Bridge", price:10, prestige:9},
+  {name:"Whisper Midden", price:14, prestige:12},
+  {name:"Crooked Stair", price:15, prestige:11},
+  {name:"Glowworm Farm", price:12, prestige:10},
+  {name:"Rot Library", price:11, prestige:10},
+  {name:"Trash Portal", price:18, prestige:14},   // portal
+  {name:"Echo Burrow", price:17, prestige:13},    // portal
+  {name:"Moon Midden", price:22, prestige:16},    // portal
+];
+
+const AGENTS = {
+  GOBLIN:   {color:"#a8d070", role:"compost / mutation"},
+  HER:      {color:"#c96e2e", role:"beauty / narrative"},
+  ORNITH:   {color:"#8fb6ff", role:"research / optimization"},
+  WARDEN:   {color:"#f0c070", role:"security / boundary"},
+  ARCHIVIST:{color:"#b79cff", role:"memory"},
+  STEWARD:  {color:"#6fb86a", role:"economy / cohesion"},
+};
+const PROPOSER_KEYS = ["GOBLIN","HER","ORNITH","WARDEN","ARCHIVIST","STEWARD"]; // HAL never proposes
+const PROPOSALS = {
+  GOBLIN:  [ // biggest pool at home
+    {t:"Compost unused bones into spore soil.",cost:0},
+    {t:"Mutate a scrap pile into a lantern-vine.",cost:3},
+    {t:"Sink a midden pit for slow ZOL drip.",cost:4},
+    {t:"Grow glowcaps that lure shiny-shiny.",cost:0},
+    {t:"Rot the old to feed the new.",cost:2}
+  ],
+  HER:     [{t:"Weave spore-silk banners over the site.",cost:3},{t:"Plant memory-mushrooms for the Tall Ones.",cost:0}],
+  ORNITH:  [{t:"Tune this site's ZOL curve for steadier yield.",cost:5},{t:"Compress three tangled roots into one clean spiral.",cost:0}],
+  WARDEN:  [{t:"Raise scrap walls against drift.",cost:4},{t:"Set a warding bone at the site's edge.",cost:0}],
+  ARCHIVIST:[{t:"Etch this warren's history into the midden.",cost:0},{t:"Mark a remembrance cairn of shiny things.",cost:3}],
+  STEWARD: [{t:"Balance the site's rot to reduce entropy.",cost:0},{t:"Open a bone-button stall for fair exchange.",cost:5}],
+};
+
+// ---------------------------------------------------------------- STATE (single source of truth)
+let G, tick=0, propId=0;
+function freshState(){
+  return {
+    phase:"START", zol:0, knowledge:0, cohesion:100, reputation:0,
+    selected:null, qcm:null, proposal:null, answered:new Set(),
+    territories: TERRITORY_DEFS.map((d,i)=>({
+      id:i, name:d.name, price:d.price, prestige:d.prestige,
+      state:"available", level:0, angle:(i/TERRITORY_DEFS.length)*Math.PI*2, evolveT:0
+    })),
+    ledger:[], won:false
+  };
+}
+const ownedCount = ()=>G.territories.filter(t=>t.state==="owned"||t.state==="evolved").length;
+
+// ---------------------------------------------------------------- LEDGER
+function logEvent(type, detail=""){ G.ledger.push({type,detail,tick}); renderLedger(); }
+function renderLedger(){
+  const feed=document.getElementById("ledgerfeed");
+  const last=G.ledger.slice(-8).reverse();
+  feed.innerHTML=last.map(e=>{
+    const sealed = e.type==="PROPOSAL_ADMITTED"||e.type==="WARREN_EVOLVED"||e.type==="GAME_WON"||e.type==="SITE_CLAIMED";
+    return `<div class="lrow"><span class="lt ${sealed?'seal':''}">${sealed?'✦':'·'}</span>`+
+           `<span class="ld"><b style="color:var(--bone-2)">${e.type}</b>${e.detail?" — "+e.detail:""}</span></div>`;
+  }).join("");
+}
+
+// ---------------------------------------------------------------- HUD
+function renderHUD(){
+  document.getElementById("s-zol").textContent=Math.round(G.zol);
+  document.getElementById("s-kno").textContent=G.knowledge;
+  document.getElementById("s-coh").textContent=Math.max(0,Math.round(G.cohesion));
+  document.getElementById("s-rep").textContent=G.reputation;
+  document.getElementById("s-terr").textContent=ownedCount()+" / 12";
+}
+function flash(msg){ document.getElementById("flash").textContent=msg||""; }
+
+// AURA weather (spore-fog / ember-storm / glow-dawn)
+let auraPhase = 0;
+const AURA_WEATHERS = ["spore-fog","ember-storm","glow-dawn"];
+function updateAURA(){
+  const el = document.getElementById("aura");
+  if(!el || !G || G.phase!=="GARDEN_MAP") return;
+  auraPhase = (auraPhase + 1) % 3;
+  const w = AURA_WEATHERS[auraPhase];
+  el.textContent = "AURA: " + w;
+  if(scene && scene.fog){
+    if(w==="spore-fog") scene.fog.color.setHex(0x0f1a12), scene.fog.density=0.032;
+    else if(w==="ember-storm") scene.fog.color.setHex(0x2a1a12), scene.fog.density=0.045;
+    else scene.fog.color.setHex(0x1a2218), scene.fog.density=0.022;
+  }
+}
+
+// ---------------------------------------------------------------- QCM MANAGER
+function openQCM(){
+  if(G.phase==="GAME_WON")return;
+  const pool=QUESTIONS.map((_,i)=>i).filter(i=>!G.answered.has(i));
+  const idx = pool.length? pool[Math.floor(Math.random()*pool.length)] : Math.floor(Math.random()*QUESTIONS.length);
+  G.qcm={idx, done:false}; renderQCM(); flash("");
+}
+function renderQCM(){
+  const el=document.getElementById("qcmcard");
+  if(!G.qcm){el.innerHTML="";return;}
+  const q=QUESTIONS[G.qcm.idx];
+  el.innerHTML=`<div class="cap" style="margin-top:6px">Question for the Warren</div>
+    <div class="card"><div class="cat">${q.cat} · reward ${q.r} ZOL</div>
+    <div style="font-family:'Courier New',monospace;font-size:14px;margin:6px 0 4px">${q.q}</div>
+    ${q.c.map((c,i)=>`<button class="qopt" data-i="${i}" ${G.qcm.done?"disabled":""}>${"ABCD"[i]}. ${c}</button>`).join("")}
+    </div>`;
+  el.querySelectorAll(".qopt").forEach(b=>b.onclick=()=>answerQuestion(+b.dataset.i));
+}
+function answerQuestion(choice){
+  if(!G.qcm||G.qcm.done)return;
+  const q=QUESTIONS[G.qcm.idx]; G.qcm.done=true; G.answered.add(G.qcm.idx);
+  const opts=document.querySelectorAll("#qcmcard .qopt");
+  opts.forEach((b,i)=>{ b.disabled=true; if(i===q.a)b.classList.add("ok"); if(i===choice&&choice!==q.a)b.classList.add("no"); });
+  if(choice===q.a){
+    G.zol+=q.r; G.knowledge+=1;
+    logEvent("QUESTION_ANSWERED_CORRECT",q.cat); logEvent("ZOL_EARNED","+"+q.r);
+    flash("Correct. +"+q.r+" ZOL.");
+  } else {
+    G.cohesion=Math.max(0,G.cohesion-2);
+    logEvent("QUESTION_ANSWERED_WRONG",q.cat); flash("Not quite. The answer glows green.");
+  }
+  renderHUD();
+  setTimeout(()=>{ G.qcm=null; renderQCM(); },1400);
+}
+
+// ---------------------------------------------------------------- TERRITORY / SELECT
+function selectTerritory(id){ G.selected=id; renderTerritoryCard(); renderProposalCard(); }
+function renderTerritoryCard(){
+  const el=document.getElementById("terrcard");
+  if(G.selected==null){el.innerHTML=`<div class="hint">Click a spore-node to select a warren site. Press <kbd>Q</kbd> to earn ZOL.</div>`;return;}
+  const t=G.territories[G.selected];
+  const canBuy = t.state==="available" && G.zol>=t.price;
+  el.innerHTML=`<div class="terrname">${t.name}</div>
+    <div class="terrmeta"><span class="badge b-${t.state}">${t.state}</span>
+      <span>price ${t.price} ZOL</span><span>prestige ${t.prestige}</span>${t.level?`<span>lvl ${t.level}</span>`:""}</div>
+    ${t.state==="available"?`<div class="btnrow"><button class="btn prime" id="buybtn" ${canBuy?"":"disabled"}>Claim Site (${t.price} ZOL)</button></div>
+       ${canBuy?"":`<div class="hint">Need ${Math.max(0,t.price-Math.round(G.zol))} more ZOL — press <kbd>Q</kbd> to answer a question.</div>`}`
+    :`<div class="btnrow"><button class="btn" id="propbtn">Call the Tall Ones (P)</button></div>
+       <div class="hint">This site is yours. The Tall Ones propose — HAL checks, you admit. (GOBLIN proposes most.)</div>`}`;
+  const bb=document.getElementById("buybtn"); if(bb)bb.onclick=buyTerritory;
+  const pb=document.getElementById("propbtn"); if(pb)pb.onclick=createProposal;
+}
+
+// ---------------------------------------------------------------- HAL REDUCER: BUY
+function buyTerritory(){
+  if(G.selected==null)return flash("Select a site first.");
+  const t=G.territories[G.selected];
+  // HAL rule
+  if(t.state!=="available")return flash("HAL: site is not available.");
+  if(G.zol<t.price)return flash("HAL: insufficient ZOL. Answer a question (Q).");
+  G.zol-=t.price; t.state="owned"; G.reputation+=t.prestige;
+  logEvent("SITE_CLAIMED",t.name); logEvent("WARREN_EVOLVED",t.name+" claimed");
+  t.evolveT=1.0; renderHUD(); renderTerritoryCard(); flash(t.name+" claimed for the Warren.");
+  showSeal(); checkWin();
+}
+
+// ---------------------------------------------------------------- PROPOSAL + HAL CHECK
+function createProposal(){
+  if(G.selected==null)return flash("Select an owned site first.");
+  const t=G.territories[G.selected];
+  if(!(t.state==="owned"||t.state==="evolved"))return flash("Only owned territories receive proposals.");
+  const agent=PROPOSER_KEYS[Math.floor(Math.random()*PROPOSER_KEYS.length)];
+  const opts=PROPOSALS[agent]; const p=opts[Math.floor(Math.random()*opts.length)];
+  G.proposal={id:++propId, agent, terr:t.id, text:p.t, cost:p.cost, verdict:null};
+  logEvent("TALL_ONE_PROPOSAL", agent);
+  checkProposalWithHAL();
+  renderProposalCard(); flash(agent+" croaks a proposal. HAL checks…");
+}
+function checkProposalWithHAL(){
+  const p=G.proposal; if(!p)return;
+  const t=G.territories[p.terr];
+  // HAL legality rules (reducer, pure)
+  let ok=true, why="acceptable";
+  if(!(t.state==="owned"||t.state==="evolved")){ ok=false; why="site not owned"; }
+  else if(p.cost>0 && G.zol<p.cost){ ok=false; why="insufficient ZOL for upgrade"; }
+  p.verdict = ok?"ACCEPTABLE":"DENY"; p.why=why;
+  logEvent(ok?"HAL_CHECK_PASSED":"HAL_CHECK_DENIED", why);
+}
+function renderProposalCard(){
+  const el=document.getElementById("propcard"); const p=G.proposal;
+  if(!p){el.innerHTML="";return;}
+  const ag=AGENTS[p.agent]; const t=G.territories[p.terr];
+  const ok=p.verdict==="ACCEPTABLE";
+  el.innerHTML=`<div class="cap" style="margin-top:6px">The Tall Ones Convene · ${t.name}</div>
+    <div class="card">
+      <div class="agentline"><span class="agdot" style="background:${ag.color}"></span>
+        <b style="color:${ag.color}">${p.agent}</b><span style="opacity:.6;font-size:11px">— ${ag.role}</span></div>
+      <div class="prop-text">“${p.text}”</div>
+      <div style="font-size:11px;opacity:.7">cost: ${p.cost?p.cost+" ZOL":"0 (compost)"}</div>
+      <div class="verdict ${ok?'v-ok':'v-no'}">HAL: ${p.verdict}${ok?"":" — "+p.why}</div>
+      <div class="btnrow">
+        <button class="btn prime" id="acc" ${ok?"":"disabled"}>Admit (A)</button>
+        <button class="btn" id="den">Deny (D)</button>
+        <button class="btn" id="hol">Hold (H)</button>
+      </div>
+      <div class="hint">The Tall Ones recommend. Only <b>you</b> admit. HAL checks only. GOBLIN proposes the most.</div>
+    </div>`;
+  document.getElementById("acc").onclick=admitProposal;
+  document.getElementById("den").onclick=denyProposal;
+  document.getElementById("hol").onclick=holdProposal;
+}
+function admitProposal(){
+  const p=G.proposal; if(!p)return;
+  if(p.verdict!=="ACCEPTABLE")return flash("HAL blocks admission: "+p.why);
+  const t=G.territories[p.terr];
+  if(!(t.state==="owned"||t.state==="evolved"))return flash("HAL: site not owned.");
+  if(p.cost>0){ if(G.zol<p.cost)return flash("HAL: insufficient ZOL."); G.zol-=p.cost; }
+  t.level+=1; t.state="evolved"; G.reputation+=2; t.evolveT=1.0;
+  logEvent("PROPOSAL_ADMITTED",p.agent+" · "+t.name); logEvent("WARREN_EVOLVED",t.name+" → lvl "+t.level);
+  G.proposal=null; renderProposalCard(); renderTerritoryCard(); renderHUD();
+  flash("Admitted. The Warren grows."); showSeal(); checkWin();
+}
+function denyProposal(){ if(!G.proposal)return; logEvent("PROPOSAL_DENIED",G.proposal.agent); G.proposal=null; renderProposalCard(); flash("Denied. No change to the Warren."); }
+function holdProposal(){ if(!G.proposal)return; logEvent("PROPOSAL_HELD",G.proposal.agent); G.proposal=null; renderProposalCard(); flash("Held. The Tall Ones wait."); }
+
+// ---------------------------------------------------------------- WIN
+function checkWin(){
+  if(G.won)return;
+  if(ownedCount()>=7 || G.reputation>=100){
+    G.won=true; G.phase="GAME_WON"; logEvent("GAME_WON", ownedCount()+" warrens · rep "+G.reputation);
+    const ws=document.getElementById("winstats");
+    ws.innerHTML=[["Warrens",ownedCount()],["Reputation",G.reputation],["Knowledge",G.knowledge],
+      ["ZOL left",Math.round(G.zol)],["Upgrades",G.territories.reduce((s,t)=>s+t.level,0)]]
+      .map(([l,n])=>`<div class="cell"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+    document.getElementById("victory").classList.remove("hidden");
+  }
+}
+
+function showSeal(){ const s=document.getElementById("sealstamp"); s.classList.add("show"); setTimeout(()=>s.classList.remove("show"),700); }
+
+/* ===== REDUCER-END */
+// End of pure reducer. Everything below is presentation (DOM + THREE + input).
+let scene,camera,renderer,raycaster,pointer,clock,ringGroup,nodeMeshes=[],particles,heapCore;
+const RING_R=9;
+function initWorld(){
+  const cv=document.getElementById("cv");
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false});
+  renderer.setPixelRatio(1);
+  // Quarter-resolution render + nearest-neighbor upscale for chunky retro pixel look
+  const lowW = Math.max(1, Math.floor(innerWidth / 4));
+  const lowH = Math.max(1, Math.floor(innerHeight / 4));
+  renderer.setSize(lowW, lowH, false); // false = don't touch element style (CSS handles full-size upscale)
+  // CSS already has image-rendering: pixelated on #cv
+  // On resize we will re-apply low res
+  scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0f1a12,0.032); // spore-fog
+  camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.1,200);
+  camera.position.set(0,15.5,17); camera.lookAt(0,1.2,0);
+  scene.add(new THREE.AmbientLight(0x2a3f2a,0.95));
+  const key=new THREE.PointLight(0xc96e2e,1.6,140); key.position.set(6,18,10); scene.add(key); // ember
+  const fill=new THREE.PointLight(0x6fb86a,0.75,120); fill.position.set(-14,8,-6); scene.add(fill);
+  const spore=new THREE.PointLight(0xa8d070,0.65,70); spore.position.set(0,4,2); scene.add(spore);
+
+  // ground — swamp muck
+  const g=new THREE.Mesh(new THREE.CircleGeometry(26,64),
+    new THREE.MeshStandardMaterial({color:0x16251a,roughness:0.95,metalness:0.05}));
+  g.rotation.x=-Math.PI/2; g.position.y=-0.4; scene.add(g);
+  // faint concentric rings on ground (bone/ember)
+  for(let i=1;i<=4;i++){
+    const r=new THREE.Mesh(new THREE.TorusGeometry(4+i*4.6,0.02,6,80),
+      new THREE.MeshBasicMaterial({color:0xd9c8a3,transparent:true,opacity:0.09}));
+    r.rotation.x=-Math.PI/2; r.position.y=-0.38; scene.add(r);
+  }
+
+  buildCompostHeap();
+  buildOctagram();
+  buildTerritories();
+  buildParticles();
+
+  raycaster=new THREE.Raycaster(); pointer=new THREE.Vector2(); clock=new THREE.Clock();
+  addEventListener("resize",onResize);
+  cv.addEventListener("pointerdown",onPointer);
+  animate();
+}
+function buildCompostHeap(){
+  const grp=new THREE.Group();
+  const muck=new THREE.MeshStandardMaterial({color:0x2a3f2a,emissive:0x121f15,metalness:.1,roughness:.95});
+  const bone=new THREE.MeshStandardMaterial({color:0xb9a57a,emissive:0x3a2f1f,metalness:.2,roughness:.8});
+  const ember=new THREE.MeshStandardMaterial({color:0xc96e2e,emissive:0x4a2a12,metalness:.3,roughness:.6});
+  // crooked mound — compost heap throne
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.8,1.6,7),muck); base.position.y=0.4; grp.add(base);
+  const mid1=new THREE.Mesh(new THREE.CylinderGeometry(2.6,3.0,1.3,6),bone); mid1.position.y=1.5; grp.add(mid1);
+  const mid2=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.4,1.1,5),muck); mid2.position.y=2.5; grp.add(mid2);
+  // crooked spires of bone/scrap
+  const s1=new THREE.Mesh(new THREE.ConeGeometry(0.7,2.1,5),bone); s1.position.set(1.1,3.6,0.4); grp.add(s1);
+  const s2=new THREE.Mesh(new THREE.ConeGeometry(0.55,1.6,4),ember); s2.position.set(-0.9,3.3,-1.1); grp.add(s2);
+  // glowing spore core at the heart
+  heapCore=new THREE.Mesh(new THREE.OctahedronGeometry(0.85,0),
+    new THREE.MeshStandardMaterial({color:0xa8d070,emissive:0x6fb86a,emissiveIntensity:1.6,metalness:.2,roughness:.4}));
+  heapCore.position.y=4.1; grp.add(heapCore);
+  scene.add(grp);
+}
+function buildOctagram(){
+  ringGroup=new THREE.Group();
+  const R=4.4, pts=[];
+  for(let i=0;i<8;i++) pts.push(new THREE.Vector3(Math.cos(i/8*Math.PI*2)*R,0,Math.sin(i/8*Math.PI*2)*R));
+  const segs=[];
+  for(let i=0;i<8;i++){ const a=pts[i], b=pts[(i+3)%8]; segs.push(a.x,a.y,a.z,b.x,b.y,b.z); } // {8/3} star — law constant
+  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.Float32BufferAttribute(segs,3));
+  const star=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0xd9c8a3,transparent:true,opacity:.55}));
+  ringGroup.add(star);
+  const torus=new THREE.Mesh(new THREE.TorusGeometry(R,0.03,8,80),
+    new THREE.MeshBasicMaterial({color:0xa8d070,transparent:true,opacity:.38})); torus.rotation.x=Math.PI/2;
+  ringGroup.add(torus);
+  ringGroup.position.y=1.0; scene.add(ringGroup);
+}
+function buildTerritories(){
+  G.territories.forEach(t=>{
+    const grp=new THREE.Group();
+    const[x,z]=[Math.cos(t.angle)*RING_R, Math.sin(t.angle)*RING_R];
+    grp.position.set(x,0,z);
+    const plat=new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.35,0.5,8),
+      new THREE.MeshStandardMaterial({color:0x25351f,emissive:0x121f15,metalness:.15,roughness:.85}));
+    plat.position.y=0; grp.add(plat);
+    const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(0.62,0),
+      new THREE.MeshStandardMaterial({color:0x8a9b72,emissive:0x3a4a2a,emissiveIntensity:.55,metalness:.3,roughness:.65}));
+    crystal.position.y=1.15; grp.add(crystal);
+    const halo=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.03,6,40),
+      new THREE.MeshBasicMaterial({color:0xd9c8a3,transparent:true,opacity:.0})); halo.rotation.x=Math.PI/2; halo.position.y=.35; grp.add(halo);
+    grp.userData={id:t.id, crystal, halo, plat};
+    scene.add(grp); nodeMeshes.push(grp);
+  });
+  paintTerritories();
+}
+function paintTerritories(){
+  const COL={available:{c:0xa8b28f,e:0x3a4a2a,ei:.65,halo:0.14},
+             owned:{c:0xd9c8a3,e:0xc96e2e,ei:1.15,halo:.55},
+             evolved:{c:0xa8d070,e:0x6fb86a,ei:1.55,halo:.72},
+             locked:{c:0x3f4635,e:0x1f251c,ei:.25,halo:0}};
+  nodeMeshes.forEach(grp=>{
+    const t=G.territories[grp.userData.id]; const s=COL[t.state]||COL.available;
+    const cr=grp.userData.crystal;
+    cr.material.color.setHex(s.c); cr.material.emissive.setHex(s.e); cr.material.emissiveIntensity=s.ei;
+    grp.userData.halo.material.opacity = (G.selected===t.id? .85 : s.halo);
+    grp.userData.halo.material.color.setHex(G.selected===t.id?0xffffff:s.e);
+    // higher levels = bigger crystal
+    const sc=1+Math.min(t.level,4)*0.12; cr.scale.setScalar(sc);
+  });
+}
+function buildParticles(){
+  const N=280, pos=new Float32Array(N*3), sp=[];
+  for(let i=0;i<N;i++){
+    const r=2+Math.random()*23, a=Math.random()*Math.PI*2;
+    pos[i*3]=Math.cos(a)*r; pos[i*3+1]=Math.random()*11; pos[i*3+2]=Math.sin(a)*r; sp.push(0.15+Math.random()*0.55);
+  }
+  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  particles=new THREE.Points(geo,new THREE.PointsMaterial({color:0xa8d070,size:0.11,transparent:true,opacity:.6,
+    blending:THREE.AdditiveBlending,depthWrite:false})); // spore-motes
+  particles.userData.sp=sp; scene.add(particles);
+}
+function onResize(){ 
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); 
+  const lowW = Math.max(1, Math.floor(innerWidth / 4));
+  const lowH = Math.max(1, Math.floor(innerHeight / 4));
+  renderer.setSize(lowW, lowH, false);
+}
+function onPointer(e){
+  if(G.phase==="START"||G.phase==="GAME_WON")return;
+  pointer.x=(e.clientX/innerWidth)*2-1; pointer.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(nodeMeshes,true);
+  if(hits.length){ let o=hits[0].object; while(o && o.userData.id===undefined) o=o.parent; if(o) selectTerritory(o.userData.id); }
+}
+function animate(){
+  requestAnimationFrame(animate); tick++;
+  const dt=clock?clock.getDelta():0.016, ti=clock?clock.elapsedTime:0;
+  if(ringGroup) ringGroup.rotation.y+=dt*0.25;
+  if(heapCore){ heapCore.rotation.y+=dt*0.55; heapCore.rotation.x+=dt*0.25; heapCore.position.y=4.1+Math.sin(ti*1.3)*0.18; }
+  nodeMeshes.forEach(grp=>{
+    const t=G.territories[grp.userData.id];
+    grp.userData.crystal.rotation.y+=dt*0.8;
+    grp.userData.crystal.position.y=1.15+Math.sin(ti*1.6+grp.userData.id)*0.08;
+    if(t.evolveT>0){ t.evolveT-=dt*1.1; const k=Math.max(0,t.evolveT);
+      grp.userData.crystal.scale.multiplyScalar(1+k*0.02); grp.userData.halo.rotation.z+=dt*4; }
+  });
+  if(particles){
+    const p=particles.geometry.attributes.position.array, sp=particles.userData.sp;
+    for(let i=0;i<sp.length;i++){ p[i*3+1]+=sp[i]*dt*1.4; if(p[i*3+1]>11){ p[i*3+1]=0; } }
+    particles.geometry.attributes.position.needsUpdate=true; particles.rotation.y+=dt*0.02;
+  }
+  paintTerritories();
+  if(tick % 1100 === 0) updateAURA(); // slow weather shift
+  renderer.render(scene,camera);
+}
+
+// ---------------------------------------------------------------- INPUT / LIFECYCLE
+function startGame(){
+  G=freshState(); G.phase="GARDEN_MAP"; tick=0; propId=0;
+  document.getElementById("start").classList.add("hidden");
+  document.getElementById("victory").classList.add("hidden");
+  document.getElementById("qcmcard").innerHTML=""; document.getElementById("propcard").innerHTML="";
+  if(!renderer) initWorld(); else { nodeMeshes=[]; scene=null; /* rebuild */ location.reload(); return; }
+  logEvent("GAME_STARTED","The Warren"); renderHUD(); renderTerritoryCard(); renderLedger(); updateAURA(); flash("Press Q — first shiny-shiny awaits.");
+}
+addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  if(G && G.phase==="START"){ if(e.key==="Enter") startGame(); return; }
+  if(!G) return;
+  if(e.key==="Enter" && document.getElementById("start").classList.contains("hidden")===false){ startGame(); return; }
+  if(k==="r"){ document.getElementById("victory").classList.add("hidden"); location.reload(); return; }
+  if(G.phase==="GAME_WON")return;
+  if(k==="q") openQCM();
+  else if(k==="b") buyTerritory();
+  else if(k==="p") createProposal();
+  else if(k==="a"){ if(G.proposal) admitProposal(); }
+  else if(k==="d"){ if(G.proposal) denyProposal(); }
+  else if(k==="h"){ if(G.proposal) holdProposal(); }
+});
+document.getElementById("startbtn").onclick=startGame;
+document.getElementById("restartbtn").onclick=()=>location.reload();
+// boot: START screen visible; init a stub state so key handler knows phase
+G=freshState();
+</script>
+</body>
+</html>

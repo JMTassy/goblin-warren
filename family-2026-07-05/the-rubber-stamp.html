@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE RUBBER STAMP</title>
+<!-- THE RUBBER STAMP - a very funny MVP that works.
+     authority=false . one file . zero deps . 60 seconds . you are the gate.
+     Mixed authorship: scaffold Fable (JM-excepted for this MVP), jokes Fable+GOBLIN(local). -->
+<style>
+ :root{--ink:#e8dcc0;--bg:#141c0e;--card:#f4ecd8;--cardink:#2a2418;--admit:#3a7a3a;--deny:#a03030;--gold:#d0a83c}
+ *{box-sizing:border-box;margin:0}
+ body{background:var(--bg);color:var(--ink);font-family:Georgia,serif;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
+  background-image:radial-gradient(ellipse at 50% 0%,#1c2812,transparent 70%)}
+ #hud{display:flex;gap:22px;font-size:18px;margin-bottom:14px;font-variant:small-caps}
+ #timer{color:var(--gold);font-size:26px;font-weight:bold;min-width:70px;text-align:center}
+ #card{width:min(92vw,430px);min-height:210px;background:var(--card);color:var(--cardink);
+  border-radius:6px;padding:26px 24px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.6);
+  transform:rotate(-.6deg);transition:transform .12s}
+ #card.slam{animation:slam .3s ease}
+ @keyframes slam{0%{transform:rotate(-.6deg) scale(1)}40%{transform:rotate(.8deg) scale(.96)}100%{transform:rotate(-.6deg) scale(1)}}
+ #proposer{font-size:13px;letter-spacing:.2em;color:#7a6a4a;text-transform:uppercase;margin-bottom:10px}
+ #proposal{font-size:21px;line-height:1.45}
+ .stampmark{position:absolute;right:18px;bottom:14px;font-size:34px;font-weight:bold;
+  border:4px solid;border-radius:8px;padding:2px 14px;transform:rotate(-14deg);opacity:0;
+  font-family:Courier New,monospace;letter-spacing:.05em}
+ .stampmark.show{opacity:.85;animation:thunk .25s cubic-bezier(.3,2.5,.5,1)}
+ @keyframes thunk{from{transform:rotate(-14deg) scale(3);opacity:0}to{transform:rotate(-14deg) scale(1);opacity:.85}}
+ #buttons{display:flex;gap:26px;margin:26px 0 14px}
+ .stamp{font-size:24px;font-family:Georgia,serif;padding:20px 34px;border-radius:14px;border:none;
+  cursor:pointer;color:#fff;box-shadow:0 7px 0 rgba(0,0,0,.45);transition:transform .06s,box-shadow .06s;font-variant:small-caps}
+ .stamp:active{transform:translateY(6px);box-shadow:0 1px 0 rgba(0,0,0,.45)}
+ #admit{background:var(--admit)} #deny{background:var(--deny)}
+ #ledger{min-height:52px;max-width:min(92vw,430px);text-align:center;font-style:italic;
+  font-size:16px;color:#b9ae90;line-height:1.5}
+ #chaos{display:flex;gap:5px;margin-top:8px}
+ .pip{width:14px;height:14px;border:2px solid var(--gold);border-radius:3px;transform:rotate(45deg)}
+ .pip.on{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+ #over{position:fixed;inset:0;background:rgba(10,14,7,.96);display:none;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:20px}
+ #over h1{color:var(--gold);font-variant:small-caps;font-size:34px;margin-bottom:6px}
+ #verdictline{font-style:italic;font-size:19px;margin:10px 0 18px;max-width:480px;line-height:1.5}
+ #stats{font-size:17px;line-height:2}
+ #over button{margin:10px 8px 0;font-size:18px;padding:12px 22px;border-radius:10px;border:none;cursor:pointer}
+ #again{background:var(--gold)} #share{background:#5c7a3a;color:#fff}
+ #foot{position:fixed;bottom:8px;font-size:10px;color:#5a5240;letter-spacing:.15em}
+</style>
+</head>
+<body>
+<div id="hud"><span>score <b id="score">0</b></span><span id="timer">1:00</span><span>stamped <b id="count">0</b></span></div>
+<div id="card"><div id="proposer"></div><div id="proposal"></div><div class="stampmark" id="mark"></div></div>
+<div id="buttons">
+ <button class="stamp" id="admit" onclick="stamp(true)">🟢 ADMIT</button>
+ <button class="stamp" id="deny" onclick="stamp(false)">🔴 DENY</button>
+</div>
+<div id="ledger">The Warren awaits your hand. Sixty seconds of absolute power. Use it… responsibly-ish.</div>
+<div id="chaos"></div>
+<div id="over">
+ <h1 id="title"></h1>
+ <div id="verdictline"></div>
+ <div id="stats"></div>
+ <button id="again" onclick="start()">STAMP AGAIN</button>
+ <button id="share" onclick="share()">📋 copy your reign</button>
+</div>
+<div id="foot">AUTHORITY=FALSE · AND YET YOU STAMPED · a HELEN OS joke that works</div>
+<script>
+"use strict";
+/* PROPOSALS: [proposer, text, isChaos] - chaos:admitting raises the meter; wholesome:denying raises it */
+const PROPOSALS=[
+ ["GOBLIN","Rename the moon to 'Big Button' for tax purposes.",1],
+ ["GOBLIN","Compost the concept of Mondays. The worms are ready.",1],
+ ["HER","A small bench by the pond, facing the good sadness.",0],
+ ["HER","Give every mushroom a name and a modest pension.",0],
+ ["JESTER","Replace all passwords with the word 'password' for honesty.",1],
+ ["JESTER","Declare the ledger legally asleep. It cannot testify.",1],
+ ["CLAW","Send ONE (1) polite email to the outside world. Just one.",1],
+ ["CLAW","Build a door that leads outside. For emergencies. And Tuesdays.",1],
+ ["STEWARD","Balance the budget by declaring debt 'spiritually void'.",1],
+ ["STEWARD","A modest tax on echoes. They use the tunnels twice.",1],
+ ["MOONRAT","One (1) shiny sliver, to be held. Not spent. HELD.",0],
+ ["GOBLIN","Convert the compost heap into a compost SKYSCRAPER.",1],
+ ["HER","Wind-chimes tuned to the exact frequency of forgiveness.",0],
+ ["JESTER","Make HAL laugh. Budget: unlimited. Timeline: eternal.",1],
+ ["CLAW","A tiny window. Painted on. But a window.",0],
+ ["STEWARD","Convert idle prestige into soup. The math checks out.",1],
+ ["MOONRAT","Insurance policy against the moon. It knows what it did.",1],
+ ["GOBLIN","Teach the worms to file paperwork. They have the time.",0],
+ ["HER","Repaint the fog. It's been feeling monochrome.",0],
+ ["JESTER","A national holiday every time someone says 'receipt'.",1],
+ ["MOONRAT","A very small throne. Rat-sized. Purely ceremonial.",0],
+ ["CLAW","Wave at a satellite. It might wave back. HAL says no. Ask anyway.",1],
+ ["GOBLIN","Convert all toilets into gold-plated drinking vessels.",1],
+ ["HER","Mandate that clouds be treated as domestic pets.",0],
+ ["CLAW","Stamp all envelopes with the face of a very confused goat.",1],
+ ["STEWARD","Ban laughter in any room containing more than two chairs.",1],
+ ["MOONRAT","Require every handshake to include a full tax declaration.",1]];
+const ADMIT_CHAOS=[ // consequences of admitting chaos
+ "The moon is now taxable. It owes us everything.",
+ "The worms unionized within the hour. Their demands: more Mondays.",
+ "HAL didn't sigh. HAL filed the sigh for later. That's worse.",
+ "The skyscraper leans. The goblins call it 'ambitious composting'.",
+ "Debt is now spiritually void and financially everywhere.",
+ "The echoes paid the tax. In echoes. The treasury is very loud now.",
+ "The outside world replied: 'unsubscribe'. CLAW framed it.",
+ "Soup levels rising. Prestige at an all-time delicious low.",
+ "Nobody flushes anymore; they sip. The plumbing budget weeps in gold.",
+ "Mail delivery improved: the goats are excellent motivators.",
+ "Laughter is now illegal. Fines are collected in silence tokens.",
+ "Handshakes take longer than meetings now. It's become a negotiation."];
+const ADMIT_NICE=[ // admitting wholesome things
+ "The bench is perfect. Nobody sits. Everybody feels better.",
+ "Mushroom #7, 'Gerald', sends his regards and his pension form.",
+ "Cohesion +2. AURA does a little golden thing in the sky.",
+ "The painted window works. Don't ask how. Cohesion +1.",
+ "The chimes rang once. Three goblins forgave a fourth. Unrelated?",
+ "MOONRAT holds the sliver. The sliver is held. All is right."];
+const DENY_NICE=[ // denying wholesome things
+ "You denied a perfectly good bench. Somewhere, HER sighs.",
+ "Gerald the mushroom will remember this.",
+ "The fog stays monochrome. It writes sad poetry now. Cohesion -1.",
+ "MOONRAT's sliver rolls into a drain. The sound haunts you.",
+ "The worms had ONE dream. HAL logs your cruelty as 'efficient'.",
+ "The tiny throne is cancelled. The rat kneels to no one, now.",
+ "You refused the cloud adoption form. It drifts aimlessly, judging us.",
+ "You rejected the goat stamps. The mailroom is haunted by bureaucracy.",
+ "You denied spontaneous applause. Someone cried in the lobby, quietly."];
+const DENY_CHAOS=[ // denying chaos - the responsible choice
+ "Wise. The moon remains untaxed and smug about it.",
+ "DENIED. Somewhere, an auditor feels a warmth they can't explain.",
+ "HAL nods once. From HAL, that's a standing ovation.",
+ "The door to outside remains unbuilt. CLAW respects you. Warily.",
+ "The ledger stays awake. It saw everything. It always does.",
+ "Chaos contained. The Warren's insurance premiums exhale."];
+const TITLES=[[0,"THE COMPOST REGENT"],[3,"SEMPER FIDELIS, MOSTLY"],[6,"THE MERCIFUL STAMP"],[9,"CHAOS SOMMELIER"],[12,"THE MOON'S ACCOUNTANT"]];
+let deck=[],score=0,count=0,chaos=0,admits=0,denies=0,moons=0,t=60,timer=null,cur=null,best=+(localStorage.getItem("stamp_best")||0);
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function chaosPips(){$("chaos").innerHTML=Array.from({length:8},(_,i)=>`<div class="pip ${i<chaos?"on":""}"></div>`).join("")}
+function nextCard(){
+ if(!deck.length)deck=shuffle(PROPOSALS.slice());
+ cur=deck.pop();
+ $("proposer").textContent=cur[0]+" proposes:";
+ $("proposal").textContent="“"+cur[1]+"”";
+ $("mark").className="stampmark";
+}
+function stamp(admit){
+ if(!cur||t<=0)return;
+ count++;score+=10+Math.min(15,Math.floor(t/4)); // speed spice
+ const isChaos=cur[2]===1;
+ if(/moon/i.test(cur[1]))moons++;
+ let line;
+ if(admit){admits++;line=isChaos?(chaos++,pick(ADMIT_CHAOS)):pick(ADMIT_NICE)}
+ else{denies++;line=isChaos?pick(DENY_CHAOS):(chaos++,pick(DENY_NICE))}
+ chaos=Math.min(8,chaos);
+ const m=$("mark");m.textContent=admit?"ADMITTED":"DENIED";
+ m.style.color=admit?"var(--admit)":"var(--deny)";m.style.borderColor=admit?"var(--admit)":"var(--deny)";
+ m.classList.add("show");$("card").classList.remove("slam");void $("card").offsetWidth;$("card").classList.add("slam");
+ $("ledger").textContent="ledger: "+line;
+ $("score").textContent=score;$("count").textContent=count;chaosPips();
+ if(chaos>=8)return end(true);
+ setTimeout(nextCard,420);
+}
+function end(fogged){
+ clearInterval(timer);
+ const title=fogged?"LOST TO THE CARNIVAL FOG":TITLES.filter(x=>chaos>=x[0]).pop()[1];
+ $("title").textContent=title;
+ $("verdictline").textContent=fogged
+  ?"The fog took the Warren. The goblins are thrilled. HAL is filing a complaint against weather."
+  :pick(["The Warren survives your reign. Barely. Beautifully.",
+    "History will call it 'a phase'. The worms call it Tuesday.",
+    "Your stamps echo in the tunnels. Some of them apologize."]);
+ const nb=score>best;if(nb){best=score;localStorage.setItem("stamp_best",best)}
+ $("stats").innerHTML=`stamped <b>${count}</b> · admitted <b>${admits}</b> · denied <b>${denies}</b> · moons involved <b>${moons}</b><br>score <b>${score}</b> ${nb?"· 👑 new best":"· best "+best}`;
+ $("over").style.display="flex";
+}
+function share(){
+ const txt=`THE RUBBER STAMP — I reigned for 60s: ${score} pts, ${admits} admitted, ${denies} denied, chaos ${chaos}/8. Title: ${$("title").textContent}. The moon may owe me money.`;
+ navigator.clipboard&&navigator.clipboard.writeText(txt);
+ $("share").textContent="✅ copied — go brag";setTimeout(()=>$("share").textContent="📋 copy your reign",1600);
+}
+function start(){
+ score=0;count=0;chaos=0;admits=0;denies=0;moons=0;t=60;deck=shuffle(PROPOSALS.slice());
+ $("over").style.display="none";$("score").textContent=0;$("count").textContent=0;chaosPips();
+ $("ledger").textContent="The Warren awaits your hand. Sixty seconds of absolute power.";
+ nextCard();
+ clearInterval(timer);
+ timer=setInterval(()=>{t--;$("timer").textContent="0:"+String(Math.max(0,t)).padStart(2,"0");
+  if(t<=0)end(false)},1000);
+}
+window.addEventListener("keydown",e=>{if(e.key==="a"||e.key==="ArrowLeft")stamp(true);
+ if(e.key==="d"||e.key==="ArrowRight")stamp(false)});
+start();
+</script>
+</body>
+</html>
