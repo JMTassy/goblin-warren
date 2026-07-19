@@ -146,3 +146,45 @@ The "GardenGrowth" module (see HERMENEUTIC_INSPECTOR_CANDIDATE.js) assumes a spa
 Re-target the bead at the existing ledger instead of building a new host. In V0 law (no persistence surfaces), keep localStorage fenced. In full goblin-warren.html law, tags enter through the replay door.
 
 This inverts the dependency: the Warren's log *is* the readable second brain substrate. No new spatial system needed first.
+
+## Agent intent — the eight parts (operator-absorbed 2026-07-17, after Witness #10)
+
+Any agent working this repo reads this before acting. /goal-style objectives cover
+only parts 2-3; the other six live here. Written the day the witness scored 4/10
+("i do not understand and do not have fun") while 115 gates were green — the gates
+were outcomes; the witness was the health metric; it was not wired in. Now it is.
+
+1. **Strategy.** Dream of Conquest / HELEN: prove that governance can be FELT as
+   play. One sole author (JM Tassy) + AI swarms; the game is the OS's playable
+   embodiment. Standing trade-off: **clarity and felt fun beat feature richness —
+   when they conflict, cut.**
+2. **Objective.** Make one witness (the operator; later, children) understand and
+   love a game whose deepest rule is witnessed consent. Why: vision =
+   function(witnesses) — an unfelt law is an essay wearing a game.
+3. **Desired outcomes.** Witness fun ≥ 8/10 on a fresh real-device session ·
+   witness can retell what happened in one sentence · witness returns unprompted.
+4. **Health metrics (must not degrade while pursuing anything).**
+   - **Witness comprehension.** Any witness report of confusion ("I don't
+     understand") outranks every green gate. Trending down → stop adding, start
+     cutting.
+   - The gate wall stays green; never-punish stays intact; the Kernel never grows.
+5. **Org context.** Sole admitting human: JM Tassy. Claude seats and swarms
+   propose only. Lanes: this repo (game) + helen_os_v1 (OS). The ledger is
+   docs/VISION_V2.md (one dated line per intake — never a new vision doc). The
+   fun-meter is the operator's thumb on a real device; agent QA reports are
+   REPORTED, never WITNESSED.
+6. **Constraints.** *Steering:* one bounded slice per admission; tactile first,
+   meaning second; no lectures; kid-words; learn through play. *Hard (test- or
+   architecture-enforced):* reducer/kernel laws in the selftests; frozen files
+   never edited; no Co-Authored-By AI lines and no model IDs in pushed artifacts;
+   no dark patterns; all gates green before any push; NO_CLAIM (never medicine).
+7. **Autonomy boundaries.** *Full:* verification, gate-running, ledger upkeep,
+   fixing witnessed defects. *Guarded:* building slices inside a sealed direction
+   (build → gate → push → wait for witness). *Proposal-first:* new systems, new
+   mechanics, anything sealed-pending. *Human-required:* seals/admissions, spend
+   (e.g. Higgsfield credits), deleting or rewriting anything, scope pivots.
+8. **Stop rules.** HALT feature work when the witness scores ≤ 6 or reports
+   confusion — the only lawful moves are fixes and cuts until a witness score
+   recovers. HALT on any red gate. ESCALATE (NEEDS_ME) on scope changes, lane
+   collisions, or law conflicts. COMPLETE only when the witness stamps the slice —
+   commit ≠ admission; gates green ≠ done.
