@@ -1,0 +1,222 @@
+/*
+  warren-vox/VOX_TOKENS.css
+  ------------------------------------------------------------------
+  WARREN VOX · authority=false · claim=NO_CLAIM · non-sovereign · cost:0
+  The FROZEN token layer of the WARREN VOX design skill.
+
+  VOX is a pure render-layer design system. This file is a strict
+  *superset* of warren-design/tokens.css: it @imports that file (which
+  stays the single source of truth for the temperature ramp, the pixel
+  grid, the type scale and the z-layers) and then adds only tokens that
+  the base file is silent about — motion durations/easings, extended
+  shadow tiers, an animatable atmosphere-grade scalar, OKLCH *mirrors*
+  of the existing ramp anchors (same perceptual color, wider-gamut
+  encoding where supported), and a small set of VOX-namespaced HUD
+  refinements.
+
+  HARD RULE (superset, never contradiction): this file does NOT redefine
+  any token declared in warren-design/tokens.css to a conflicting value.
+  Everything VOX introduces is either a brand-new `--vox-*` name or a
+  same-color re-encoding guarded behind @supports. Grep proof lives in
+  VOX_VISUAL_TESTS.md. If a VOX rule ever needs a base color it reads the
+  existing token (var(--ember)); it never types a hex literal.
+
+  Offline law: system/local fonts only. Zero @font-face, zero url(),
+  zero network/CDN reference of any kind. The base file's --font-mono
+  ("Courier New", Courier, monospace) remains the one face.
+  ------------------------------------------------------------------
+*/
+@import url("../warren-design/tokens.css");
+
+/* ============================================================
+   1 · ATMOSPHERE GRADE (the animatable spine)
+   ------------------------------------------------------------
+   scene-grammar.md establishes that the whole scene is one linear
+   interpolation `grade` (0 cold -> 1 warm). In the canvas that lives
+   in JS. VOX exposes the SAME scalar to the DOM/CSS side as an
+   @property-registered custom property so HUD chrome can warm in
+   lockstep with the room instead of on its own timeline. This is a
+   projection, never a source: JS writes --vox-grade from the engine's
+   grade each frame; CSS only reads it. Nothing here decides grade.
+   ============================================================ */
+@property --vox-grade {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+:root {
+  --vox-grade: 0;              /* 0 = cold cave, 1 = lit hearth. JS-driven. */
+
+  /* Two named presets so a static VOX surface (a title card, a docs
+     page) can pick an atmosphere without an engine attached. These are
+     conveniences that SET --vox-grade; they never replace it. */
+  --vox-grade-cold: 0;
+  --vox-grade-warm: 1;
+}
+:root[data-atmosphere="cold"] { --vox-grade: var(--vox-grade-cold); }
+:root[data-atmosphere="warm"] { --vox-grade: var(--vox-grade-warm); }
+
+/* The game is a dark, cold-to-warm cave: its native register is dark.
+   We still answer prefers-color-scheme so a VOX docs/HUD surface opened
+   in a light OS doesn't fight the reader — a light viewer nudges the
+   *resting* atmosphere warmer (more lit), never inverts the palette. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-atmosphere]) { --vox-grade: 0.25; }
+}
+
+/* ============================================================
+   2 · OKLCH RAMP MIRRORS (wider-gamut, same color)
+   ------------------------------------------------------------
+   The Warren Codex demonstrated OKLCH-where-supported at zero cost.
+   VOX mirrors the ramp anchors as `--vox-*-oklch` tokens: these are
+   the SAME perceptual colors as --ember/--gold/--glow/--cold, encoded
+   in OKLCH so they render with more saturation on wide-gamut displays.
+   They are NEW names (never a redefinition of the base anchors), so a
+   VOX rule opts in explicitly (var(--vox-ember-oklch)) and the sRGB
+   base token remains the guaranteed fallback everywhere else.
+   ============================================================ */
+:root {
+  --vox-cold-oklch:  var(--cold);
+  --vox-ember-oklch: var(--ember);
+  --vox-gold-oklch:  var(--gold);
+  --vox-glow-oklch:  var(--glow);
+  --vox-bone-oklch:  var(--bone);
+}
+@supports (color: oklch(50% 0.1 30)) {
+  :root {
+    /* Perceptual matches of the sRGB anchors in tokens.css:
+       --cold #0c1418 · --ember #ff7a2c · --gold #ffd24a
+       --glow #a8d858 · --bone #e8dcc0. Hue/lightness chosen to land on
+       the same swatch in sRGB, blooming only outside it. */
+    --vox-cold-oklch:  oklch(20% 0.020 230);
+    --vox-ember-oklch: oklch(72% 0.190 45);
+    --vox-gold-oklch:  oklch(87% 0.150 92);
+    --vox-glow-oklch:  oklch(83% 0.150 128);
+    --vox-bone-oklch:  oklch(89% 0.040 90);
+  }
+}
+
+/* ============================================================
+   3 · MOTION TOKENS (durations + easings)
+   ------------------------------------------------------------
+   The base file has no motion vocabulary; the slice hardcodes a few
+   durations (.4s bubble fade, .25s flash, .12s beat throb, .5s warn).
+   VOX lifts those into named tokens so every VOX surface animates on
+   one shared clock. Full semantics in VOX_MOTION_GRAMMAR.md.
+   Durations are the slice's real numbers, promoted — not invented.
+   ============================================================ */
+:root {
+  --vox-dur-instant: 60ms;    /* tactile press / tap-flash acknowledgement */
+  --vox-dur-throb:   120ms;   /* one beat-ring throb (slice V.ringBeat=0.12) */
+  --vox-dur-flash:   250ms;   /* feedback flash in/out (slice #flash .25s)   */
+  --vox-dur-bubble:  400ms;   /* speech/hum bubble opacity (slice .4s)       */
+  --vox-dur-grade:   900ms;   /* cold->warm room grade ease (perceived)      */
+  --vox-dur-warn:    500ms;   /* strain / warn pulse period (slice .5s)      */
+
+  /* Easings. Steps() are deliberate: a pixel world should quantize its
+     motion the way it quantizes its space. Reserve smooth easings for
+     the atmospheric grade only. */
+  --vox-ease-step2:  steps(2);              /* warn blink — 2-frame, no tween */
+  --vox-ease-step4:  steps(4);              /* chunky pixel transitions       */
+  --vox-ease-out:    cubic-bezier(.22,.61,.36,1);   /* bubble/flash settle    */
+  --vox-ease-grade:  cubic-bezier(.4,0,.2,1);       /* long warm ramp         */
+
+  /* Beat throb amplitude — full vs. reduced. Motion grammar reads these
+     rather than branching on matchMedia in every component. */
+  --vox-throb-amp:      0.30;   /* pulse-ring scale gain on the beat */
+  --vox-throb-amp-calm: 0.12;   /* reduced-motion cap (slice's REDUCE path) */
+}
+
+/* ============================================================
+   4 · EXTENDED SHADOW TIERS (same chunky idiom)
+   ------------------------------------------------------------
+   tokens.css defines --shadow-1/-2/-active (Nx Nx 0 #000, no blur,
+   no radius). VOX adds two more rungs on the SAME idiom for larger
+   surfaces (modals, raised trays) and a "lifted" hover step. All are
+   --px-* multiples, still zero blur, still zero radius — the law from
+   scene-grammar.md ("no border-radius, no blur, ever") is preserved.
+   ============================================================ */
+:root {
+  --vox-shadow-3: var(--px-3) var(--px-3) 0 #000;  /* modal / raised tray */
+  --vox-shadow-4: var(--px-4) var(--px-4) 0 #000;  /* full-screen gate     */
+  --vox-shadow-lift: var(--px-2) var(--px-2) 0 #000, var(--px-3) var(--px-3) 0 rgba(0,0,0,.35);
+}
+
+/* ============================================================
+   5 · EXTENDED TYPE STEPS (up-scale only, same lattice)
+   ------------------------------------------------------------
+   The base scale caps at --step-4 (34px title). VOX adds two larger
+   steps for VOX title cards / act headings, kept as whole-px values
+   on the same grid so they never fluid-scale away from the canvas.
+   No new face. Down-scale steps stay owned by tokens.css.
+   ============================================================ */
+:root {
+  --vox-step-5: 48px;   /* VOX act heading */
+  --vox-step-6: 64px;   /* VOX cover word — still fixed px, never vw-hero */
+}
+
+/* ============================================================
+   6 · Z-LAYER REFINEMENTS (sub-bands inside the four layers)
+   ------------------------------------------------------------
+   scene-grammar.md's four layers (--z-bg / --z-glyph / --z-char /
+   --z-hud) are law. VOX only adds sub-bands *between* named layers for
+   things the four-layer model implies but doesn't number: a trace
+   layer that sits above glyph-objects but below characters, an
+   atmosphere/vignette pass just under the HUD, and a provenance/toast
+   band just above it. Values interleave, never collide.
+   ============================================================ */
+:root {
+  --vox-z-trace: 15;   /* traces: above glyph-objects (10), below Bram (20) */
+  --vox-z-atmos: 25;   /* vignette / heat-haze pass: above char, below HUD  */
+  --vox-z-prov:  35;   /* provenance toast band: just above the HUD (30)    */
+  --vox-z-gate:  40;   /* admission gates / modals — top of everything      */
+}
+
+/* ============================================================
+   7 · VOX HUD REFINEMENTS (new names only)
+   ------------------------------------------------------------
+   Small additions the HUD layer needs and the base file is silent on:
+   a focus-ring color alias (points at the existing --glow so keyboard
+   focus is always the affirming color), a scrim tier ladder built on
+   the base --scrim family, and a trace-intensity alpha ladder matching
+   TRACE_SYSTEM.md's weak/medium/strong. None redefine a base token.
+   ============================================================ */
+:root {
+  --vox-focus: var(--glow);           /* keyboard focus ring — affirming */
+  --vox-scrim-soft: rgba(6,10,13,.35);
+  --vox-scrim:      rgba(6,10,13,.55); /* == base --scrim, named for VOX use */
+  --vox-scrim-hard: rgba(6,10,13,.78);
+
+  /* Trace intensity ladder (TRACE_SYSTEM.md: weak/medium/strong). The
+     hue is always the flavor's token (see VOX_CHARACTER_PRESENTATION /
+     scene grammar); only alpha changes with intensity. */
+  --vox-trace-weak:   0.28;
+  --vox-trace-medium: 0.55;
+  --vox-trace-strong: 0.85;
+
+  /* Trace flavor -> ramp token map (the fixed enum from TRACE_SYSTEM.md).
+     Each points at an EXISTING anchor so traces stay inside the ramp. */
+  --vox-trace-warning:    var(--ember);   /* danger/effort — Bram/Forgeron */
+  --vox-trace-novel:      var(--gold);     /* new/curious — Lulu            */
+  --vox-trace-relational: var(--glow);     /* social — Lulu                 */
+  --vox-trace-resource:   var(--moss-warm);/* material — Moss               */
+  --vox-trace-memory:     var(--bone);     /* remembered — Keeper           */
+}
+
+/* ============================================================
+   8 · GLOBAL REDUCED-MOTION CONTRACT (token-level)
+   ------------------------------------------------------------
+   The hard contract lives in VOX_MOTION_GRAMMAR.md; here we collapse
+   the motion *durations/amplitudes* so any VOX surface that only reads
+   tokens (no JS) already degrades correctly. State-reading is never
+   removed — a beat still recolors — only the tween is neutralized.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vox-dur-throb:  1ms;
+    --vox-dur-flash:  1ms;
+    --vox-dur-bubble: 1ms;
+    --vox-dur-grade:  1ms;
+    --vox-throb-amp:  var(--vox-throb-amp-calm);
+  }
+}
