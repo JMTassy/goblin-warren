@@ -1,0 +1,117 @@
+{
+  "tests": [
+    {
+      "name": "phi_fit",
+      "per_N": [
+        {
+          "N": 1000,
+          "A": 5.14139,
+          "c": -0.00078758,
+          "r2": 0.0236188,
+          "r2_c1": -38137.5
+        },
+        {
+          "N": 4000,
+          "A": 6.18916,
+          "c": -0.000163745,
+          "r2": 0.014716,
+          "r2_c1": -549032.0
+        },
+        {
+          "N": 10000,
+          "A": 6.87629,
+          "c": -5.83572e-05,
+          "r2": 0.0109934,
+          "r2_c1": -3228460.0
+        }
+      ]
+    },
+    {
+      "name": "log_fit",
+      "per_N": [
+        {
+          "N": 1000,
+          "b": 1.01257,
+          "r2": 0.0364736
+        },
+        {
+          "N": 4000,
+          "b": 1.0044,
+          "r2": 0.0233923
+        },
+        {
+          "N": 10000,
+          "b": 1.0029,
+          "r2": 0.0186119
+        }
+      ]
+    },
+    {
+      "name": "energy_collapse",
+      "table": [
+        {
+          "p": 2,
+          "E": 0.763932
+        },
+        {
+          "p": 3,
+          "E": 0.708204
+        },
+        {
+          "p": 5,
+          "E": 0.45085
+        },
+        {
+          "p": 7,
+          "E": 0.241093
+        },
+        {
+          "p": 11,
+          "E": 0.055275
+        },
+        {
+          "p": 13,
+          "E": 0.0249519
+        },
+        {
+          "p": 17,
+          "E": 0.00476057
+        },
+        {
+          "p": 19,
+          "E": 0.0020323
+        },
+        {
+          "p": 23,
+          "E": 0.000358932
+        },
+        {
+          "p": 29,
+          "E": 2.52207e-05
+        },
+        {
+          "p": 31,
+          "E": 1.02978e-05
+        },
+        {
+          "p": 37,
+          "E": 6.8495e-07
+        }
+      ],
+      "underflow_note": "No underflow in the first 30 primes: smallest E_p = 2.738e-22 at p=113; double underflows (E->0) only near p~1548 (phi^-p < 5e-324). 0 of 30 values underflowed to exactly 0.",
+      "corr_with_gaps": -0.3388
+    },
+    {
+      "name": "phi_euler_product",
+      "t_range": [
+        0.0,
+        50.0
+      ],
+      "min_absZ": 0.490569,
+      "argmin_t": 3.05,
+      "zero_count": 0,
+      "reason": "Every factor (1 - phi^(-p s))^(-1) is finite and nonzero for Re(s)>0 since |phi^(-p s)| = phi^(-p/2) < 1, so the finite product Z is bounded away from 0 and has no zeros."
+    }
+  ],
+  "verdict": "The draft's phi-decay model fails its own test: fitting g_n = A*phi^(-c*n) to GROWING prime gaps forces the exponent negative (c=-5.83572e-05 at N=10000), i.e. the 'decay' law must run backwards, and even then the log-linear R2 is only 0.0109934 (fixed-c=1 R2=-3228460.0, effectively no fit). The PNT logarithmic model g_n ~ b*log(p_n) is the honest description (b=1.0029, R2=0.0186119 at N=10000), and the energy claim E_p=p*phi^(-p) has essentially no correlation with actual gaps (r=-0.3388). The phi-Euler product has min |Z(1/2+it)|=0.490569 over t in [0,50], never zero, so QPGL's central phi-scaling mechanism is refuted on its own terms: the logarithmic model wins, and the golden-ratio scaling carries no predictive content for prime gaps."
+}
