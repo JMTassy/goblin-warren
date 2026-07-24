@@ -232,6 +232,76 @@ fences. This one is runnable today.
 **Status:** INFERRED, day 0, one leg second-hand. Not admitted. Recommended as
 the successor framing to #0001 if it survives the portfolio check.
 
+### FALSIFIER RUN — 2026-07-24 — verdict: SURVIVED
+
+Test source: `BILAN PARTENARIAT — REMYX × COTR 2023`, owner `archives@uzik.com`,
+read in full. First falsifier actually executed rather than written.
+
+The test asked: were the signature formats client-commissioned from the outset
+(pattern dies), or self-initiated on owned property and sold after (pattern
+lives)? The bilan answers directly — it documents a **closed experimental loop
+on owned ground**:
+
+- UZIK owns the property (Calvi, since 2003) and sells partnership slots into
+  it — **13 partners** in the 2023 edition, RemyX among them as exclusive gin
+  supplier with a capsule range.
+- The engagement is **measured**: venues and daily footfall, audience
+  composition (50/50 gender, 70% under 34, mean age 31, CSP+), press and
+  broadcast pickup, per-channel reach, newsletter performance.
+- The engagement is **iterated**: an explicit `KEY LEARNINGS` chapter split into
+  `POINTS POSITIFS` and `AXES D'AMÉLIORATION`, written toward *"les éditions
+  futures."*
+- It is a **repeat** — *"cette seconde édition en collaboration"* — so the loop
+  demonstrably closed at least once.
+
+Owned property → sold slot → measured → learned → resold. That is a laboratory
+in operation, not a metaphor. **Claim survives its own falsifier.**
+
+### The real gem: the honest bilan as a retention mechanism
+
+The non-obvious finding is not that the numbers are good. It is that the
+**bad ones are reported to the client anyway**:
+
+- Sell-through stated plainly: *"98 bouteilles… 49% du stock livré initial (200)"*
+  — under half the delivered stock moved, printed without softening.
+- Self-implicating operational failure: *"Mieux délimiter, valoriser et
+  contractualiser la visibilité des bouteilles sur les bars pour éviter les
+  changements de dernière minute (parfois **préjudiciables** pour les équipes bar
+  et pour les autres partenaires)."* The agency records that its own last-minute
+  changes damaged both its staff and *other paying partners*.
+- A missed opportunity named rather than buried: a tasting activation that
+  *"aurait pu avoir lieu"* but wasn't organised.
+
+And the outcome recorded beside those admissions: *"Relation de confiance un peu
+plus établie à la suite de cette seconde édition."*
+
+**Extractable practice — `HONEST_BILAN`:** the post-mortem that reports
+under-performance and self-implicating error is what buys the next edition. The
+`AXES D'AMÉLIORATION` section is the commercial asset; the metrics are table
+stakes. Most agency bilans are victory laps and therefore compound no trust.
+
+Note the convergence: this is the same law the chiddush governance encodes —
+*report what the numbers say, retain the negative result*. UZIK already
+practises in client reporting what HELEN's gate enforces in code. The discipline
+is not imported; it is native to the house.
+
+### Borrowed reach — now specific, and subordinate
+
+The bilan shows the mechanic concretely: **partners bring their own influencers
+to the owned property.** Roughly forty influencers were invited *by the partner
+brands and by the festival together*, not procured by the festival alone. That
+confirms chiddush #0001's mechanic while confirming its rank — borrowed reach is
+a *feature the laboratory sells*, not the root move.
+
+### Structural note (flagged, not analysed)
+
+Two of the 2023 venues carry names matching entities in the operator's own
+holding. If that reading is right, the laboratory extends to **physical venue
+ownership** and the vertical integration is deeper than the festival brand
+alone. `INFERRED from name-matching only` — not confirmed, and deliberately not
+pursued here since it touches corporate structure rather than method. Flagged
+for the operator.
+
 ---
 
 ## Receipts
