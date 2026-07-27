@@ -214,6 +214,44 @@ node helen/principle-graph.test.js   # 7/7; exit 0 iff the law holds
 This is the engine. Running it on a real organization needs a corpus, an
 operator designation, and PII clearance — held for the operator.
 
+## EVOLUTION_KERNEL_V0 — from archive to engine
+
+The principle-graph stores what survives; this cell turns the archive into a
+lab. Five named primitives, all built as governed objects (never documents)
+under the same anti-inflation discipline:
+
+- **transformation genome** — a successful transformation reduced to a slotted
+  structure (`start_state · trigger · constraint · new_capability · mutation ·
+  stable_invariant · evidence`). A genome missing a slot or carrying no
+  evidence is REFUSED; new cases are **compared** to genomes, not merely
+  stored. (archive → engine)
+- **capability transfer log** — capabilities are flows, not property. A
+  transfer is logged only when it **moves** (same context → `NO_MOVEMENT`) and
+  only when the movement is **independently witnessed** (the seam again). An
+  invariant may *emerge* from a threshold of distinct destinations — never from
+  intuition.
+- **conservation law / survival score** — instead of "what is true", ask "what
+  remains true after repeated transformations". `survival_score` = the count of
+  **distinct independent contexts** a structure survived. Restating a counted
+  context adds 0; a same-lineage observation adds 0. **Survival is not usage** —
+  EK5 proves 100 mentions raise `usage_count` to 100 and `survival_score` by 0
+  (the conservation analog of the planner's D3).
+- **maturity states** — `hypothesized < observed < verified`. Maturity never
+  silently upgrades; only INDEPENDENT evidence raises it, and `verified` needs
+  independent replication. Repetition is not verification.
+- **evolution kernel** — given a partial case, propose the next **experiment**:
+  a falsifiable hypothesis (`maturity: hypothesized`) carrying a mandatory
+  falsifier, drawn from the best-matching genome — never a prediction or a
+  conclusion. Memory → lab.
+
+```bash
+node helen/evolution-kernel.test.js   # 8/8; exit 0 iff the law holds
+```
+
+Proven on **synthetic genomes only**. Populating it with a real organization's
+entities, people, or confidential strategy is operator-gated and PII-held — the
+real canonical data an operator may supply is not committed to this repo.
+
 ## Growth sequence
 
 ```
