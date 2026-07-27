@@ -21,3 +21,4 @@ Format: `DATE · KIND · description`
 2026-07-24 · PROPOSED · EffectTypedDatum V0 (type layer; author: operator) — retro-test USER_REPORTED_PASS 5/5 (no local replay receipt), 4 amendments flagged; routed into the pending three-layer skill merge
 2026-07-27 · CHECKED · EffectTypedDatum V0 — DIRECTOR verdict KEEP_WITH_AMENDMENTS_A_B_C_D_E; corrections: retro-test re-typed USER_REPORTED (same_process cannot witness itself), CHRONOS re-typed PROVENANCE_MISMATCH
 2026-07-27 · PROPOSED · EffectTypedDatum V0.2 derived as child datum (parent V0 unmodified, lineage preserved) — three-key lock, NO LOCAL SELF-PROMOTION; admission NOT_PERFORMED, seal pending
+2026-07-27 · PROPOSED · governed-deliverable package (vision: Fable, execution: Opus, verify: Fable — 5 files: spec, template, REMYX retrofit, A/B falsifier protocol); name + seal pending; posture-vocabulary seam vs EffectTypedDatum V0.2 flagged for the merge
