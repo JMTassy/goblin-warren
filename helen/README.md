@@ -102,6 +102,34 @@ node helen/witnessed-loop-graph-schema.test.js   # 9/9; exit 0 iff the law holds
 Deterministic (G9 scans the code, not the prose, for `Date.now`/`Math.random`/
 network) — so a `node` run is again the independent anchor.
 
+## WITNESSED_LOOP_GRAPH_DISTINCTION_PLANNER_V0
+
+The third cell — the inversion. Conventional orchestration asks "which
+agents do we need?"; this planner asks the prior question, **"which false
+states must remain distinguishable?"**, and emits the minimal loop set that
+separates them before any agent exists.
+
+- **distinction library** — the false states an honest system must never
+  confuse (`reported ≠ observed`, `exists ≠ supports`, `correlated ≠
+  independent`, `supported ≠ current`, `clear ≠ correct`, `produced ≠
+  verified`, `reported ≠ admitted`), each mapped to its separating loop and
+  the **anchor class** that loop must consume.
+- **the absent anchor** — `producer` is deliberately not an anchor class.
+  More same-lineage producers separate *nothing*. `plan()` emits the minimal
+  deduped loop set and refuses admission (`UNSEPARABLE_DISTINCTION`) when a
+  required distinction has no independent anchor available, or
+  (`UNKNOWN_DISTINCTION`) when asked to separate something it has no
+  separator for. It never guesses a separator it lacks.
+
+```bash
+node helen/witnessed-loop-graph-planner.test.js   # 7/7; exit 0 iff the law holds
+```
+
+D3 proves the inversion outright: adding 0, 20, or 1000 producers separates
+0 distinctions. This is the cell that would have refused the redundant
+20-seat swarm — it says "these seats separate zero new false states; you
+need one anchor, not twenty producers."
+
 ## Growth sequence
 
 ```
