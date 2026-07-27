@@ -252,6 +252,41 @@ Proven on **synthetic genomes only**. Populating it with a real organization's
 entities, people, or confidential strategy is operator-gated and PII-held — the
 real canonical data an operator may supply is not committed to this repo.
 
+## MASTER_REGISTRY_V0 — the HELEN/LNOS registry, with laws
+
+The consolidated recap named the next step: the master registry (agents ·
+Directors · frames · skills · artifacts) with the **real status** of each.
+This cell makes "real status" an admission gate instead of a prose column:
+
+- **claim typing is mandatory** — every entry is `WITNESSED | REPORTED |
+  CANDIDATE | NEEDS_ME`; no untyped entry registers.
+- **closure embargo** — an entry may not register as WITNESSED without a
+  receipt (a path in this repo + the exact replay command). NO RECEIPT →
+  NO SHIP, structurally.
+- **REPORTED never inflates WITNESSED** — another lane's "16/16 green" is
+  testimony; it registers, it is preserved, it adds zero to the witnessed
+  fold (MR5). report ↛ receipt.
+- **skills are extracted, never invented** — a skill with no
+  `extracted_from` sources is refused at any claim type; empty FAMILIES may
+  register, because a named absence is honest and an invented member is not.
+  The UZIK and Manucurist families therefore register with **zero members by
+  design**, `NEEDS_ME · awaiting_corpus`.
+- **verification is measured, not asserted** — `verifyReceipts` takes an
+  injected filesystem probe and checks every WITNESSED receipt against the
+  actual repo; a phantom receipt is flagged `RECEIPT_PATH_MISSING` and drops
+  out of the verified fold (MR6). The engine itself touches no fs — the
+  probe is the anchor, injected from outside.
+
+The 2026-07-27 fold (`master-registry.data.js`, 39 entries): **10 witnessed
+artifacts** (7 helen cells + 3 game harnesses, every receipt path measured
+present), 4 other-lane artifacts typed REPORTED and checked
+`absent_from_this_repo`, 7 roles, 10 frames, 8 skill families.
+
+```bash
+node helen/master-registry.test.js   # 7/7; MR4 measures the real registry
+                                     # against the real filesystem
+```
+
 ## Growth sequence
 
 ```
