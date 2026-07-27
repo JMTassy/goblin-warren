@@ -252,39 +252,67 @@ Proven on **synthetic genomes only**. Populating it with a real organization's
 entities, people, or confidential strategy is operator-gated and PII-held — the
 real canonical data an operator may supply is not committed to this repo.
 
-## MASTER_REGISTRY_V0 — the HELEN/LNOS registry, with laws
+## HELEN_MASTER_REGISTRY_V0.1 — the constitutional inventory
 
-The consolidated recap named the next step: the master registry (agents ·
-Directors · frames · skills · artifacts) with the **real status** of each.
-This cell makes "real status" an admission gate instead of a prose column:
+Built as V0 in answer to the consolidated recap, upgraded to V0.1 under
+the Director's CONSOLIDATE order (git history preserves V0). The registry
+is the address book, capability map and constitutional inventory — and
+every column of the Director's record schema is an **admission gate**:
 
-- **claim typing is mandatory** — every entry is `WITNESSED | REPORTED |
-  CANDIDATE | NEEDS_ME`; no untyped entry registers.
-- **closure embargo** — an entry may not register as WITNESSED without a
-  receipt (a path in this repo + the exact replay command). NO RECEIPT →
-  NO SHIP, structurally.
-- **REPORTED never inflates WITNESSED** — another lane's "16/16 green" is
-  testimony; it registers, it is preserved, it adds zero to the witnessed
-  fold (MR5). report ↛ receipt.
-- **skills are extracted, never invented** — a skill with no
-  `extracted_from` sources is refused at any claim type; empty FAMILIES may
-  register, because a named absence is honest and an invented member is not.
-  The UZIK and Manucurist families therefore register with **zero members by
-  design**, `NEEDS_ME · awaiting_corpus`.
-- **verification is measured, not asserted** — `verifyReceipts` takes an
-  injected filesystem probe and checks every WITNESSED receipt against the
-  actual repo; a phantom receipt is flagged `RECEIPT_PATH_MISSING` and drops
-  out of the verified fold (MR6). The engine itself touches no fs — the
-  probe is the anchor, injected from outside.
+- **closure embargo** — maturity `tested`/`operational` and evidence
+  `proven` all refuse to register without a receipt (a path in this repo +
+  the exact replay command). NO RECEIPT → NO SHIP, structurally (MR1).
+- **canonization and authority are not grantable here** — `status:
+  canonical` and any `authority_level ≠ none` require an operator seal
+  reference; authority defaults to none (MR3). Exactly ONE entry is
+  canonical: the frozen V0 game, sealed by the operator-authored CLAUDE.md.
+- **kernel sovereignty** — no entry may declare write access to a
+  sovereign surface (kernel truth · sovereign ledger · replay · identity ·
+  sovereign memory rules); every entry is auto-fenced from all five (MR4).
+  This is the autoresearch boundary, structural.
+- **reported never inflates proven** — testimony registers, is preserved,
+  and adds zero to the proven fold (MR6). Ceremony must not impersonate
+  progress.
+- **skills are extracted, never invented** — the UZIK and Manucurist
+  families register with zero members by design (MR2).
+- **verification is measured, not asserted** — an injected filesystem
+  probe checks every receipt against the actual repo; phantom receipts are
+  flagged `RECEIPT_PATH_MISSING` and excluded (MR5/MR7). The engine itself
+  has no fs.
 
-The 2026-07-27 fold (`master-registry.data.js`, 39 entries): **10 witnessed
-artifacts** (7 helen cells + 3 game harnesses, every receipt path measured
-present), 4 other-lane artifacts typed REPORTED and checked
-`absent_from_this_repo`, 7 roles, 10 frames, 8 skill families.
+The 2026-07-27 fold (42 entries): **12 proven-verified artifacts** (9
+helen cells + 3 game harnesses) · 4 other-lane artifacts `reported ·
+unknown` (checked absent here) · 7 roles `specified` · 10 frames
+`imagined` · 8 skill families · **1 pilot protocol `specified`** whose
+execution is HELD (real corpus + operator GO + PII clearance + out-of-repo
+destination; the pilot subject is a real private individual, deliberately
+not named in this public repo).
 
 ```bash
-node helen/master-registry.test.js   # 7/7; MR4 measures the real registry
+node helen/master-registry.test.js   # 8/8; MR5 measures the real registry
                                      # against the real filesystem
+```
+
+## HELEN_CONSTITUTION_V0.1 — the freeze, made measurable
+
+The Director's other CONSOLIDATE deliverable: capture the current
+architecture so no future conversation silently changes the meaning of
+HER, HAL, CHRONOS, DIRECTOR, MAYOR, Goblins, HELEN OS or LNOS.
+
+36 elements, each marked `canonical | provisional | hypothetical |
+deprecated | unresolved` — and the freeze is not prose: `foldHash()` folds
+every element into one deterministic FNV hash, **pinned in the test**. Any
+silent redefinition breaks the suite; amending is lawful (edit → re-pin →
+commit — the git diff is the amendment record). Canonical is **earned**:
+every canonical element must cite the running test suite or
+operator-authored file that enforces it (C3) — 14 qualify. The 8 core
+identities are all `provisional` (none self-canonized; the seal is the
+operator's). The 2026-07-27 fold: 14 canonical · 13 provisional · 4
+hypothetical · 2 deprecated (including the PURPLE breakthrough label and
+invent-before-register itself) · 3 unresolved.
+
+```bash
+node helen/constitution.test.js   # 6/6; C2 is the pinned freeze
 ```
 
 ## Growth sequence

@@ -1,94 +1,125 @@
 /* =====================================================================
-   MASTER_REGISTRY_V0  (HELEN/LNOS — the registry the recap names as the
-   next step: agents · Directors · frames · skills · artifacts, each with
-   its REAL status)
+   HELEN_MASTER_REGISTRY_V0.1  (upgraded from V0 under the Director's
+   CONSOLIDATE order — git history preserves V0)
    authority=false · claim=NO_CLAIM · non-sovereign · HELEN OS lane
 
-   The recap's own laws, made structural instead of editorial:
+   The registry is the address book, capability map and constitutional
+   inventory. V0.1 adopts the Director's record schema and makes each of
+   its columns an ADMISSION GATE:
 
-     · CLAIM TYPING IS MANDATORY — every entry is WITNESSED | REPORTED |
-       CANDIDATE | NEEDS_ME. "Real status" is not a prose column; it is
-       an admission gate.
-     · CLOSURE VOCABULARY IS EMBARGOED WITHOUT A RECEIPT — an entry may
-       not register as WITNESSED unless it carries a receipt (a path in
-       this repo + the command that replays it). NO RECEIPT → NO SHIP.
-     · REPORTED NEVER INFLATES WITNESSED — another lane's "16/16 green"
-       is testimony. It registers, it is preserved, it counts as zero in
-       the witnessed fold. (report ↛ receipt — forbidden morphism)
-     · SKILLS ARE EXTRACTED, NEVER INVENTED — a skill entry with no
-       `extracted_from` sources is REFUSED outright (§13.3 of the recap:
-       "extraits des sources réelles, et non inventés abstraitement").
-       Empty skill FAMILIES may register — a named absence is honest;
-       an invented member is not.
-     · VERIFICATION IS MEASURED, NOT ASSERTED — `verifyReceipts` takes an
-       injected `fileExists` probe and checks every WITNESSED receipt
-       against the actual filesystem. A WITNESSED entry whose receipt
-       path is missing is flagged RECEIPT_PATH_MISSING and drops out of
-       the verified fold. The engine itself touches no fs (the probe is
-       the anchor, injected from outside — the seam's shape again).
+     · maturity: imagined < specified < prototyped < tested < operational
+       (+ unknown for things mentioned but insufficiently understood).
+       `tested` and `operational` REQUIRE a receipt (path + replay).
+     · status: canonical | provisional | deprecated. `canonical` REQUIRES
+       an operator seal reference — this seat cannot canonize.
+     · evidence_class: proven | reported | hypothesized. `proven` REQUIRES
+       a receipt; reported and hypothesized register but add zero to the
+       proven fold. Ceremony must not impersonate progress.
+     · authority_level defaults to "none" and is NOT GRANTABLE HERE — any
+       other value requires an operator seal reference.
+     · kernel sovereignty: no entry may declare write access to a
+       sovereign surface (kernel truth, sovereign ledger, replay,
+       identity, sovereign memory rules). Every entry's
+       must_not_write_to is auto-extended with those surfaces.
+     · skills are extracted, never invented (kept from V0).
+     · verification is measured, never asserted: `verifyReceipts` takes an
+       injected filesystem probe (the engine has no fs — the probe is the
+       outside anchor).
 
-   DETERMINISM: no Date.now(), no Math.random(), no network, no fs, no LLM.
+   DETERMINISM: no Date.now(), no Math.random(), no fs, no network, no LLM.
    ===================================================================== */
 
 "use strict";
 
-var KINDS = ["role", "frame", "skill_family", "skill", "artifact", "agent", "director"];
-var CLAIM_TYPES = ["WITNESSED", "REPORTED", "CANDIDATE", "NEEDS_ME"];
-var STATUSES = ["hypothesized", "observed", "verified", "frozen", "awaiting_corpus", "absent_from_this_repo"];
+var VERSION = "0.1";
+var CLASSES = ["agent", "skill", "meta_skill", "frame", "protocol", "artifact", "role", "skill_family", "director"];
+var MATURITIES = ["imagined", "specified", "prototyped", "tested", "operational", "unknown"];
+var STATUSES = ["canonical", "provisional", "deprecated"];
+var EVIDENCE_CLASSES = ["proven", "reported", "hypothesized"];
+var SOVEREIGN_SURFACES = ["kernel_truth", "sovereign_ledger", "replay", "identity", "sovereign_memory_rules"];
 
-function newRegistry() { return { entries: {}, order: [] }; }
+function newRegistry() { return { version: VERSION, entries: {}, order: [] }; }
 
 function register(reg, e) {
   if (!e || !e.id) return { ok: false, reason: "ID_REQUIRED" };
   if (reg.entries[e.id]) return { ok: false, reason: "DUPLICATE_ID" };
-  if (KINDS.indexOf(e.kind) === -1) return { ok: false, reason: "UNKNOWN_KIND" };
-  if (CLAIM_TYPES.indexOf(e.claim_type) === -1) return { ok: false, reason: "CLAIM_TYPE_REQUIRED" };
+  if (CLASSES.indexOf(e.class) === -1) return { ok: false, reason: "UNKNOWN_CLASS" };
+  if (MATURITIES.indexOf(e.maturity) === -1) return { ok: false, reason: "MATURITY_REQUIRED" };
   if (STATUSES.indexOf(e.status) === -1) return { ok: false, reason: "STATUS_REQUIRED" };
-  if (e.claim_type === "WITNESSED" && !(e.receipt && e.receipt.path && e.receipt.replay)) {
-    return { ok: false, reason: "WITNESSED_WITHOUT_RECEIPT" };          /* closure embargo */
+  if (EVIDENCE_CLASSES.indexOf(e.evidence_class) === -1) return { ok: false, reason: "EVIDENCE_CLASS_REQUIRED" };
+
+  var hasReceipt = !!(e.receipt && e.receipt.path && e.receipt.replay);
+  if ((e.maturity === "tested" || e.maturity === "operational") && !hasReceipt) {
+    return { ok: false, reason: "RECEIPT_REQUIRED_FOR_MATURITY" };      /* closure embargo */
   }
-  if (e.kind === "skill" && !(Array.isArray(e.extracted_from) && e.extracted_from.length > 0)) {
+  if (e.evidence_class === "proven" && !hasReceipt) {
+    return { ok: false, reason: "PROVEN_WITHOUT_RECEIPT" };
+  }
+  if (e.status === "canonical" && !e.sealed_by) {
+    return { ok: false, reason: "CANONICAL_WITHOUT_OPERATOR_SEAL" };    /* this seat cannot canonize */
+  }
+  var authority = e.authority_level || "none";
+  if (authority !== "none" && !e.sealed_by) {
+    return { ok: false, reason: "AUTHORITY_NOT_GRANTABLE_HERE" };       /* authority defaults to false */
+  }
+  if (e.class === "skill" && !(Array.isArray(e.extracted_from) && e.extracted_from.length > 0)) {
     return { ok: false, reason: "SKILL_NOT_EXTRACTED_FROM_SOURCES" };   /* invention refused */
   }
+  var wants = Array.isArray(e.may_write_to) ? e.may_write_to : [];
+  for (var i = 0; i < wants.length; i++) {
+    if (SOVEREIGN_SURFACES.indexOf(wants[i]) !== -1) {
+      return { ok: false, reason: "SOVEREIGN_WRITE_REFUSED", surface: wants[i] };
+    }
+  }
+
   var stored = JSON.parse(JSON.stringify(e));
+  stored.authority_level = authority;
+  stored.must_not_write_to = SOVEREIGN_SURFACES.concat(
+    (Array.isArray(e.must_not_write_to) ? e.must_not_write_to : []).filter(function (s) {
+      return SOVEREIGN_SURFACES.indexOf(s) === -1;
+    }));
   stored.verified = false;                                              /* measured later, never asserted */
   reg.entries[e.id] = stored;
   reg.order.push(e.id);
   return { ok: true, id: e.id };
 }
 
-/* Measure every WITNESSED receipt against an injected filesystem probe.
-   The probe is the independent anchor: the engine cannot verify itself. */
+/* Measure every receipt-bearing entry against an injected filesystem
+   probe. The probe is the independent anchor: the engine cannot verify
+   itself. */
 function verifyReceipts(reg, fileExists) {
   var missing = [];
   reg.order.forEach(function (id) {
     var e = reg.entries[id];
-    if (e.claim_type !== "WITNESSED") { e.verified = false; return; }
-    var present = fileExists(e.receipt.path);
-    e.verified = present === true;
+    if (!(e.receipt && e.receipt.path)) { e.verified = false; return; }
+    e.verified = fileExists(e.receipt.path) === true;
     if (!e.verified) missing.push({ id: id, path: e.receipt.path, reason: "RECEIPT_PATH_MISSING" });
   });
   return { ok: missing.length === 0, missing: missing };
 }
 
-/* The fold: real status of the whole registry. Witnessed counts only
-   VERIFIED receipts; testimony and candidates are preserved but never
-   pooled into the witnessed number. */
+/* The fold: the real status of the whole institution. Proven counts only
+   VERIFIED receipts; testimony and candidates are preserved apart. */
 function summary(reg) {
-  var s = { total: reg.order.length, by_kind: {}, by_claim: {}, witnessed_verified: 0, witnessed_unverified: 0 };
+  var s = { version: reg.version, total: reg.order.length,
+    by_class: {}, by_maturity: {}, by_status: {}, by_evidence: {},
+    proven_verified: 0, proven_unverified: 0 };
   reg.order.forEach(function (id) {
     var e = reg.entries[id];
-    s.by_kind[e.kind] = (s.by_kind[e.kind] || 0) + 1;
-    s.by_claim[e.claim_type] = (s.by_claim[e.claim_type] || 0) + 1;
-    if (e.claim_type === "WITNESSED") {
-      if (e.verified) s.witnessed_verified += 1; else s.witnessed_unverified += 1;
+    s.by_class[e.class] = (s.by_class[e.class] || 0) + 1;
+    s.by_maturity[e.maturity] = (s.by_maturity[e.maturity] || 0) + 1;
+    s.by_status[e.status] = (s.by_status[e.status] || 0) + 1;
+    s.by_evidence[e.evidence_class] = (s.by_evidence[e.evidence_class] || 0) + 1;
+    if (e.evidence_class === "proven") {
+      if (e.verified) s.proven_verified += 1; else s.proven_unverified += 1;
     }
   });
   return s;
 }
 
 module.exports = {
-  KINDS: KINDS, CLAIM_TYPES: CLAIM_TYPES, STATUSES: STATUSES,
+  VERSION: VERSION, CLASSES: CLASSES, MATURITIES: MATURITIES, STATUSES: STATUSES,
+  EVIDENCE_CLASSES: EVIDENCE_CLASSES, SOVEREIGN_SURFACES: SOVEREIGN_SURFACES,
   newRegistry: newRegistry, register: register,
   verifyReceipts: verifyReceipts, summary: summary
 };
