@@ -170,13 +170,20 @@ Reçu abrégé ci-dessous en **`BILAN 2023`** =
 - Qui doit agir : nous.
 - Posture : **à établir**.
 
-**🌫️ F4 — Le second format de conditionnement.**
-- Pourquoi c'est ouvert : un taux d'écoulement sur un second format
-  (conditionnement vrac, type cubi) a été évoqué en brief amont de ce rétrofit.
-  **Il ne figure pas dans l'extrait autorisé** et n'a donc pas été repris.
-- Ce qui le refermerait : relecture du bilan source, chapitre volumes.
-- Qui doit agir : nous.
-- Posture : **à établir** — valeur : **à chiffrer**.
+**🌫️ F4 — Le second format de conditionnement. → REFERMÉ 2026-07-27 (passe météo).**
+- Pourquoi c'était ouvert : un taux d'écoulement sur un second format
+  (conditionnement vrac, type cubi) a été évoqué en brief amont de ce rétrofit,
+  **sans figurer dans l'extrait autorisé** — il n'a donc pas été repris.
+- Ce qui l'a refermé : la relecture demandée a eu lieu — le reçu existait dans
+  la lecture source du 2026-07-24 et a été porté au corpus le 2026-07-27.
+- Valeur, désormais reçue : **75 cubis écoulés, soit 80 % du stock livré
+  initial (94)** ; les cubis partent aux pics d'affluence (vendredi/samedi),
+  les bouteilles le lundi. Posture : **constaté** — reçu : `BILAN 2023`,
+  porté au corpus 2026-07-27.
+- Note de méthode, conservée : ce brouillard a été ouvert parce que le format a
+  intercepté en temps réel un chiffre de seconde main circulant sans reçu — y
+  compris venant de sa propre chaîne de commande. C'est la démonstration la plus
+  forte de l'exemple, et elle reste lisible dans l'historique de fermeture.
 - *Note de méthode : ce point est le format en train de fonctionner. Un chiffre
   mémorisé de seconde main a été présenté au rédacteur ; faute de reçu, il est
   ici en brouillard plutôt qu'en couche héros. C'est exactement le mouvement que

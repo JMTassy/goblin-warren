@@ -264,6 +264,13 @@ The non-obvious finding is not that the numbers are good. It is that the
 
 - Sell-through stated plainly: *"98 bouteilles… 49% du stock livré initial (200)"*
   — under half the delivered stock moved, printed without softening.
+- Second-format sell-through, same bilan: *"75 cubis passés sur le festival →
+  Cela représente 80% du stock livré initial (94)"* — with the operational
+  observation that cubis moved on peak days (Friday/Saturday) and bottles on
+  Monday. `OBSERVED (verbatim, BILAN 2023, read 2026-07-24)`. [Line added
+  2026-07-27 during a WEATHER pass: the retrofit's fog entry F4 caught this
+  figure circulating second-hand without a receipt in this doc; the receipt
+  existed in the original read and is now carried.]
 - Self-implicating operational failure: *"Mieux délimiter, valoriser et
   contractualiser la visibilité des bouteilles sur les bars pour éviter les
   changements de dernière minute (parfois **préjudiciables** pour les équipes bar
