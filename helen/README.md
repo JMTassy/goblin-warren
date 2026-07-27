@@ -130,6 +130,33 @@ D3 proves the inversion outright: adding 0, 20, or 1000 producers separates
 20-seat swarm — it says "these seats separate zero new false states; you
 need one anchor, not twenty producers."
 
+## WITNESSED_DATA_METABOLISM_V0
+
+The data-layer twin of the loop-graph cells. The seam/schema/planner govern
+CLAIMS; this governs the DATA claims are made of.
+
+Constitutional rule: **transformation may increase usefulness; it must never
+silently increase authority.** A summary may be clearer than its source; it
+does not become truer. Every item is a **DataBead** whose most important
+field is `authority.level`, not its content — the same sentence at `reported`,
+`inferred`, and `admitted` is three different objects.
+
+Implements the four membranes (provenance · semantic · authority ·
+temporal), the metabolic states, the admission equation, and the five toxin
+detectors (authority inflation · citation laundering · synthetic
+contamination · semantic collapse · **recursive self-confirmation** — reusing
+the seam so "derived objects cannot be independent witnesses" is the same
+anchor-cut at the data layer). Proven on synthetic beads; ingests, downloads,
+persists, admits nothing real.
+
+```bash
+node helen/witnessed-data-metabolism.test.js   # 11/11; exit 0 iff the law holds
+```
+
+B10 is the guardrail that governs any real ingestion: restricted PII cannot
+be admitted without an explicit privacy clearance, even when every other
+conjunct passes.
+
 ## Growth sequence
 
 ```
