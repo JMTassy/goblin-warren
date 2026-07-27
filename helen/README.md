@@ -157,6 +157,34 @@ B10 is the guardrail that governs any real ingestion: restricted PII cannot
 be admitted without an explicit privacy clearance, even when every other
 conjunct passes.
 
+## GOVERNED_TRANSFORMATION_KERNEL_V0 — the merge
+
+Composes the four cells into one four-key lock. The property none of them
+has alone lives only here: **NO_LOCAL_SELF_PROMOTION**.
+
+- **TYPE** — what effect is permitted. CHRONOS: `claimed_source_class ≠
+  witnessed_source_class` is a schema-level forgery, not a wisdom call — a
+  `model_output` may not wear a `command_output` costume.
+- **LAW** — which actor may authorize (capability tokens; the authorizer may
+  not be the producer — no self-authorization; in-place authority raises
+  denied, `correct(event) := append`).
+- **LOOP** — which gates passed (an independent, different-process anchor
+  closed; an actor may not witness its own output).
+- **RECEIPT** — a replayable event for every outcome; the parent object is
+  returned byte-unchanged (measured, not asserted).
+
+Four enforced invariants: `NO_LOCAL_SELF_PROMOTION` · `NO_IN_PLACE_AUTHORITY_MUTATION`
+· `NO_SELF_WITNESS_UPGRADE` · `NO_UNRECEIPTED_STATE_CHANGE`. Fail-closed.
+
+```bash
+node helen/governed-transformation-kernel.test.js   # 8/8; K1 is the Director's
+                                                    # minimum acceptance test verbatim
+```
+
+**Merge = GO (this artifact). Seal = HOLD — the sealing authority is the
+operator\'s; HELEN produces a review verdict and a replayable recommendation,
+never sovereign approval.**
+
 ## Growth sequence
 
 ```
