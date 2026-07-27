@@ -185,6 +185,35 @@ node helen/governed-transformation-kernel.test.js   # 8/8; K1 is the Director's
 operator\'s; HELEN produces a review verdict and a replayable recommendation,
 never sovereign approval.**
 
+## PRINCIPLE_GRAPH_V0 — the LNOS research-engine spine
+
+A mission arrived (LNOS): be a research engine that outputs reusable
+principles, separates observed from inferred, keeps a falsification protocol
+for every invariant, preserves competing hypotheses, and measures success as
+**explanatory power, not information volume**.
+
+That criterion forbids the naive execution: a research engine with no corpus
+produces ontology, and ontology is volume. So this cell is the ENGINE that
+structurally cannot inflate, not the model:
+
+- every node typed `observed | inferred` (mandatory; never silently proven);
+- an **invariant with no falsifier is REFUSED** — a valid claim must include a
+  way to be wrong;
+- competing hypotheses **coexist**; the graph never collapses them without an
+  independent falsification event (append-only negative graph);
+- a falsification attempt counts **only if independent** of the invariant's
+  lineage (the anchor-cut again);
+- `explanatoryPower()` counts **surviving falsifiable invariants**, never node
+  count — PG5 proves 100 unfalsifiable adds raise power by 0 (the LNOS analog
+  of the planner's D3).
+
+```bash
+node helen/principle-graph.test.js   # 7/7; exit 0 iff the law holds
+```
+
+This is the engine. Running it on a real organization needs a corpus, an
+operator designation, and PII clearance — held for the operator.
+
 ## Growth sequence
 
 ```
