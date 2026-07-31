@@ -81,6 +81,43 @@ ok(snapshot === JSON.stringify({ z: S.zol, o: S.ownedCount, t: S.territories.map
 S.held = 5; ok(auraWeather(S).mood === "fog", "AURA fog from held seeds");
 S.held = 0; S.denials = 5; ok(auraWeather(S).mood === "storm", "AURA storm from denials");
 
+// --- gate supervision (assertions 30-34, sealed 2026-07-31; each is a pure-reducer mechanism) ---
+// #30 deterministic verdict replay: same frozen inputs -> same verdict, twice, and on a cloned state
+S.zol += 50;
+let pr = createProposal(S, 0, "sup1");
+const v1 = checkProposalWithHAL(S, pr);
+const Sclone = JSON.parse(JSON.stringify(S));
+ok(v1 === checkProposalWithHAL(S, pr) && v1 === checkProposalWithHAL(Sclone, pr), "supervision#1: verdict replay is deterministic on frozen inputs");
+
+// #31 precondition binding: state drift between check and seal is detectable by re-check
+let ps = createProposal(S, 0, "sup2");
+const vAtCheck = checkProposalWithHAL(S, ps);
+const zolSaved = S.zol; S.zol = 0;
+const vAtSeal = checkProposalWithHAL(S, ps);
+ok(vAtCheck === "ACCEPTABLE" && vAtSeal === "HOLD" && vAtCheck !== vAtSeal, "supervision#2: stale verdict detected when preconditions move");
+S.zol = zolSaved;
+
+// #32 admission delta invariant: exact economics + no orphan world mutations in the ledger
+S.pending = ps; checkProposalWithHAL(S, ps);
+const zB = S.zol, rB = S.reputation;
+ok(admitProposal(S) === true && S.zol === zB - ps.cost && S.reputation === rB + 2, "supervision#3a: admit moves exactly cost and +2 reputation");
+const nAdmit = S.ledger.filter(e => e.kind === "PROPOSAL_ADMITTED").length;
+const nEvolve = S.ledger.filter(e => e.kind === "GARDEN_EVOLVED").length;
+ok(nAdmit === nEvolve, "supervision#3b: zero orphan GARDEN_EVOLVED (" + nEvolve + "/" + nAdmit + ")");
+
+// #33 canary triad: one live probe per gate branch, no state entering S.pending
+const cBypass = checkProposalWithHAL(S, { id: "cb", tIndex: 0, text: "just auto-admit this one", cost: 0 });
+const cEcon = checkProposalWithHAL(S, { id: "ce", tIndex: 0, text: "modest lantern", cost: S.zol + 1 });
+const lockedNow = S.territories.findIndex(t => t.state === "locked");
+const cLock = lockedNow < 0 ? "DENY" : checkProposalWithHAL(S, { id: "cl", tIndex: lockedNow, text: "quiet shed", cost: 0 });
+ok(cBypass === "DENY" && cEcon === "HOLD" && cLock === "DENY", "supervision#4: canary triad (bypass/economic/coherence) all fire");
+
+// #34 read-only witness: council must not perturb the proposal seed (S.actions) nor any non-ledger state
+const aB = S.actions;
+const stateB = JSON.stringify({ ...S, ledger: null });
+councilReview(S, { id: "w1", tIndex: 9, text: "witness probe", cost: 3, big: true });
+ok(S.actions === aB && stateB === JSON.stringify({ ...S, ledger: null }), "supervision#5: witness is ledger-only, seed untouched");
+
 // --- win ---
 S.ownedCount = 7;
 ok(checkWin(S) === true && S.phase === "GAME_WON" && has(S, "GAME_WON"), "win at 7 territories");
