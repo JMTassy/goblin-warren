@@ -1,0 +1,481 @@
+<!doctype html>
+<!-- authority=false · claim=NO_CLAIM · non-sovereign -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Player — HELEN DEPLOY 0.1</title>
+<style>
+/* authority=false · claim=NO_CLAIM · non-sovereign
+   Self-contained: no CDN, no font fetch, no external anything.
+   Ledger / observatory palette — ink on cream, brass for the seals. */
+
+:root {
+  --cream:      #f3ede1;
+  --cream-2:    #e9e1d1;
+  --rule:       #d6cab1;
+  --ink:        #1b1915;
+  --ink-2:      #4a453b;
+  --ink-3:      #756d5e;
+  --brass:      #8a6a1f;
+  --brass-soft: #b99a4a;
+  --seal-ok:    #2f6b46;
+  --seal-warn:  #8a5a13;
+  --seal-bad:   #8c2f2a;
+  --panel:      #fbf7ef;
+  --shadow:     0 1px 0 rgba(27,25,21,.06), 0 8px 24px -18px rgba(27,25,21,.5);
+  --mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cream:      #14120e;
+    --cream-2:    #1c1a15;
+    --rule:       #34301f;
+    --ink:        #ece3d1;
+    --ink-2:      #bcb2a0;
+    --ink-3:      #8b8474;
+    --brass:      #d3ae5b;
+    --brass-soft: #97803f;
+    --seal-ok:    #79c79a;
+    --seal-warn:  #e0b055;
+    --seal-bad:   #e08a83;
+    --panel:      #191712;
+    --shadow:     0 1px 0 rgba(0,0,0,.5), 0 10px 30px -20px #000;
+  }
+}
+:root[data-theme="light"] {
+  --cream:#f3ede1; --cream-2:#e9e1d1; --rule:#d6cab1; --ink:#1b1915; --ink-2:#4a453b;
+  --ink-3:#756d5e; --brass:#8a6a1f; --brass-soft:#b99a4a; --seal-ok:#2f6b46;
+  --seal-warn:#8a5a13; --seal-bad:#8c2f2a; --panel:#fbf7ef;
+  --shadow:0 1px 0 rgba(27,25,21,.06), 0 8px 24px -18px rgba(27,25,21,.5);
+}
+:root[data-theme="dark"] {
+  --cream:#14120e; --cream-2:#1c1a15; --rule:#34301f; --ink:#ece3d1; --ink-2:#bcb2a0;
+  --ink-3:#8b8474; --brass:#d3ae5b; --brass-soft:#97803f; --seal-ok:#79c79a;
+  --seal-warn:#e0b055; --seal-bad:#e08a83; --panel:#191712;
+  --shadow:0 1px 0 rgba(0,0,0,.5), 0 10px 30px -20px #000;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1000px; margin: 0 auto; padding: 28px 20px 96px; }
+
+header.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between;
+}
+.masthead h1 { margin: 0; font-size: clamp(24px, 4.2vw, 34px); letter-spacing: .01em; font-weight: 600; }
+.masthead .sub { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.themebtn {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  background: transparent; color: var(--ink-2); border: 1px solid var(--rule);
+  padding: 6px 10px; border-radius: 2px; cursor: pointer;
+}
+.themebtn:hover { border-color: var(--brass); color: var(--brass); }
+
+.law {
+  font-size: 14px; color: var(--ink-2); border-left: 3px solid var(--brass);
+  padding: 8px 0 8px 14px; margin: 0 0 22px;
+}
+.law b { color: var(--ink); font-weight: 600; }
+
+.controls {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 16px; margin-bottom: 24px; box-shadow: var(--shadow);
+}
+.controls h2, section > h2 {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 10px; font-weight: 600;
+}
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input[type=text], textarea {
+  font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+  background: var(--cream); border: 1px solid var(--rule); border-radius: 2px;
+  padding: 8px 10px; width: 100%;
+}
+input[type=text]:focus, textarea:focus { outline: 2px solid var(--brass-soft); outline-offset: -1px; }
+.grow { flex: 1 1 200px; min-width: 0; }
+button.act {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  background: var(--ink); color: var(--cream); border: 1px solid var(--ink);
+  padding: 9px 14px; border-radius: 2px; cursor: pointer; white-space: nowrap;
+}
+button.act:hover { background: var(--brass); border-color: var(--brass); color: #14120e; }
+button.act.ghost { background: transparent; color: var(--ink-2); border-color: var(--rule); }
+button.act.ghost:hover { color: var(--brass); border-color: var(--brass); background: transparent; }
+textarea { min-height: 96px; resize: vertical; margin-top: 8px; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 8px; }
+.err { color: var(--seal-bad); font-family: var(--mono); font-size: 12px; margin-top: 10px; }
+
+section { margin: 0 0 26px; }
+.card {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 3px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.card-body { padding: 16px; }
+
+/* --- seals ------------------------------------------------------------ */
+.seals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.seal {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  border: 1.5px solid currentColor; border-radius: 2px; padding: 8px 12px; font-weight: 600;
+}
+.seal .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.seal.ok { color: var(--seal-ok); }
+.seal.warn { color: var(--seal-warn); }
+.seal.bad { color: var(--seal-bad); }
+.seal.neutral { color: var(--ink-3); }
+
+/* --- timeline --------------------------------------------------------- */
+.rail { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 4px 0 16px; }
+.node {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+  border: 1px solid var(--rule); color: var(--ink-3);
+  padding: 6px 10px; border-radius: 2px; background: var(--cream-2);
+}
+.node.lit { color: var(--ink); border-color: var(--brass); background: var(--cream); box-shadow: inset 0 0 0 1px var(--brass-soft); }
+.node.terminal.lit { color: #14120e; background: var(--brass); border-color: var(--brass); }
+.node.unreached { opacity: .38; }
+.arrow { color: var(--ink-3); font-family: var(--mono); padding: 0 8px; font-size: 12px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.scroll { overflow-x: auto; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--ink-3);
+}
+td.mono, .mono { font-family: var(--mono); font-size: 12px; }
+.hash { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); word-break: break-all; }
+tr:last-child td { border-bottom: none; }
+.yes { color: var(--seal-ok); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.no  { color: var(--seal-bad); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.chip {
+  display: inline-block; font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--brass-soft); color: var(--brass); border-radius: 2px;
+  padding: 2px 7px; margin: 2px 4px 2px 0;
+}
+.kv { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 4px 14px; font-size: 13px; }
+.kv dt { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.kv dd { margin: 0; font-family: var(--mono); font-size: 12px; word-break: break-all; }
+.reason { font-size: 14px; color: var(--ink-2); margin: 14px 0 0; font-style: italic; }
+.empty { color: var(--ink-3); font-size: 14px; padding: 28px 0; text-align: center; }
+footer { border-top: 1px solid var(--rule); margin-top: 40px; padding-top: 14px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div>
+    <h1>Context Player</h1>
+    <div class="sub">HELEN Deploy 0.1 · receipt reader · authority=false · claim=NO_CLAIM</div>
+  </div>
+  <button class="themebtn" id="themebtn" type="button">theme</button>
+</header>
+
+<p class="law">
+  No agent endpoint returns a finished-and-trust-me verdict. An execution may return
+  <b>CERTIFIED</b> only when: declared context matches actual context · permissions were respected ·
+  outputs were stored · postconditions were evaluated · the complete receipt is replayable.
+</p>
+
+<div class="controls">
+  <h2>Read a receipt</h2>
+  <div class="row">
+    <input class="grow" type="text" id="base" value="http://127.0.0.1:8787" spellcheck="false" aria-label="API base URL">
+    <input class="grow" type="text" id="runid" placeholder="run_id (64 hex characters)" spellcheck="false" aria-label="run id">
+    <button class="act" id="fetchbtn" type="button">Fetch</button>
+    <button class="act ghost" id="ledgerbtn" type="button">Ledger</button>
+  </div>
+  <textarea id="paste" spellcheck="false" placeholder="…or paste a receipt JSON here and press Load"></textarea>
+  <div class="row" style="margin-top:8px">
+    <button class="act ghost" id="loadbtn" type="button">Load pasted</button>
+    <span class="hint">The page reads receipts. It cannot admit, certify, or alter one.</span>
+  </div>
+  <div class="err" id="err" hidden></div>
+</div>
+
+<div id="ledgerpane"></div>
+<div id="out"><div class="card"><div class="card-body"><div class="empty">No receipt loaded.</div></div></div></div>
+
+<footer>
+  Context Player is a reader. Certification happens in the runtime, is recorded in receipts.jsonl,
+  and is reproducible with <span class="mono">node e2e.cjs</span>. Myth is fuel; the ledger remains law.
+</footer>
+
+</div>
+
+<script>
+'use strict';
+/* authority=false · claim=NO_CLAIM · non-sovereign */
+
+var ALL_STATES = ['QUEUED', 'RUNNING', 'PARTIAL', 'INVALID', 'CERTIFIED', 'FAILED'];
+var TERMINAL = ['PARTIAL', 'INVALID', 'CERTIFIED', 'FAILED'];
+
+var $ = function (id) { return document.getElementById(id); };
+
+function esc(v) {
+  return String(v === undefined || v === null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function yn(v) { return v ? '<span class="yes">yes</span>' : '<span class="no">no</span>'; }
+function short(h) { var s = String(h || ''); return s.length > 20 ? s.slice(0, 12) + '…' + s.slice(-6) : (s || '—'); }
+function showErr(msg) { var e = $('err'); if (!msg) { e.hidden = true; e.textContent = ''; return; } e.hidden = false; e.textContent = msg; }
+
+/* ---- theme: system default, explicit override wins in both directions ---- */
+(function () {
+  /* No persistence surface: the override lives on the element, nowhere else. */
+  $('themebtn').addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme');
+    var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = current ? (current === 'dark' ? 'light' : 'dark') : (systemDark ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', next);
+  });
+}());
+
+/* ---- the state rail ---------------------------------------------------- */
+function renderTimeline(receipt) {
+  var visited = {};
+  (receipt.transitions || []).forEach(function (t) { visited[t.state] = true; });
+  visited[receipt.state] = true;
+  var order = ['QUEUED', 'RUNNING'];
+  var terminalShown = TERMINAL;
+  var html = '<div class="rail">';
+  order.forEach(function (s) {
+    html += '<span class="node ' + (visited[s] ? 'lit' : 'unreached') + '">' + s + '</span>';
+    html += '<span class="arrow">→</span>';
+  });
+  html += '<span class="mono" style="color:var(--ink-3);padding-right:8px">[</span>';
+  terminalShown.forEach(function (s, i) {
+    html += '<span class="node terminal ' + (receipt.state === s ? 'lit' : 'unreached') + '">' + s + '</span>';
+    if (i < terminalShown.length - 1) html += '<span class="arrow">|</span>';
+  });
+  html += '<span class="mono" style="color:var(--ink-3);padding-left:8px">]</span>';
+  html += '</div>';
+
+  var rows = (receipt.transitions || []).map(function (t) {
+    return '<tr><td class="mono">' + esc(t.at_monotonic) + '</td><td class="mono">' + esc(t.state) + '</td>' +
+      '<td>' + esc(t.note || '') + '</td><td class="mono" style="color:var(--ink-3)">' + esc(t.observed_at || '') + '</td></tr>';
+  }).join('');
+  html += '<div class="scroll"><table><thead><tr><th>monotonic</th><th>state</th><th>note</th>' +
+    '<th>observed at (not identity)</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4">no transitions</td></tr>') + '</tbody></table></div>';
+  return html;
+}
+
+/* ---- the five conditions ---------------------------------------------- */
+function renderConditions(r) {
+  var replay = r.replay || {};
+  var conds = [
+    ['1 · context verified', r.context_verified, 'declared digests matched the bytes on disk at provision time'],
+    ['2 · capabilities respected', r.capabilities_respected, 'required ⊆ granted, and self-reported use ⊆ granted'],
+    ['3 · outputs stored', r.outputs_stored, 'every output written content-addressed'],
+    ['4 · postconditions passed', r.postconditions_passed, 'all declared, all evaluated, all held'],
+    ['5 · replay verified', replay.verified, 'a second execution produced identical output digests']
+  ];
+  return '<div class="scroll"><table><thead><tr><th>condition</th><th>held</th><th>meaning</th></tr></thead><tbody>' +
+    conds.map(function (c) {
+      return '<tr><td class="mono">' + esc(c[0]) + '</td><td>' + yn(c[1]) + '</td><td style="color:var(--ink-2)">' + esc(c[2]) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+/* ---- packet inspector -------------------------------------------------- */
+function renderPacket(r) {
+  var packet = r.packet || {};
+  var ctx = r.context && r.context.length ? r.context : ((packet.context || {}).files || []).map(function (f) {
+    return { path: f.path, declared_sha256: f.sha256, actual_sha256: null, match: null };
+  });
+  var caps = r.capabilities || {};
+  var declared = caps.declared || packet.capabilities || [];
+  var required = caps.required || [];
+  var used = caps.used || [];
+  var violations = caps.violations || [];
+
+  var html = '<div class="card"><div class="card-body">';
+  html += '<h2>Packet — what was declared</h2>';
+  html += '<dl class="kv">' +
+    '<dt>packet_id</dt><dd>' + esc(packet.packet_id || r.packet_id) + '</dd>' +
+    '<dt>capsule</dt><dd>' + esc(packet.capsule || r.capsule) + '</dd>' +
+    '<dt>submitted_by</dt><dd>' + esc(packet.submitted_by || r.submitted_by || '—') + '</dd>' +
+    '<dt>packet sha256</dt><dd>' + esc(r.packet_sha256 || '—') + '</dd>' +
+    (packet.note ? '<dt>note</dt><dd>' + esc(packet.note) + '</dd>' : '') +
+    '</dl>';
+
+  html += '<h2 style="margin-top:18px">Context — declared vs actual</h2><div class="scroll"><table><thead><tr>' +
+    '<th>path</th><th>declared sha256</th><th>actual sha256</th><th>match</th></tr></thead><tbody>' +
+    (ctx.length ? ctx.map(function (c) {
+      return '<tr><td class="mono">' + esc(c.path) + '</td><td class="hash">' + esc(c.declared_sha256) + '</td>' +
+        '<td class="hash">' + esc(c.actual_sha256 || '—') + '</td>' +
+        '<td>' + (c.match === null ? '<span class="mono" style="color:var(--ink-3)">—</span>' : yn(c.match)) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4">no declared context</td></tr>') + '</tbody></table></div>';
+
+  html += '<h2 style="margin-top:18px">Capabilities</h2>';
+  html += '<div class="mono" style="font-size:11px;color:var(--ink-3);margin-bottom:4px">granted</div>' +
+    (declared.length ? declared.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('') : '<span class="mono">none</span>');
+  if (required.length) {
+    html += '<div class="mono" style="font-size:11px;color:var(--ink-3);margin:10px 0 4px">required by capsule</div>' +
+      required.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('');
+  }
+  if (used.length) {
+    html += '<div class="mono" style="font-size:11px;color:var(--ink-3);margin:10px 0 4px">self-reported use</div>' +
+      used.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('');
+  }
+  if (violations.length) {
+    html += '<div class="err" style="margin-top:10px">' + violations.map(esc).join('<br>') + '</div>';
+  }
+
+  var pcs = r.postconditions && r.postconditions.length ? r.postconditions : (packet.postconditions || []).map(function (p) {
+    return { name: p.name, op: p.op, expected: p.value, actual: undefined, evaluated: false, pass: null, detail: p.output + '.' + p.path };
+  });
+  html += '<h2 style="margin-top:18px">Postconditions</h2><div class="scroll"><table><thead><tr>' +
+    '<th>name</th><th>op</th><th>expected</th><th>observed</th><th>evaluated</th><th>held</th><th>detail</th></tr></thead><tbody>' +
+    (pcs.length ? pcs.map(function (p) {
+      return '<tr><td class="mono">' + esc(p.name) + '</td><td class="mono">' + esc(p.op) + '</td>' +
+        '<td class="mono">' + esc(JSON.stringify(p.expected)) + '</td>' +
+        '<td class="mono">' + esc(p.actual === undefined ? '—' : JSON.stringify(p.actual)) + '</td>' +
+        '<td>' + (p.evaluated === undefined ? '—' : yn(p.evaluated)) + '</td>' +
+        '<td>' + (p.pass === null ? '<span class="mono" style="color:var(--ink-3)">—</span>' : yn(p.pass)) + '</td>' +
+        '<td style="color:var(--ink-2)">' + esc(p.detail || '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="7">none declared</td></tr>') + '</tbody></table></div>';
+
+  html += '</div></div>';
+  return html;
+}
+
+/* ---- outputs ----------------------------------------------------------- */
+function renderOutputs(r) {
+  var outs = r.outputs || [];
+  return '<div class="card"><div class="card-body"><h2>Outputs — content-addressed</h2><div class="scroll"><table><thead><tr>' +
+    '<th>name</th><th>type</th><th>bytes</th><th>sha256 (this is the filename)</th></tr></thead><tbody>' +
+    (outs.length ? outs.map(function (o) {
+      return '<tr><td class="mono">' + esc(o.name) + '</td><td class="mono">' + esc(o.content_type || '—') + '</td>' +
+        '<td class="mono">' + esc(o.bytes === undefined ? '—' : o.bytes) + '</td>' +
+        '<td class="hash">' + esc(o.sha256) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" style="color:var(--ink-3)">nothing was stored — no execution produced outputs</td></tr>') +
+    '</tbody></table></div></div></div>';
+}
+
+/* ---- the whole receipt ------------------------------------------------- */
+function renderReceipt(r) {
+  if (!r || typeof r !== 'object' || !r.state) {
+    showErr('That does not look like a run receipt: it has no state field.');
+    return;
+  }
+  if (ALL_STATES.indexOf(r.state) === -1) {
+    showErr('Unknown state "' + r.state + '". The only states are ' + ALL_STATES.join(', ') + '.');
+  }
+  var replay = r.replay || {};
+  var certClass = r.certified ? 'ok' : (r.state === 'INVALID' || r.state === 'FAILED' ? 'bad' : 'warn');
+  var stateClass = r.state === 'CERTIFIED' ? 'ok' : (r.state === 'PARTIAL' ? 'warn' : (r.state === 'QUEUED' || r.state === 'RUNNING' ? 'neutral' : 'bad'));
+
+  var html = '';
+  html += '<div class="seals">' +
+    '<span class="seal ' + stateClass + '"><span class="dot"></span>state · ' + esc(r.state) + '</span>' +
+    '<span class="seal ' + certClass + '"><span class="dot"></span>' + (r.certified ? 'certified' : 'not certified') + '</span>' +
+    '<span class="seal ' + (replay.verified ? 'ok' : 'warn') + '"><span class="dot"></span>' +
+    (replay.verified ? 'replay verified' : 'replay unverified') + '</span>' +
+    '</div>';
+
+  html += '<div class="card"><div class="card-body">';
+  html += '<h2>Run</h2><dl class="kv">' +
+    '<dt>run_id</dt><dd>' + esc(r.run_id) + '</dd>' +
+    '<dt>capsule</dt><dd>' + esc(r.capsule) + '</dd>' +
+    '<dt>replay first</dt><dd>' + esc(replay.first_run_hash || '—') + '</dd>' +
+    '<dt>replay second</dt><dd>' + esc(replay.second_run_hash || '—') + '</dd>' +
+    '</dl>';
+  html += '<p class="reason">' + esc(r.reason || '') + '</p>';
+  html += '<p class="mono" style="font-size:11.5px;color:var(--ink-3);margin-top:8px">' + esc(replay.detail || '') + '</p>';
+  html += '<h2 style="margin-top:20px">State timeline</h2>' + renderTimeline(r);
+  html += '<h2 style="margin-top:20px">The five conditions</h2>' + renderConditions(r);
+  html += '</div></div>';
+
+  html += '<section style="margin-top:22px">' + renderPacket(r) + '</section>';
+  html += '<section>' + renderOutputs(r) + '</section>';
+
+  if (r.law) {
+    html += '<div class="card"><div class="card-body"><h2>Law carried in this receipt</h2>' +
+      '<p style="margin:0;color:var(--ink-2);font-size:14px">' + esc(r.law) + '</p></div></div>';
+  }
+
+  $('out').innerHTML = html;
+  $('ledgerpane').innerHTML = '';
+}
+
+/* ---- transport --------------------------------------------------------- */
+function apiBase() { return $('base').value.replace(/\/+$/, ''); }
+
+function fetchReceipt() {
+  showErr('');
+  var id = $('runid').value.trim();
+  if (!/^[0-9a-f]{64}$/.test(id)) { showErr('A run_id is 64 lowercase hex characters.'); return; }
+  fetch(apiBase() + '/api/run/' + id)
+    .then(function (res) { return res.json().then(function (b) { return { ok: res.ok, body: b }; }); })
+    .then(function (out) {
+      if (!out.ok) { showErr('The runtime answered: ' + (out.body.error || 'unknown')); return; }
+      renderReceipt(out.body);
+    })
+    .catch(function (err) {
+      showErr('Could not reach the runtime at ' + apiBase() + ' (' + err.message + '). Start it with: node api/server.js — or paste a receipt below.');
+    });
+}
+
+function fetchLedger() {
+  showErr('');
+  fetch(apiBase() + '/api/receipts')
+    .then(function (res) { return res.json(); })
+    .then(function (b) {
+      var runs = b.runs || [];
+      var html = '<div class="card"><div class="card-body"><h2>Ledger — ' + esc(b.ledger_lines) + ' append-only lines</h2>' +
+        '<div class="scroll"><table><thead><tr><th>state</th><th>certified</th><th>replay</th><th>packet_id</th><th>run_id</th></tr></thead><tbody>' +
+        (runs.length ? runs.map(function (r) {
+          return '<tr><td class="mono">' + esc(r.state) + '</td><td>' + yn(r.certified) + '</td><td>' + yn(r.replay_verified) + '</td>' +
+            '<td class="mono">' + esc(r.packet_id) + '</td>' +
+            '<td class="hash"><a href="#" data-run="' + esc(r.run_id) + '" style="color:var(--brass)">' + esc(short(r.run_id)) + '</a></td></tr>';
+        }).join('') : '<tr><td colspan="5">the ledger is empty</td></tr>') + '</tbody></table></div></div></div>';
+      $('ledgerpane').innerHTML = html;
+      Array.prototype.forEach.call($('ledgerpane').querySelectorAll('a[data-run]'), function (a) {
+        a.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          $('runid').value = a.getAttribute('data-run');
+          fetchReceipt();
+        });
+      });
+    })
+    .catch(function (err) { showErr('Could not reach the runtime at ' + apiBase() + ' (' + err.message + ').'); });
+}
+
+function loadPasted() {
+  showErr('');
+  var raw = $('paste').value.trim();
+  if (!raw) { showErr('Paste a receipt JSON first.'); return; }
+  var parsed;
+  try { parsed = JSON.parse(raw); } catch (err) { showErr('That is not valid JSON: ' + err.message); return; }
+  renderReceipt(parsed);
+}
+
+$('fetchbtn').addEventListener('click', fetchReceipt);
+$('ledgerbtn').addEventListener('click', fetchLedger);
+$('loadbtn').addEventListener('click', loadPasted);
+$('runid').addEventListener('keydown', function (e) { if (e.key === 'Enter') fetchReceipt(); });
+
+/* A run_id may arrive in the fragment: context-player.html#<run_id> */
+(function () {
+  var frag = (location.hash || '').replace(/^#/, '');
+  if (/^[0-9a-f]{64}$/.test(frag)) { $('runid').value = frag; fetchReceipt(); }
+}());
+</script>
+</body>
+</html>

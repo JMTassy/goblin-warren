@@ -1,0 +1,78 @@
+{
+  "$comment": "authority=false · claim=NO_CLAIM · non-sovereign",
+  "$id": "helen-deploy/0.1/context-packet",
+  "title": "Context Packet",
+  "description": "The declaration a submitter makes before any capability is invoked: what code will run, over which exact bytes, with which permissions, and what must be true afterwards.",
+  "type": "object",
+  "required": ["packet_id", "capsule", "context", "capabilities", "postconditions", "submitted_by"],
+  "properties": {
+    "packet_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9._:-]+$",
+      "description": "Submitter-chosen label. NOT an identity: two packets may share it. Identity is the run_id."
+    },
+    "capsule": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Name of a registered capsule. Unregistered names are refused; there is no arbitrary-command endpoint."
+    },
+    "context": {
+      "type": "object",
+      "required": ["files"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Path relative to the context root. Absolute paths and '..' segments are refused."
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "Declared digest. The runtime hashes the real file at provision time and refuses to execute on mismatch."
+              }
+            }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "enum": ["fs:read:workdir", "fs:write:workdir", "proc:spawn:node", "net:outbound"]
+      },
+      "description": "Permissions granted to the capsule. A capsule whose required set is not a subset of this list is refused before execution."
+    },
+    "postconditions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "required": ["name", "output", "path", "op", "value"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "output": { "type": "string", "minLength": 1, "description": "Name of a declared capsule output." },
+          "path": { "type": "string", "description": "Dot path into that output's parsed value. Empty string selects the whole value." },
+          "op": { "type": "string", "enum": ["eq", "ne", "gt", "gte", "lt", "lte", "contains"] },
+          "value": {}
+        }
+      },
+      "description": "Declarative only. There is no expression evaluation and no eval() anywhere in this runtime."
+    },
+    "submitted_by": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "note": { "type": "string", "maxLength": 2000 }
+  }
+}
