@@ -1,9 +1,28 @@
 authority=false · claim=NO_CLAIM · non-sovereign · status: PROPOSED
-CITATION GATE: unresolved — no citation below may enter any HELEN artifact
-until a resolution pass confirms each source exists and says what the note
-claims. The pool mixes arXiv entries (several with internally inconsistent
-IDs/years), vendor blogs, and unadopted IETF drafts. The synthesis itself
-flags this; the gate is stamped here so it travels with the file.
+CITATION GATE: RESOLVED 2026-08-01 (run wf_c727a44e-78a, 8 independent
+verifiers, 53/53 dispositioned): 48 CONFIRMED · 5 MISMATCH · 0 NOT_FOUND.
+Full verdicts: RESOLUTION.json alongside this file.
+
+The five MISMATCHes are title-variants of real works, corrected here and
+binding on any quotation:
+1. W3C PROV: cite PROV-DM (the data model) or Missier et al. EDBT 2013 for
+   "the PROV family"; the pooled URL is PROV-N (notation) only.
+2. arxiv:2603.00991 is titled "Tracking Capabilities for Safer Agents"
+   (the pooled title is the ACM CAIS 2026 conference variant).
+3. The Lumenova/FedScoop/IBM item is a blend of separate publications with
+   no combined "Beyond Human-in-the-Loop" document — do not cite as one work.
+4. arxiv:2607.12650 full title includes "in Empirical Inference".
+5. arxiv:2603.11445 is "…Plan-Execute-Verify-Replan Framework for Complex
+   Query Resolution" — materially different scope than pooled title.
+
+VERIFIER'S PREDICTION FAILURE, kept on the record: before resolution, the
+orchestrator predicted NOT_FOUND would concentrate in the 26xx-series IDs.
+Result: zero NOT_FOUND — the 2026 literature is real and dense. Consequence:
+the novelty boundary below stands on CHECKED ground and its pre-emptions are
+REAL. The composition claim survives resolution, but every "not novel" row is
+now confirmed against an existing source. Vendor-blog and IETF-draft entries
+remain lower-tier evidence (practitioner grade / unadopted) — confirmed to
+exist, not upgraded in weight.
 
 Provenance: Fable vision (100w) → 10 haiku field-searchers, 60 typed
 findings, 10/10 fields → Opus synthesis. Run wf_c3499ac1-a3c · 2026-08-01.
