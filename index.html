@@ -484,8 +484,14 @@ function uiPropose(){
  document.getElementById("proposal-panel").style.display="block";
  document.getElementById("agent-name").textContent=p.agent+" — "+p.voice;
  document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
+ // supervision pilot #6 (reason codes, render-only; falsifier pending operator data)
+ const reason=(t.locked||["locked","available"].includes(t.state))?"R1: target not owned/evolvable"
+   :(/bypass|without admission|skip the gate|auto-?admit/i.test(p.text))?"R2: bypass-shaped text"
+   :(S.zol<p.cost)?"R3: cost "+p.cost+" exceeds ZOL "+S.zol:"R0: within the membrane";
+ logEvent(S,"HAL_REASON",v+" · "+reason);
  document.getElementById("hal-verdict").innerHTML=
-  `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">(authority=false)</span>`;
+  `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">[${reason}] (authority=false)</span>`;
+ sealShownAt=performance.now();
  document.getElementById("btnAccept").disabled=(v!=="ACCEPTABLE");
  if(p.big){lastCouncil=councilReview(S,p);showCouncil(lastCouncil,p);}
  syncVisuals();
@@ -498,17 +504,27 @@ function showCouncil(c,p){
   `Tally ${c.votes}/5 — ${c.rec.replace("RECOMMEND_","the Tall Ones recommend: ")} · (recommendation, not admission)`;
 }
 function uiCloseCouncil(){document.getElementById("council").style.display="none"}
+// supervision pilot #7 (seal-fatigue interrupt, render-only; falsifier runs on collected ledger data)
+let admitStreak=0,sealLatencies=[],sealShownAt=0;
 function uiAdmit(){
  if(!S.pending)return;
+ const lat=sealShownAt?performance.now()-sealShownAt:0;
+ const med=sealLatencies.length?sealLatencies.slice().sort((a,b)=>a-b)[Math.floor(sealLatencies.length/2)]:0;
+ const tooFast=sealLatencies.length>=3&&lat<med/3, streaky=admitStreak>=7;
+ if(streaky||tooFast){
+  logEvent(S,"SEAL_INTERRUPT",(streaky?"streak "+admitStreak:"velocity "+Math.round(lat)+"ms vs med "+Math.round(med)+"ms"));
+  if(!confirm("The lantern pauses you.\n"+(streaky?admitStreak+" straight admissions.":"That was fast.")+"\nAdmit with your eyes open?")){admitStreak=0;return}
+ }
+ if(lat)sealLatencies.push(lat);
  const idx=S.pending.tIndex,lvl=S.territories[idx].level;
- if(admitProposal(S)){addFlower(idx,lvl);}
+ if(admitProposal(S)){addFlower(idx,lvl);admitStreak++;}
  document.getElementById("proposal-panel").style.display="none";
  if(checkWin(S))return uiWin();
  syncVisuals();
 }
-function uiDeny(){if(!S.pending)return;denyProposal(S);
+function uiDeny(){if(!S.pending)return;denyProposal(S);admitStreak=0;
  document.getElementById("proposal-panel").style.display="none";syncVisuals();}
-function uiHold(){if(!S.pending)return;holdProposal(S);
+function uiHold(){if(!S.pending)return;holdProposal(S);admitStreak=0;
  document.getElementById("proposal-panel").style.display="none";syncVisuals();}
 function uiWin(){
  document.getElementById("win-stats").innerHTML=
