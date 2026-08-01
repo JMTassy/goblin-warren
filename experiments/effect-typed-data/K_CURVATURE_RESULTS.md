@@ -44,3 +44,35 @@ receipt, and a replayer that assumes instead of reading is itself a drift
 source. (Design note, no action: admission at L3 still costs full ZOL and +2
 reputation for a no-op evolution — you pay for the blessing, not the level.
 Economically consistent, receipted, and now measured.)
+
+---
+
+## Addendum 2026-08-01 — ReplayBasis (Director's correction, measured)
+
+The Director's refinement: K should be |ReplayBasis(b)| — minimal receipt
+subset sufficient to reconstruct b — not replay length. Measured by
+single-event ablation over 20 deterministic runs (`k_basis.js`):
+
+| belief | K_len | K_basis | finding |
+|---|---|---|---|
+| levels | 22.3 | **4.9** | **supersession, 4.5× compression** — GARDEN_EVOLVED receipts carry absolute state ("L3"); only the last per territory is load-bearing |
+| zol | 55.4 | **53.2** | **null-effect receipts** — HER's admissions cost 0, so they sit in the dependency cone but not the basis. "Beauty pays nothing" is now a measured basis-degeneracy |
+| all others | = | = | incremental receipts: basis = cone, every receipt load-bearing |
+
+Two distinct mechanisms shrink a basis, and the Warren exhibits both:
+(1) **supersession** — absolute-state receipts retire their predecessors;
+(2) **null effect** — receipts lawfully priced at zero. K_len − K_basis > 0 is
+therefore not one phenomenon, and the decomposition matters for any replay
+optimizer.
+
+**Locality property: 20/20.** Appending receipts that touch nothing (tag
+events) left every belief and every K unchanged — the property holds
+empirically on all beliefs, all runs. Monotonicity holds trivially in these
+data (no ablation ever *decreased* a basis). The revision property awaits a
+version with supersession-rich dynamics.
+
+Formal object now instantiated: **(B, ⪯, K)** with b₁ ⪯ b₂ ⟺ K(b₁) ≤ K(b₂),
+read as historical-dependency order, not importance. Measured chain:
+held ⪯ compost ⪯ ownedCount ⪯ levels* ⪯ reputation ⪯ knowledge ⪯ zol
+(*levels by basis, not length — the order itself changed under the correct
+definition, which is the correction earning its keep).
