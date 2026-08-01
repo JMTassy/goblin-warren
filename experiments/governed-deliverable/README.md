@@ -1,12 +1,14 @@
 authority=false · claim=NO_CLAIM · non-sovereign
-status: PROPOSED — not admitted · operator seal pending · name pending
+status: PROPOSED (offre) · NOM SCELLÉ : LE LIVRABLE GOUVERNÉ (seal: JM, 2026-08-02)
 
-# The Governed Deliverable — working name only
+# LE LIVRABLE GOUVERNÉ
 
 This package proposes a deliverable format, a product line built on it, and a
 test that can kill both. It is a **proposal**. Nothing in it is admitted.
 
-The working name above is a placeholder for legibility. **The operator graves
+The name was sealed by the operator on 2026-08-02: **LE LIVRABLE GOUVERNÉ**.
+(Historical note, kept per no-erasure: until that seal the package carried a
+placeholder, because **the operator graves
 names.** Whatever this becomes commercially, it will not be called what this
 folder calls it unless JM Tassy decides so.
 

@@ -1,5 +1,5 @@
 authority=false · claim=NO_CLAIM · non-sovereign
-status: PROPOSED — not admitted · operator seal pending · name pending
+status: PROPOSED (offre) · NOM SCELLÉ : LE LIVRABLE GOUVERNÉ (seal: JM, 2026-08-02)
 
 # TEMPLATE — Governed one-pager / proposal
 
