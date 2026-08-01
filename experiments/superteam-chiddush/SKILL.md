@@ -15,6 +15,10 @@ description: >-
 
 authority=false · claim=NO_CLAIM · non-sovereign
 
+> LINEAGE NOTE (2026-08-02): superseded for NEW improvement cycles by
+> `helen-governance` (the three-layer merge: law+loop+type). This file is the
+> unmodified LAW parent and remains the home of THE ledger (LEDGER.md).
+
 # superteam-chiddush
 
 ## Chiddush (the novel rereading)
