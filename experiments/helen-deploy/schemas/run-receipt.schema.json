@@ -1,0 +1,147 @@
+{
+  "$comment": "authority=false · claim=NO_CLAIM · non-sovereign",
+  "$id": "helen-deploy/0.1/run-receipt",
+  "title": "Run Receipt",
+  "description": "The only thing an execution ever returns. It is a claim about five checks, each independently readable. It is never the string that would mean 'finished, trust me'.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "packet_id",
+    "capsule",
+    "state",
+    "transitions",
+    "context_verified",
+    "capabilities_respected",
+    "outputs",
+    "postconditions",
+    "replay",
+    "certified"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256(canonical packet JSON + ':' + monotonic counter). Identity. Never derived from a clock."
+    },
+    "packet_id": { "type": "string" },
+    "capsule": { "type": "string" },
+    "state": {
+      "type": "string",
+      "enum": ["QUEUED", "RUNNING", "PARTIAL", "INVALID", "CERTIFIED", "FAILED"],
+      "description": "The complete state set. No other state exists."
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["state", "at_monotonic"],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["QUEUED", "RUNNING", "PARTIAL", "INVALID", "CERTIFIED", "FAILED"]
+          },
+          "at_monotonic": {
+            "type": "integer",
+            "description": "Store-wide monotonic counter. Ordering authority."
+          },
+          "observed_at": {
+            "type": "string",
+            "description": "Wall clock. Observational only, never identity, never ordering."
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "context_verified": {
+      "type": "boolean",
+      "description": "CONDITION 1: every declared file's real digest matched at provision time."
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "declared_sha256": { "type": "string" },
+          "actual_sha256": { "type": "string" },
+          "match": { "type": "boolean" }
+        }
+      }
+    },
+    "capabilities_respected": {
+      "type": "boolean",
+      "description": "CONDITION 2: the capsule's required set was declared, and its self-reported used set was a subset of the declared grant."
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "declared": { "type": "array", "items": { "type": "string" } },
+        "required": { "type": "array", "items": { "type": "string" } },
+        "used": { "type": "array", "items": { "type": "string" } },
+        "violations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "outputs_stored": {
+      "type": "boolean",
+      "description": "CONDITION 3: every output was written to the content-addressed store."
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "sha256", "stored_at"],
+        "properties": {
+          "name": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "bytes": { "type": "integer" },
+          "content_type": { "type": "string" },
+          "stored_at": { "type": "string", "description": "Path inside artifact_store/, which is the sha256 itself." }
+        }
+      }
+    },
+    "postconditions_passed": {
+      "type": "boolean",
+      "description": "CONDITION 4: every declared postcondition was evaluated and held."
+    },
+    "postconditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "pass"],
+        "properties": {
+          "name": { "type": "string" },
+          "pass": { "type": "boolean" },
+          "evaluated": { "type": "boolean" },
+          "op": { "type": "string" },
+          "expected": {},
+          "actual": {},
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "replay": {
+      "type": "object",
+      "required": ["verified"],
+      "properties": {
+        "verified": {
+          "type": "boolean",
+          "description": "CONDITION 5: a second execution over the same packet produced identical output digests."
+        },
+        "first_run_hash": { "type": "string" },
+        "second_run_hash": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    },
+    "certified": {
+      "type": "boolean",
+      "description": "True only when all five conditions above are true. Nothing else may set it."
+    },
+    "reason": { "type": "string" },
+    "law": { "type": "string", "description": "The law, carried verbatim inside every receipt." },
+    "submitted_by": { "type": "string" },
+    "packet_sha256": { "type": "string" },
+    "packet": { "type": "object", "description": "The submitted packet, carried inside the receipt so a reader can inspect the declaration and the verdict together." },
+    "terminal": { "type": "boolean", "description": "Convenience view: state is one of PARTIAL, INVALID, CERTIFIED, FAILED." },
+    "diagnostics": { "type": "object" }
+  }
+}

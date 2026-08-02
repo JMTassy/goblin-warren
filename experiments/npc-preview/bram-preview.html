@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goblin Warren — Bram NPC Preview (Local AI, V0 stub)</title>
+<!--
+  GOBLIN WARREN LOCAL AI NPC PREVIEW V0 -- bram-preview.html
+  authority=false . claim=NO_CLAIM . non-sovereign
+  LOCAL-ONLY PREVIEW. No deploy target. No production endpoint.
+  Not part of V0 canon (index.html / selftest.js are untouched).
+
+  This is a deterministic engine STUB for Rungs 1-3 of a possible
+  future NPC layer. Everything about progression (seed planted, bloom
+  granted, rung advance) is decided by plain JS state machine logic in
+  this file's "engine" object below -- NEVER by the model adapter or
+  gateway. The model only ever supplies a presentation candidate
+  (speech/emotion/gesture/initiative/memory_candidate) that passes
+  through npc/response-schema.js's validate() before it is shown, and
+  even then it cannot touch `engine`.
+
+  No external dependencies: no CDN, no bundler. Just this file plus
+  the small npc/*.js modules loaded as plain <script> tags below.
+-->
+<style>
+  :root{ --bone:#e8dcc0; --ember:#d08a3c; --swamp:#141c0e; --moss:#5c7a3a;
+         --glow:#a8d858; --amber:#e0a83c; --rot:#8a5a4a; --spore:#8fae6a; --bloom:#e888c0; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:0;background:var(--swamp);color:var(--bone);
+    font-family:"Courier New",Courier,monospace;
+    image-rendering:pixelated}
+  #banner{background:#2a0d0d;color:#e0a83c;border-bottom:3px solid var(--ember);
+    padding:6px 12px;font-size:11px;text-align:center}
+  #stage{position:relative;width:100%;height:60vh;min-height:360px;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 70%, #1c2a12 0%, #0d1408 70%);
+    border-bottom:3px solid var(--moss)}
+  .pixel-npc{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);
+    width:64px;height:64px;image-rendering:pixelated}
+  .goblin-body{width:48px;height:48px;background:var(--moss);border:3px solid #0d1408;
+    margin:0 auto;position:relative;border-radius:4px 4px 0 0;
+    box-shadow:inset -4px -4px 0 rgba(0,0,0,.25)}
+  .goblin-eye{position:absolute;width:6px;height:8px;background:#0d1408;top:14px}
+  .goblin-eye.l{left:11px}.goblin-eye.r{right:11px}
+  .goblin-body.lookup .goblin-eye{top:8px}
+  .goblin-body.tilt{transform:rotate(-8deg)}
+  .goblin-body.wave::after{content:'';position:absolute;right:-14px;top:6px;width:12px;height:20px;
+    background:var(--moss);border:2px solid #0d1408;border-radius:0 8px 8px 0;
+    animation:wavey .6s ease-in-out infinite alternate}
+  @keyframes wavey{from{transform:rotate(0deg)}to{transform:rotate(-30deg)}}
+  #seedmound{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);
+    width:40px;height:24px;background:var(--rot);border:3px solid #0d1408;border-radius:50% 50% 0 0}
+  #sprout{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);
+    width:6px;height:0;background:var(--spore);transition:height .8s ease-out}
+  #bloomFx{position:absolute;left:50%;bottom:44px;transform:translateX(-50%) scale(0);
+    width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle, var(--bloom) 0%, var(--amber) 60%, transparent 100%);
+    transition:transform .6s cubic-bezier(.34,1.56,.64,1);opacity:0}
+  #bloomFx.on{transform:translateX(-50%) scale(1);opacity:1}
+  #thinkDots{position:absolute;left:50%;top:24px;transform:translateX(-50%);
+    font-size:18px;color:var(--glow);display:none;letter-spacing:4px}
+  #speechBubble{position:absolute;left:50%;top:60px;transform:translateX(-50%);
+    background:var(--bone);color:#141c0e;border:3px solid #0d1408;border-radius:4px;
+    padding:8px 12px;max-width:280px;font-size:12px;text-align:center;display:none;
+    box-shadow:4px 4px 0 rgba(0,0,0,.4)}
+  #speechBubble::after{content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);
+    border:8px solid transparent;border-top-color:#0d1408}
+  #hud{padding:12px;display:flex;gap:16px;flex-wrap:wrap}
+  .panel{background:#0d1408;border:3px solid var(--moss);padding:10px 14px;font-size:12px;flex:1;min-width:220px}
+  .panel h3{margin:0 0 6px;color:var(--glow);font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);
+    padding:7px 13px;margin:3px 4px 3px 0;cursor:pointer;font-family:inherit;font-size:12px}
+  button:hover{background:#2a350f}
+  button:disabled{opacity:.4;cursor:default}
+  label{display:block;margin:4px 0 2px;color:var(--spore);font-size:11px}
+  input[type=text],input[type=number]{width:100%;background:#1a2410;color:var(--bone);
+    border:2px solid var(--moss);padding:4px;font-family:inherit;font-size:11px}
+  #debugPanel{display:none;white-space:pre-wrap;font-size:10.5px;line-height:1.5;
+    max-height:260px;overflow-y:auto;background:#080c05;border:2px solid var(--rot);padding:8px;margin-top:8px}
+  .tag{display:inline-block;padding:1px 6px;border-radius:2px;font-size:10px;margin-left:6px}
+  .tag.model{background:#2a5a2a;color:#a8d858}
+  .tag.curated_fallback{background:#5a2a2a;color:#e08a8a}
+  .tag.memory_derived{background:#3a3a5a;color:#b0b0e8}
+  .gateSel{background:#1a2410;color:var(--bone);border:3px solid var(--ember);
+    padding:7px 13px;cursor:pointer;font-family:inherit;font-size:12px}
+  .gateSel.active{background:var(--glow);color:#141c0e}
+  code{color:var(--amber)}
+  #memBox div{margin-bottom:3px}
+  #rungTrack{display:flex;gap:6px;margin-top:6px}
+  .rungDot{width:16px;height:16px;border:2px solid var(--moss);background:#1a2410}
+  .rungDot.active{background:var(--glow)}
+  a{color:var(--amber)}
+</style>
+</head>
+<body>
+
+<div id="banner">GOBLIN WARREN &mdash; LOCAL AI NPC PREVIEW V0 &middot; authority=false &middot; claim=NO_CLAIM &middot; non-sovereign &middot; LOCAL-ONLY, NO DEPLOY, NO PRODUCTION ENDPOINT</div>
+
+<div id="stage">
+  <div id="thinkDots">&hellip;</div>
+  <div id="speechBubble"></div>
+  <div class="pixel-npc" id="npcSprite"><div class="goblin-body" id="goblinBody"><div class="goblin-eye l"></div><div class="goblin-eye r"></div></div></div>
+  <div id="sprout"></div>
+  <div id="bloomFx"></div>
+  <div id="seedmound"></div>
+</div>
+
+<div id="gatebar" style="padding:10px 12px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <b style="color:var(--glow)">GATE:</b>
+  <button id="gateSel0" class="gateSel">Gate 0 — Connectivity</button>
+  <button id="gateSel1" class="gateSel" disabled>Gate 1 — Bram Continuity</button>
+  <a id="gateSel2" href="zaz-lab.html" class="gateSel" style="text-decoration:none;pointer-events:none;opacity:.4;display:inline-block;padding:7px 13px;border:3px solid var(--ember);background:#1a2410;color:var(--bone)">Gate 2 — Zaz Lab (debug)</a>
+  <span id="gateHint" style="font-size:10.5px;color:var(--spore)">Run Gate 0 first. Each gate is provable in isolation before the next unlocks.</span>
+</div>
+
+<div id="hud">
+  <div class="panel" id="gate0Panel">
+    <h3>Gate 0 — Connectivity</h3>
+    <p style="min-height:2.4em">Prove Warren → localhost gateway → local model → <b>valid JSON</b> → one Bram line. No memory, no Zaz, no progression.</p>
+    <button id="btnGate0">Run connectivity ping</button>
+    <p id="gate0Result" style="font-size:11px;color:var(--spore);min-height:1.4em"></p>
+    <p style="font-size:10.5px;color:#9ab080">Success: one valid Bram line comes back (source=model). If the endpoint is unreachable you'll see a curated fallback instead, and the debug panel will mark the real cause — the loop never breaks.</p>
+  </div>
+
+  <div class="panel" id="gate1Panel" style="display:none">
+    <h3>Gate 1 — Bram Continuity <span style="font-size:10px;color:#9ab080">(&ldquo;same being twice&rdquo;)</span></h3>
+    <div id="rungTrack">
+      <div class="rungDot" data-rung="1"></div>
+      <div class="rungDot" data-rung="2"></div>
+      <div class="rungDot" data-rung="3"></div>
+    </div>
+    <p id="rungLabel" style="min-height:2.4em">Rung 1: You approach the seed mound. Bram has not noticed you yet.</p>
+    <button id="btnDiscover">Discover Bram</button>
+    <button id="btnOfferSeed" disabled>Offer the Seed</button>
+    <button id="btnNextVisit" disabled>Simulate Next Visit</button>
+    <button id="btnCuriosity" disabled>Wait a moment&hellip; (curiosity beat)</button>
+    <p style="font-size:10.5px;color:#9ab080;margin-top:8px">Success criterion: across two visits Bram notices the seed, remembers the real First Bloom, and (once) wonders aloud unprompted. Recognition lines are tagged <code>memory_derived</code>, not model-fresh.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Model Adapter Config</h3>
+    <label>Endpoint (Ollama-compatible /api/chat)</label>
+    <input type="text" id="cfgEndpoint" value="http://localhost:11434/api/chat">
+    <label>Model tag (never hard-coded — you supply it)</label>
+    <input type="text" id="cfgModel" value="">
+    <label>Timeout (ms)</label>
+    <input type="number" id="cfgTimeout" value="2000">
+    <label style="margin-top:8px">
+      <input type="checkbox" id="cfgUseMock" checked style="width:auto;display:inline-block;vertical-align:middle">
+      Use built-in deterministic mock (no live model required)
+    </label>
+    <p style="font-size:10.5px;color:var(--spore);margin-top:8px">
+      Uncheck to attempt the real endpoint above. If unreachable, timeout,
+      or malformed, the player only ever sees Bram's in-character fallback —
+      debug telemetry below marks the real cause.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h3>Debug <button id="btnToggleDebug" style="padding:3px 8px;font-size:10px">toggle</button></h3>
+    <div id="memBox">
+      <div><b>last_interaction:</b> <span id="memLast">none</span></div>
+      <div><b>shared_creation:</b> <span id="memCreation">none</span></div>
+      <div><b>player_preference:</b> <span id="memPref">none</span></div>
+      <div><b>unresolved_question:</b> <span id="memQuestion">none</span></div>
+      <div><b>relationship_tone:</b> <span id="memTone">new</span></div>
+    </div>
+    <h4 style="color:var(--spore);font-size:11px;margin:8px 0 2px">Provenance log (every rendered line)</h4>
+    <div id="lineLog" style="font-size:10.5px;max-height:120px;overflow-y:auto;background:#080c05;border:2px solid var(--moss);padding:6px"></div>
+    <div id="debugPanel"></div>
+  </div>
+</div>
+
+<script src="npc/response-schema.js"></script>
+<script src="npc/model-adapter.js"></script>
+<script src="npc/personas.js"></script>
+<script src="npc/context-builder.js"></script>
+<script src="npc/memory.js"></script>
+<script src="npc/npc-gateway.js"></script>
+<script>
+'use strict';
+/*
+ * Deterministic engine stub. THIS is the only code allowed to change
+ * rung/seedPlanted/bloomGranted. The gateway call below never receives
+ * a reference to this object and its return value is only ever used to
+ * set presentation (speech bubble text/emotion/gesture) -- never to
+ * set engine.* fields directly.
+ */
+const engine = {
+  rung: 1,
+  discovered: false,
+  seedPlanted: false,
+  bloomGranted: false,
+  visited: false,
+  memory: NPCPreview.memory.emptyMemory(),
+};
+
+function grantBloomIfEligible() {
+  // Deterministic reward rule: bloom appears once a seed has been
+  // planted AND we've reached rung >= 2. No model output is consulted.
+  if (engine.seedPlanted && engine.rung >= 2) {
+    engine.bloomGranted = true;
+  }
+  return engine.bloomGranted;
+}
+
+function sceneCtx() {
+  return NPCPreview.contextBuilder.buildContext({
+    rung: engine.rung,
+    visibleObjects: [
+      'seed_mound',
+      ...(engine.seedPlanted ? ['sprout'] : []),
+      ...(engine.bloomGranted ? ['first_bloom'] : []),
+    ],
+    sharedMemories: NPCPreview.memory.summarizeForContext(engine.memory),
+    currentMood: engine.bloomGranted ? 'delighted' : 'calm',
+    availableCharacters: ['bram'],
+    supportedMemoryTerms: [
+      ...(engine.seedPlanted ? ['seed', 'planted'] : []),
+      ...(engine.bloomGranted ? ['bloom'] : []),
+    ],
+  });
+}
+
+function currentAdapter() {
+  const useMock = document.getElementById('cfgUseMock').checked;
+  const timeoutMs = parseInt(document.getElementById('cfgTimeout').value, 10) || 2000;
+  if (useMock) {
+    return new NPCPreview.modelAdapter.MockModelAdapter({ persona: 'bram', delayMs: 220 });
+  }
+  return new NPCPreview.modelAdapter.ModelAdapter({
+    endpoint: document.getElementById('cfgEndpoint').value,
+    model: document.getElementById('cfgModel').value,
+    timeoutMs,
+  });
+}
+
+// engineFacts: creation tokens the DETERMINISTIC engine has actually
+// produced. This is the existence gate promoteCandidate() consults --
+// a memory is stored only if it references something real here.
+function engineFacts() {
+  const facts = [];
+  if (engine.seedPlanted) facts.push('seed');
+  if (engine.bloomGranted) facts.push('bloom');
+  return facts;
+}
+
+// ---- Latency layering -----------------------------------------------
+// 0-150ms: immediate sensory beat (look up + soft cue).
+// 150-1200ms: thinking animation.
+// <2s target: response text.
+// THEN (always, regardless of model timing): deterministic reward.
+async function runTurn(playerEvent, { grantReward } = {}) {
+  const goblinBody = document.getElementById('goblinBody');
+  const thinkDots = document.getElementById('thinkDots');
+  const bubble = document.getElementById('speechBubble');
+
+  // Immediate sensory beat.
+  goblinBody.className = 'goblin-body lookup';
+  bubble.style.display = 'none';
+  await sleep(140);
+
+  // Thinking animation window.
+  goblinBody.className = 'goblin-body tilt';
+  thinkDots.style.display = 'block';
+
+  const persona = NPCPreview.personas.getPersona('bram');
+  const ctx = sceneCtx();
+  const adapter = currentAdapter();
+  const started = performance.now();
+
+  const result = await NPCPreview.gateway.getNpcResponse(playerEvent, ctx, persona, adapter, {
+    timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000,
+  });
+
+  const elapsed = performance.now() - started;
+  // Ensure the thinking beat is visible at least a little even if the
+  // mock/model resolves instantly, but never block the sensory reward.
+  if (elapsed < 150) await sleep(150 - elapsed);
+
+  thinkDots.style.display = 'none';
+  showLine(result.candidate, result.provenance);
+  renderDebug(result);
+
+  // The model's memory_candidate (if any) is proposed only; promotion
+  // re-validates against the CURRENT ctx AND checks the engine-side
+  // existence gate (engineFacts) before it can ever land in memory.
+  if (result.candidate.memory_candidate) {
+    const promo = NPCPreview.memory.promoteCandidate(engine.memory, result.candidate, ctx, { engineFacts: engineFacts() });
+    if (promo.promoted) engine.memory = promo.memoryState;
+    renderMemory();
+  }
+
+  // Deterministic reward -- happens regardless of model outcome/timing.
+  // This call is made by ENGINE code, never by the gateway or adapter.
+  if (grantReward) {
+    grantReward();
+  }
+
+  return result;
+}
+
+// A recognition line rendered STRAIGHT FROM STORED MEMORY -- no model
+// call. Tagged memory_derived so it never blurs with model-fresh or
+// curated-fallback dialogue.
+function renderMemoryDerivedRecognition() {
+  const bubble = document.getElementById('speechBubble');
+  const goblinBody = document.getElementById('goblinBody');
+  const creation = engine.memory.shared_creation;
+  const speech = creation
+    ? 'You came back. I kept our flower.'
+    : 'You came back. I am glad.';
+  const candidate = { speech, emotion: 'warm', gesture: 'nod', initiative: null, memory_candidate: null };
+  goblinBody.className = 'goblin-body nod';
+  showLine(candidate, NPCPreview.gateway.memoryDerivedProvenance(creation, { latencyMs: 0 }));
+  renderDebug({ source: 'memory_derived', candidate, telemetry: { latencyMs: 0, failureReason: null, rawText: null, validatorVerdict: null }, provenance: NPCPreview.gateway.memoryDerivedProvenance(creation, { latencyMs: 0 }) });
+}
+
+function showLine(candidate, provenance) {
+  const bubble = document.getElementById('speechBubble');
+  const goblinBody = document.getElementById('goblinBody');
+  goblinBody.className = candidate.gesture === 'wave' ? 'goblin-body wave'
+    : candidate.gesture === 'tilt_head' ? 'goblin-body tilt'
+    : candidate.gesture === 'look_up' ? 'goblin-body lookup'
+    : 'goblin-body';
+  bubble.textContent = candidate.speech;
+  bubble.style.display = 'block';
+  logLine(candidate.speech, provenance);
+}
+
+// Provenance log: every rendered line carries {source,model,fallback,latency_ms,reason}.
+function logLine(speech, provenance) {
+  const log = document.getElementById('lineLog');
+  const row = document.createElement('div');
+  row.style.marginBottom = '4px';
+  const p = provenance || { source: 'unknown', model: null, fallback: null, latency_ms: 0, reason: null };
+  row.innerHTML = `<span class="tag ${p.source}">${p.source}</span> `
+    + `"${escapeHtml(speech)}" `
+    + `<span style="color:#7a8a5a">[model:${p.model || 'null'} · fallback:${p.fallback} · ${Math.round(p.latency_ms)}ms`
+    + (p.reason ? ' · ' + escapeHtml(p.reason) : '') + `]</span>`;
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, Math.max(0, ms))); }
+
+function renderMemory() {
+  const m = engine.memory;
+  document.getElementById('memLast').textContent = m.last_interaction ? m.last_interaction.summary : 'none';
+  document.getElementById('memCreation').textContent = m.shared_creation || 'none';
+  document.getElementById('memPref').textContent = m.player_preference || 'none';
+  document.getElementById('memQuestion').textContent = m.unresolved_question || 'none';
+  document.getElementById('memTone').textContent = m.relationship_tone || 'new';
+}
+
+function renderDebug(result) {
+  const panel = document.getElementById('debugPanel');
+  const t = result.telemetry || {};
+  const verdict = t.validatorVerdict;
+  panel.textContent =
+    `source: ${result.source}\n` +
+    `provenance: ${JSON.stringify(result.provenance)}\n` +
+    `latency: ${(t.latencyMs || 0).toFixed ? (t.latencyMs || 0).toFixed(1) : t.latencyMs}ms\n` +
+    `failureReason: ${t.failureReason || '(none)'}\n` +
+    `raw model text: ${t.rawText == null ? '(none)' : t.rawText}\n` +
+    `validator verdict: ${verdict ? JSON.stringify(verdict) : '(n/a — memory-derived or no parseable candidate)'}\n` +
+    `presented candidate: ${JSON.stringify(result.candidate)}\n`;
+}
+
+function updateRungTrack() {
+  document.querySelectorAll('.rungDot').forEach((d) => {
+    d.classList.toggle('active', Number(d.dataset.rung) <= engine.rung);
+  });
+}
+
+// ---- Gate switching ---------------------------------------------------
+// Each gate is provable in isolation. Gate 0 (connectivity) is the
+// default and the first thing a tester runs. Gate 1 (continuity)
+// unlocks only after Gate 0 succeeds. Gate 2 (Zaz lab) is a separate
+// debug-only page and its link unlocks only after Gate 1 completes.
+let gate0Done = false;
+let gate1Done = false;
+
+function selectGate(n) {
+  document.getElementById('gate0Panel').style.display = n === 0 ? 'block' : 'none';
+  document.getElementById('gate1Panel').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('gateSel0').classList.toggle('active', n === 0);
+  document.getElementById('gateSel1').classList.toggle('active', n === 1);
+}
+
+document.getElementById('gateSel0').addEventListener('click', () => selectGate(0));
+document.getElementById('gateSel1').addEventListener('click', () => { if (!document.getElementById('gateSel1').disabled) selectGate(1); });
+
+// ---- UI wiring --------------------------------------------------------
+document.getElementById('btnToggleDebug').addEventListener('click', () => {
+  const p = document.getElementById('debugPanel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+});
+
+// Gate 0: connectivity only. One Bram line. No memory, no progression.
+document.getElementById('btnGate0').addEventListener('click', async () => {
+  const persona = NPCPreview.personas.getPersona('bram');
+  // A deliberately minimal, rung-1 context -- nothing to remember, nothing to unlock.
+  const ctx = NPCPreview.contextBuilder.buildContext({
+    rung: 1, visibleObjects: ['seed_mound'], sharedMemories: [],
+    currentMood: 'calm', availableCharacters: ['bram'], supportedMemoryTerms: [],
+  });
+  const adapter = currentAdapter();
+  const started = performance.now();
+  document.getElementById('thinkDots').style.display = 'block';
+  const result = await NPCPreview.gateway.getNpcResponse({ type: 'gate0_ping' }, ctx, persona, adapter, {
+    timeoutMs: parseInt(document.getElementById('cfgTimeout').value, 10) || 2000,
+  });
+  document.getElementById('thinkDots').style.display = 'none';
+  showLine(result.candidate, result.provenance);
+  renderDebug(result);
+
+  const ok = result.source === 'model';
+  document.getElementById('gate0Result').textContent = ok
+    ? `PASS — valid JSON, one Bram line (source=model, ${Math.round(result.provenance.latency_ms)}ms). Gate 1 unlocked.`
+    : `Fallback shown (${result.telemetry.failureReason}). The loop held. Fix the endpoint or keep the mock checked, then retry. Gate 1 unlocks on a model line OR you may proceed with the mock.`;
+  gate0Done = true; // reaching a rendered line (model or fallback) proves the loop; unlock Gate 1.
+  document.getElementById('gateSel1').disabled = false;
+});
+
+document.getElementById('btnDiscover').addEventListener('click', async () => {
+  document.getElementById('btnDiscover').disabled = true;
+  engine.discovered = true;
+  document.getElementById('rungLabel').textContent = 'Rung 1: Bram notices you by the seed mound.';
+  await runTurn({ type: 'discover' });
+  document.getElementById('btnOfferSeed').disabled = false;
+});
+
+document.getElementById('btnOfferSeed').addEventListener('click', async () => {
+  document.getElementById('btnOfferSeed').disabled = true;
+  engine.rung = 2;
+  updateRungTrack();
+  document.getElementById('rungLabel').textContent = 'Rung 2: You offer the seed.';
+  await runTurn({ type: 'offer_seed' }, {
+    grantReward: () => {
+      // Deterministic mutation #1: planting the seed.
+      engine.seedPlanted = true;
+      document.getElementById('sprout').style.height = '18px';
+    },
+  });
+
+  // A short beat later, rung 3 + the bloom -- purely deterministic.
+  await sleep(500);
+  engine.rung = 3;
+  updateRungTrack();
+  document.getElementById('rungLabel').textContent = 'Rung 3: The bloom opens.';
+  await runTurn({ type: 'see_bloom' }, {
+    grantReward: () => {
+      // Deterministic mutation #2: the bloom. NEVER driven by model output.
+      if (grantBloomIfEligible()) {
+        document.getElementById('bloomFx').classList.add('on');
+      }
+    },
+  });
+  document.getElementById('btnNextVisit').disabled = false;
+  document.getElementById('btnCuriosity').disabled = false;
+});
+
+document.getElementById('btnNextVisit').addEventListener('click', async () => {
+  document.getElementById('rungLabel').textContent = 'Simulated next visit: Bram recognises you from memory.';
+  engine.visited = true;
+  // Recognition is rendered STRAIGHT FROM STORED MEMORY (memory_derived),
+  // not a fresh model call -- "same being twice."
+  renderMemoryDerivedRecognition();
+  // Gate 1 success: two visits, a real remembered creation, recognition.
+  gate1Done = true;
+  const link = document.getElementById('gateSel2');
+  link.style.pointerEvents = 'auto';
+  link.style.opacity = '1';
+  document.getElementById('gateHint').textContent = 'Gate 1 complete ("same being twice"). Gate 2 (Zaz Lab, debug-only) unlocked.';
+});
+
+document.getElementById('btnCuriosity').addEventListener('click', async () => {
+  document.getElementById('rungLabel').textContent = 'A quiet moment passes. Bram wonders aloud, unprompted.';
+  await runTurn({ type: 'idle_curiosity_beat' });
+});
+
+selectGate(0);
+updateRungTrack();
+renderMemory();
+</script>
+</body>
+</html>

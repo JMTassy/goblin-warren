@@ -1,0 +1,4 @@
+# authority=false · claim=NO_CLAIM · non-sovereign
+# The runtime store is evidence a run produced, not source. It is regenerable by
+# re-running the capsules; it is never committed.
+var/

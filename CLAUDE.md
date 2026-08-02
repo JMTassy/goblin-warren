@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-node selftest.js index.html   # the entire test suite: 29 assertions, exit 1 on any failure
+node selftest.js index.html   # the entire test suite: 35 assertions (29 canon + 6 gate-supervision, sealed 2026-07-31), exit 1 on any failure
 ```
 
 There is no build, lint, or package.json. To play, open `index.html` in a browser (needs network once for the Three.js CDN). There is no way to run a single assertion — the selftest is one sequential script that walks the full game loop; run it whole.
