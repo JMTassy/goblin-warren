@@ -1,531 +1,348 @@
-<!DOCTYPE html>
+<!doctype html>
+<!--
+  Dream of Conquest — The Goblin Warren (V1, Milestone 1)
+  authority=false · claim=NO_CLAIM · non-sovereign
+  One goblin (Lulu), one location (Garden Plot), the full loop:
+  observe → propose → decide (TRY/HOLD/COMPOST) → enact → record.
+  Local-only persistence (localStorage). No accounts, no backend, no timers.
+  All game logic lives in the pure reducer zone below (no DOM, no browser APIs)
+  and is headlessly tested by selftest.js.
+-->
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dream of Conquest — The Goblin Warren</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<!--
-  Dream of Conquest - The Goblin Warren - V1 (pixel edition)
-  authority=false . claim=NO_CLAIM . symbolic game . non-sovereign
-  ZOL - Session Flash Credit, expires when you close. Never persisted.
-  Retro pixel-art village-builder aesthetic (a technique, not anyone's
-  protected expression) - zero copied third-party game content (IP-safe rule).
-  UI may request. NPCs may propose. HAL may check. Player admits.
-  Ledger records. The Warren evolves. Law does not reskin.
--->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goblin Warren</title>
 <style>
-  :root{ --bone:#e8dcc0; --ember:#d08a3c; --swamp:#141c0e; --moss:#5c7a3a;
-         --glow:#a8d858; --amber:#e0a83c; --rot:#8a5a4a; --spore:#8fae6a; }
-  body{margin:0;padding:0;background:var(--swamp);color:var(--bone);
-    font-family:"Courier New",Courier,monospace;overflow:hidden;
-    -webkit-font-smoothing:none;font-smooth:never}
-  #map{position:absolute;top:0;left:0;width:100vw;height:100vh;
-    image-rendering:pixelated;image-rendering:crisp-edges}
-  .panel{background:#0d1408;border:3px solid var(--moss);border-radius:0;
-    padding:10px;pointer-events:auto;font-size:12px;
-    box-shadow:4px 4px 0 #000}
-  #left{position:absolute;left:10px;top:10px;width:230px}
-  #right{position:absolute;right:10px;top:10px;width:275px;max-height:82vh;overflow-y:auto}
-  #bottom{position:absolute;left:10px;right:10px;bottom:10px;height:100px;overflow-y:auto}
-  #aura{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:400px;
-    text-align:center;color:var(--spore);font-size:11px;display:none;
-    background:#0d1408;border:3px solid var(--moss);padding:5px 16px;pointer-events:none}
-  #start,#win,#council{position:absolute;inset:0;background:rgba(8,12,5,.95);display:flex;
-    align-items:center;justify-content:center;flex-direction:column;z-index:100;pointer-events:auto}
-  .title{font-size:26px;color:var(--glow);text-align:center;margin-bottom:8px;
-    letter-spacing:.1em;text-shadow:3px 3px 0 #000;text-transform:uppercase}
-  .subtitle{text-align:center;margin-bottom:14px;max-width:520px}
-  button{background:#1a2410;color:var(--bone);border:3px solid var(--ember);border-radius:0;
-    padding:7px 13px;margin:4px;cursor:pointer;font-family:inherit;font-size:12px;
-    text-transform:uppercase;letter-spacing:.06em;box-shadow:3px 3px 0 #000}
-  button:hover{background:#2a3a1a}
-  button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  .stat{margin:2px 0}
-  .law{font-size:10px;color:var(--ember);margin:6px 0}
-  .log-entry{margin:1px 0;font-size:10px;border-left:3px solid var(--moss);padding-left:5px}
-  .log-entry.adm{border-color:var(--glow);color:var(--glow)}
-  .agentcard{margin:8px 0;padding:8px;background:#111a0a;border:3px solid var(--ember)}
-  .agentname{font-size:10px;letter-spacing:.2em;color:var(--amber);text-transform:uppercase}
-  .halline{margin-top:6px;font-size:11px}
-  .lantern{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:middle}
-  .V_ACCEPTABLE{color:var(--glow)} .V_HOLD{color:var(--amber)} .V_DENY{color:var(--rot)}
-  #councilBox{max-width:560px;width:92%;max-height:80vh;overflow-y:auto}
-  .seat{margin:7px 0;padding:8px;background:#0a1206;border:2px solid var(--moss);font-size:11.5px}
-  .seat b{color:var(--amber);letter-spacing:.14em;font-weight:normal;text-transform:uppercase}
-  .objection{color:var(--spore);font-size:10.5px;margin-top:3px}
-  .tally{margin-top:10px;text-align:center;font-size:13px;color:var(--glow)}
-  .qcm{background:#111a0a;padding:10px;margin:8px 0;border:2px solid var(--moss)}
-  .zolnote{font-size:10px;color:var(--amber)}
-  @keyframes zfloat{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-44px)}}
+  :root{
+    --bg:#0e1410; --panel:#16211a; --panel2:#1c2b22; --ink:#e8f0e4; --dim:#93a696;
+    --leaf:#7fc46a; --amber:#e0a94f; --moss:#3a5c42; --bad:#c96a5a; --violet:#a98fd6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family:ui-rounded,-apple-system,"Segoe UI",sans-serif; min-height:100%;}
+  #app{max-width:520px; margin:0 auto; padding:12px 14px calc(24px + env(safe-area-inset-bottom));}
+  header{display:flex; justify-content:space-between; align-items:baseline; padding:4px 2px 10px;}
+  header h1{font-size:19px; margin:0; letter-spacing:.5px; color:var(--leaf);}
+  #daybadge{font-size:13px; color:var(--dim);}
+  #resources{display:flex; gap:8px; margin-bottom:10px;}
+  .res{flex:1; background:var(--panel); border-radius:12px; padding:8px 6px; text-align:center;}
+  .res b{display:block; font-size:17px;}
+  .res span{font-size:11px; color:var(--dim);}
+  #scene{background:linear-gradient(180deg,#14231a 0%,#0f1a13 100%);
+    border:1px solid var(--moss); border-radius:16px; padding:16px 14px 12px; text-align:center; position:relative;}
+  #scene .loc{font-size:12px; color:var(--dim); letter-spacing:1px; text-transform:uppercase;}
+  #lulu{width:120px; height:120px; margin:6px auto 2px; display:block; cursor:pointer;
+    transition:transform .15s ease;}
+  #lulu:active{transform:scale(1.08)}
+  #moodline{font-size:15px; min-height:22px;}
+  #moodline b{color:var(--amber);}
+  #speech{background:var(--panel2); border-radius:14px; padding:12px 14px; margin:12px 0 10px;
+    font-size:15px; line-height:1.45; min-height:44px; text-align:left; position:relative;}
+  #speech:before{content:""; position:absolute; top:-8px; left:38px; border:8px solid transparent;
+    border-bottom-color:var(--panel2); border-top:none;}
+  #decide{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  #decide button{font-size:16px; padding:14px; border-radius:14px; border:none; color:var(--ink);
+    font-weight:600; cursor:pointer; min-height:52px;}
+  #btn-try{background:#2c5d3a;} #btn-hold{background:#4a4632;} #btn-compost{background:#4a3232;}
+  #care{display:flex; gap:8px; margin-bottom:12px;}
+  #care button{flex:1; font-size:14px; padding:11px 4px; border-radius:12px; border:1px solid var(--moss);
+    background:var(--panel); color:var(--ink); cursor:pointer; min-height:46px;}
+  #memories{margin:2px 0 10px; font-size:13px; color:var(--violet); min-height:16px;}
+  #log{background:var(--panel); border-radius:12px; padding:10px 12px; font-size:12.5px;
+    color:var(--dim); max-height:180px; overflow-y:auto; line-height:1.6;}
+  #log .k{color:var(--leaf);}
+  footer{margin-top:14px; text-align:center; font-size:11px; color:var(--dim);}
+  footer a{color:var(--dim);}
+  button:disabled{opacity:.4; cursor:default;}
 </style>
 </head>
 <body>
-<canvas id="map"></canvas>
-<div id="aura"></div>
-<div id="left" class="panel">
-  <div style="color:var(--glow)">HOUSE JM — SEMPER FIDELIS<br><span style="font-size:10px;color:var(--spore)">(honoured guest of the Warren)</span></div>
-  <div class="stat">ZOL: <b id="zol">0</b> <span class="zolnote">(Session Flash Credit — shiny-shiny, gone at dawn)</span></div>
-  <div class="stat">Knowledge: <span id="knowledge">0</span> · Cohesion: <span id="cohesion">100</span></div>
-  <div class="stat">Reputation: <span id="reputation">0</span> · Warrens: <span id="territories">0</span>/12</div>
-  <div class="law">Imagination is free. The Garden obeys admitted moves.</div>
-  <button onclick="uiQCM()">Q — Riddles</button>
-  <button onclick="uiBuy()">B — Claim Site</button>
-  <button onclick="uiPropose()">P — Goblin Idea</button>
-  <div style="margin-top:6px;font-size:9px">Click mounds · keys Q B P A D H R</div>
-</div>
-<div id="right" class="panel">
-  <div id="selected-info">Pick a warren mound</div>
-  <div id="qcm-panel" style="display:none" class="qcm">
-    <div id="qcm-question"></div><div id="qcm-choices"></div>
+<div id="app">
+  <header><h1>Goblin Warren</h1><div id="daybadge"></div></header>
+  <div id="resources"></div>
+  <div id="scene">
+    <div class="loc">Garden Plot</div>
+    <svg id="lulu" viewBox="0 0 32 32" shape-rendering="crispEdges" aria-label="Lulu the goblin">
+      <!-- original pixel goblin: Lulu -->
+      <rect x="10" y="4" width="12" height="3" fill="#3f7a3f"/>
+      <rect x="6" y="7" width="4" height="6" fill="#4e9a4e"/><rect x="22" y="7" width="4" height="6" fill="#4e9a4e"/>
+      <rect x="9" y="7" width="14" height="10" fill="#63b063"/>
+      <rect x="12" y="10" width="2" height="3" fill="#10240f"/><rect x="18" y="10" width="2" height="3" fill="#10240f"/>
+      <rect x="14" y="14" width="4" height="1" fill="#2c5d2c"/>
+      <rect x="11" y="17" width="10" height="8" fill="#7a5c34"/>
+      <rect x="9" y="18" width="2" height="5" fill="#63b063"/><rect x="21" y="18" width="2" height="5" fill="#63b063"/>
+      <rect x="12" y="25" width="3" height="3" fill="#4e3a20"/><rect x="17" y="25" width="3" height="3" fill="#4e3a20"/>
+      <rect x="4" y="26" width="5" height="2" fill="#e78fb0"/><rect x="5" y="24" width="3" height="2" fill="#e78fb0"/>
+      <rect x="6" y="28" width="1" height="2" fill="#3f7a3f"/>
+    </svg>
+    <div id="moodline"></div>
   </div>
-  <div id="proposal-panel" style="display:none" class="agentcard">
-    <div class="agentname" id="agent-name"></div>
-    <div id="proposal-text" style="margin-top:4px"></div>
-    <div class="halline" id="hal-verdict"></div>
-    <div style="margin-top:6px">
-      <button id="btnAccept" onclick="uiAdmit()">A — Admit</button>
-      <button onclick="uiDeny()">D — Deny</button>
-      <button onclick="uiHold()">H — Hold</button>
-    </div>
+  <div id="speech"></div>
+  <div id="decide">
+    <button id="btn-try">🌱 Try it</button>
+    <button id="btn-hold">🕯️ Hold it</button>
+    <button id="btn-compost">🍂 Compost it</button>
   </div>
-</div>
-<div id="bottom" class="panel"><b>THE MIDDEN LEDGER</b> <span style="font-size:9px">(gameplay memory only — no sovereign claim)</span><div id="ledger"></div></div>
-
-<div id="start">
-  <div class="title">The Goblin Warren</div>
-  <div class="subtitle" style="color:var(--spore)">a Dream of Conquest mode — hosted by GOBLIN himself</div>
-  <div class="subtitle">"Welcome, Tall One. Answer riddles, get shiny. Claim mounds. My folk will<br>propose crooked improvements. The lantern judges. YOU admit. That's the whole law."</div>
-  <div class="zolnote" style="margin-bottom:10px">ZOL — Session Flash Credit, expires when you close. (We tried keeping it. It evaporates. Very sad.)</div>
-  <div style="font-size:11px;color:var(--spore);margin-bottom:14px;max-width:470px;text-align:center">
-    First minute: press <b>Q</b> for a riddle → earn ZOL → click a <span style="color:var(--glow)">glowing mound</span> →
-    press <b>B</b> to claim → press <b>P</b> and a goblin proposes → the lantern judges → <b>you</b> admit.</div>
-  <button onclick="uiStart()">Press Enter or Click to Wake the Warren</button>
-</div>
-<div id="win" style="display:none">
-  <div class="title">The Warren Thrives</div>
-  <div id="win-stats" style="text-align:center;line-height:1.8"></div>
-  <div style="margin:14px 0;color:var(--glow)">"Semper Fidelis has grown the Living Garden — the crooked wing of it."</div>
-  <button onclick="uiRestart()">R — Restart</button>
-</div>
-<div id="council" style="display:none">
-  <div id="councilBox" class="panel">
-    <div class="title" style="font-size:17px">⚖ The Tall Ones Convene</div>
-    <div style="text-align:center;font-size:10px;color:var(--spore);margin-bottom:6px">(the HELEN Council — goblins watch from the rafters)</div>
-    <div id="council-seats"></div>
-    <div class="tally" id="council-tally"></div>
-    <div style="text-align:center;font-size:10px;color:var(--spore);margin-top:6px">
-      A recommendation is not an admission. Your hand remains the law.</div>
-    <div style="text-align:center;margin-top:8px"><button onclick="uiCloseCouncil()">Back to the Mounds</button></div>
+  <div id="care">
+    <button id="btn-listen">👂 Listen</button>
+    <button id="btn-matcha">🍵 Matcha</button>
+    <button id="btn-celebrate">🎉 Celebrate</button>
   </div>
+  <div id="memories"></div>
+  <div id="log"></div>
+  <footer><a href="#" id="restart">start a fresh warren</a></footer>
 </div>
 
 <script>
-"use strict";
-/* ===== REDUCER-BEGIN (pure logic — no THREE, no DOM; node-testable) ===== */
-function h32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+/* ===== REDUCER-BEGIN =====================================================
+   Pure game logic. No DOM, no window, no localStorage, no Math.random,
+   no Date — every function that needs time receives `now` (ms epoch).
+   selftest.js extracts this zone by these markers and runs it under Node.
+   ========================================================================== */
 
-const TERRITORY_DEFS=[
- ["Mushroom Cellar",8],["Bone-Button Market",12],["Fungal Vault",10],["Moth Chapel",15],
- ["Scrap Bridge",9],["Whisper Midden",14],["Crooked Stair",11],["Glowworm Farm",7],
- ["Rot Library",13],["Trash Portal",16],["Echo Burrow",18],["Moon Midden",20]];
-const PORTALS=[9,10,11];
+const GW_VERSION = "GW_V1_M1";
+const MOODS = ["curious","focused","happy","calm","worried","tired"];
+const EVENT_KINDS = ["WARREN_STARTED","WARREN_LOADED","DAY_PASSED","PROPOSAL_MADE",
+  "PROPOSAL_TRIED","PROPOSAL_HELD","PROPOSAL_COMPOSTED","COMPOST_BLOOMED",
+  "CARE_GIVEN","MEMORY_BORN"];
+const EVENT_CAP = 250;
+const CARE_VERBS = { listen:{mood:8, energy:0, line:"Lulu leans in and tells you everything."},
+                     matcha:{mood:3, energy:18, line:"Lulu sips the matcha. Tiny happy noises."},
+                     celebrate:{mood:10, energy:0, line:"Lulu does the victory stomp dance."} };
 
-const QUESTIONS=[
- {question:"What is the core of HELEN governance?",choices:["Admission by receipt","Model consensus","User vote","AI self-rule"],correctIndex:0,rewardZOL:5,category:"Governance"},
- {question:"ZOL stands for?",choices:["Zero Overhead Ledger","Session Flash Credit","Zenith of Learning","Zone of Liberty"],correctIndex:1,rewardZOL:3,category:"Economy"},
- {question:"What does GOBLIN never do?",choices:["Mutate scraps","Propose weird things","Decide","Compost"],correctIndex:2,rewardZOL:4,category:"Goblin Lore"},
- {question:"Compost is…",choices:["Deleted forever","Future material in disguise","A punishment","Worthless"],correctIndex:1,rewardZOL:4,category:"Goblin Lore"},
- {question:"What must precede any world mutation?",choices:["HAL check","Player admission","Agent proposal","ZOL payment"],correctIndex:1,rewardZOL:5,category:"Governance"},
- {question:"Which sea separates Corsica from mainland France?",choices:["Adriatic","Ligurian","Aegean","Baltic"],correctIndex:1,rewardZOL:4,category:"Geography"},
- {question:"The Great Compost Heap represents…",choices:["GOBLIN's throne and memory","A garbage dump","The win condition","A shop"],correctIndex:0,rewardZOL:4,category:"World"},
- {question:"Who wrote 'Les Misérables'?",choices:["Balzac","Victor Hugo","Zola","Dumas"],correctIndex:1,rewardZOL:4,category:"Literature"},
- {question:"What is the win condition?",choices:["7 warrens or reputation ≥100","1000 ZOL","Defeat all NPCs","50 riddles"],correctIndex:0,rewardZOL:5,category:"Victory"},
- {question:"A denied proposal becomes…",choices:["Nothing","Compost that feeds new ideas","An error","A debt"],correctIndex:1,rewardZOL:4,category:"Goblin Lore"},
- {question:"GOBLIN's role?",choices:["Beauty and narrative","Compost and mutation","Security","Economy"],correctIndex:1,rewardZOL:3,category:"Agents"},
- {question:"The speed of light is closest to?",choices:["300 km/s","3,000 km/s","300,000 km/s","3 million km/s"],correctIndex:2,rewardZOL:4,category:"Science"},
- {question:"The Midden Ledger records…",choices:["Blockchain tx","Gameplay events only","Passwords","Model weights"],correctIndex:1,rewardZOL:3,category:"Ledger"},
- {question:"Imagination is free. The Garden obeys?",choices:["AI votes","Admitted moves","Majority rule","Random chance"],correctIndex:1,rewardZOL:5,category:"Core Law"},
- {question:"Which painter cut off part of his ear?",choices:["Monet","Van Gogh","Cézanne","Degas"],correctIndex:1,rewardZOL:4,category:"Art"},
- {question:"ZOL at dawn is…",choices:["Doubled","Banked","Gone (session only)","Taxed"],correctIndex:2,rewardZOL:3,category:"Economy"},
- {question:"Held seeds become…",choices:["Plants","AURA's fog","Compost","ZOL"],correctIndex:1,rewardZOL:4,category:"Goblin Lore"},
- {question:"WARDEN's function?",choices:["Narrative","Security and boundary watch","Riddle writing","ZOL minting"],correctIndex:1,rewardZOL:4,category:"Agents"},
- {question:"Proposal admission requires?",choices:["HAL ACCEPTABLE + player Admit","ZOL > 100","All warrens","AI consensus"],correctIndex:0,rewardZOL:5,category:"Governance"},
- {question:"The year the Berlin Wall fell?",choices:["1987","1989","1991","1993"],correctIndex:1,rewardZOL:4,category:"History"},
- {question:"Why do goblins obey the lantern?",choices:["Fear","Because law does not reskin","Bribes","They don't"],correctIndex:1,rewardZOL:3,category:"Goblin Lore"},
- {question:"The Tall Ones' council may…",choices:["Admit moves","Only recommend","Veto the player","Mint ZOL"],correctIndex:1,rewardZOL:4,category:"Governance"}];
+const PROPOSALS = [
+  {id:"P01", text:"Plant a moonseed by the crooked fence?", seeds:1, bugs:0, ideas:0, mood:6},
+  {id:"P02", text:"Follow the glowbug trail past the big root?", seeds:0, bugs:1, ideas:0, mood:6},
+  {id:"P03", text:"Dig a tiny peek-hole toward the brook?", seeds:0, bugs:0, ideas:1, mood:5},
+  {id:"P04", text:"Stack three pretty stones into a wish-pile?", seeds:0, bugs:0, ideas:1, mood:5},
+  {id:"P05", text:"Sing the sprout-song to the shy fern?", seeds:1, bugs:0, ideas:0, mood:7},
+  {id:"P06", text:"Trade a shiny pebble with the snail for gossip?", seeds:0, bugs:1, ideas:0, mood:6},
+  {id:"P07", text:"Draw a map of the warren in the mud?", seeds:0, bugs:0, ideas:1, mood:5},
+  {id:"P08", text:"Build a rain-hat for the smallest mushroom?", seeds:1, bugs:0, ideas:0, mood:7},
+  {id:"P09", text:"Whisper a secret into the echo-stump?", seeds:0, bugs:0, ideas:1, mood:6},
+  {id:"P10", text:"Make a moss pillow for a tired beetle?", seeds:0, bugs:1, ideas:0, mood:7},
+  {id:"P11", text:"Braid dew-grass into a lucky bracelet?", seeds:1, bugs:0, ideas:0, mood:5},
+  {id:"P12", text:"Leave a berry gift on the neighbor's stump?", seeds:0, bugs:0, ideas:1, mood:6},
+];
 
-/* PERSONAS — goblin-hosted; law identical */
-const PERSONAS={
- GOBLIN:{cost:t=>Math.max(2,Math.floor(t.price*0.5)),
-  ideas:["Braid the bone-buttons into a counting-string bridge","Let the broken kettle steam glowworm songs",
-   "Stack the failed riddles into a crooked reading stair","Compost the quiet corner into a whisper-well"],
-  line:"heh — rough material, fine future."},
- HER:{cost:()=>0,
-  ideas:["Hang moth-wing curtains where the draft sings","Name the puddle 'Mirror of Almost'",
-   "A moss cushion for thinking-too-long","Tune the drips to fall in thirds"],
-  line:"the pretty one visits even here."},
- ORNITH:{cost:t=>Math.max(3,Math.floor(t.price*0.4)),
-  ideas:["Re-balance riddle rewards along this tunnel","Index the fungal vault by spore-pattern",
-   "Optimize glowworm light per prestige","Trim redundant tunnels — keep the crooked one"],
-  line:"the pattern was already there; I only pointed."},
- WARDEN:{cost:t=>Math.max(3,Math.floor(t.price*0.6)),
-  ideas:["Raise a bramble hedge with watch-embers","Set a drift-bell on the outer tunnels",
-   "Carve the no-claim rule above the burrow gate","Post a quiet sentinel by the Trash Portal"],
-  line:"the wall is love with a spine."},
- ARCHIVIST:{cost:t=>Math.max(2,Math.floor(t.price*0.3)),
-  ideas:["Raise a memory-midden of admitted moves","Shelve composted riddles where GOBLIN digs",
-   "Copy the ledger onto button-strings","Catalogue held seeds by their patience"],
-  line:"what is recorded can be replayed."},
- STEWARD:{cost:t=>Math.max(2,Math.floor(t.price*0.35)),
-  ideas:["Balance upkeep between farm and market","Convert idle prestige into cohesion mulch",
-   "Even the ZOL flow across the tunnels","Quiet the market on moulting days"],
-  line:"a calm economy is a kind of weather."}};
-const HAL_LINES={
- ACCEPTABLE:"Within the membrane. The choice is yours, not mine.",
- HOLD:"The treasury cannot carry this yet. Held, not judged.",
- DENY:"The verdict is not a wish. This move does not pass."};
-const AURA_LINES=[
- "spore-fog thickens over held seeds; decide, and it thins",
- "glow-dawn at the tunnel mouths — cohesion breathes on its own",
- "ember-storm over the midden; something was refused and remembers",
- "still air under the hill. the Warren listens more than it digs",
- "roots drink in the dark; knowledge is the slow rain",
- "the octagram hums even down here — law does not reskin"];
+const MEMORY_LINES = [
+  "The day the fern finally waved back.",
+  "A glowbug slept in Lulu's hat all afternoon.",
+  "The wish-pile hummed, just once, very quietly.",
+  "Rain came, and the smallest mushroom stayed dry.",
+  "The snail's gossip turned out to be true.",
+  "Lulu taught the echo-stump a new word.",
+];
 
-function makeState(){
- return {zol:0,knowledge:0,cohesion:100,reputation:0,ownedCount:0,phase:"START",
-  compost:0,held:0,denials:0,actions:0,unlockCursor:4,pending:null,
-  territories:TERRITORY_DEFS.map((d,i)=>({index:i,name:d[0],price:d[1],
-    prestige:Math.floor(d[1]/2)+2,state:i<4?"available":"locked",level:0})),
-  ledger:[]};
+function h32(str){
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++){
+    h ^= str.charCodeAt(i);
+    h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0;
+  }
+  return h >>> 0;
 }
-function logEvent(S,kind,detail){S.ledger.push({kind,detail:detail||""});
- if(S.ledger.length>250)S.ledger=S.ledger.slice(-250);}
 
-function unlockByKnowledge(S){
- while(S.unlockCursor<12 && S.knowledge>=(S.unlockCursor-3)*2){
-   if(S.territories[S.unlockCursor].state==="locked"){
-     S.territories[S.unlockCursor].state="available";
-     logEvent(S,"TERRITORY_UNLOCKED",S.territories[S.unlockCursor].name);}
-   S.unlockCursor++;}
-}
-function answerQuestion(S,qIndex,choice){
- const q=QUESTIONS[qIndex%QUESTIONS.length];S.actions++;
- const correct=choice===q.correctIndex;
- if(correct){S.zol+=q.rewardZOL;S.knowledge+=1;
-   logEvent(S,"QUESTION_ANSWERED_CORRECT",q.category);
-   logEvent(S,"ZOL_EARNED","+"+q.rewardZOL);
-   unlockByKnowledge(S);}
- else{S.cohesion=Math.max(80,S.cohesion-1);
-   logEvent(S,"QUESTION_ANSWERED_WRONG",q.category);}
- return correct;
-}
-function buyTerritory(S,i){
- const t=S.territories[i];S.actions++;
- if(!t||t.state!=="available"){logEvent(S,"HAL_CHECK_DENIED","claim: not available");return false}
- if(S.zol<t.price){logEvent(S,"HAL_CHECK_DENIED","claim: insufficient ZOL");return false}
- S.zol-=t.price;t.state="owned";t.level=1;S.ownedCount++;S.reputation+=t.prestige;
- logEvent(S,"TERRITORY_BOUGHT",t.name);return true;
-}
-function createProposal(S,i,seed){
- const t=S.territories[i];S.actions++;
- const names=Object.keys(PERSONAS);
- const bag=[];names.forEach(n=>{const w=(n==="GOBLIN")?2+S.compost:1;for(let k=0;k<w;k++)bag.push(n)});
- const h=h32((seed||"")+t.name+S.actions);
- const agent=bag[h%bag.length];const P=PERSONAS[agent];
- const text=P.ideas[(h>>>4)%P.ideas.length]+" — "+t.name;
- const p={id:"p"+S.actions,tIndex:i,agent,text,voice:P.line,
-   cost:P.cost(t),big:PORTALS.includes(i)||P.cost(t)>=12};
- S.pending=p;logEvent(S,"NPC_PROPOSAL_CREATED",agent+": "+text.slice(0,42));
- return p;
-}
-function checkProposalWithHAL(S,p){
- let verdict;
- const t=S.territories[p.tIndex];
- if(!t||t.state==="locked")verdict="DENY";
- else if(t.state!=="owned"&&t.state!=="evolved")verdict="DENY";
- else if(/bypass|without admission|skip the gate|auto-?admit/i.test(p.text))verdict="DENY";
- else if(S.zol<p.cost)verdict="HOLD";
- else verdict="ACCEPTABLE";
- p.verdict=verdict;
- logEvent(S,verdict==="ACCEPTABLE"?"HAL_CHECK_PASSED":"HAL_CHECK_DENIED",verdict+": "+p.agent);
- return verdict;
-}
-function councilReview(S,p){
- const seats=["HER","GOBLIN","ORNITH","WARDEN","STEWARD"];
- const h=h32(p.id+p.text);
- const stances=seats.map((s,k)=>{
-   const favor=((h>>>k)&3)!==0;
-   return {seat:s,favor,
-     stance:favor?s+" leans toward it: it serves the Warren's growth.":s+" leans against: the cost shadows the gain.",
-     objection:"Self-objection: my lens is narrow — "+(favor?"I may be charmed by my own domain.":"I may be guarding a wall no one is attacking.")};
- });
- const votes=stances.filter(x=>x.favor).length;
- const rec=votes>=3?"RECOMMEND_ADMIT":"RECOMMEND_HOLD";
- logEvent(S,"COUNCIL_CONVENED",p.agent+" proposal at "+S.territories[p.tIndex].name);
- logEvent(S,"COUNCIL_RECOMMENDED",rec+" ("+votes+"/5)");
- return {stances,votes,rec};
-}
-function evolveTerritory(S,i){
- const t=S.territories[i];t.level=Math.min(3,t.level+1);
- if(t.level>=2)t.state="evolved";
- logEvent(S,"GARDEN_EVOLVED",t.name+" L"+t.level);
-}
-function admitProposal(S){
- const p=S.pending;S.actions++;
- if(!p)return false;
- if(p.verdict!=="ACCEPTABLE"){
-   logEvent(S,"PROPOSAL_DENIED","admission refused: verdict "+p.verdict);
-   S.pending=null;return false}
- S.zol-=p.cost;S.reputation+=2;
- evolveTerritory(S,p.tIndex);
- logEvent(S,"PROPOSAL_ADMITTED",p.agent+" at "+S.territories[p.tIndex].name);
- S.pending=null;return true;
-}
-function denyProposal(S){const p=S.pending;S.actions++;if(!p)return false;
- S.compost++;S.denials++;logEvent(S,"PROPOSAL_DENIED",p.agent);S.pending=null;return true}
-function holdProposal(S){const p=S.pending;S.actions++;if(!p)return false;
- S.held++;logEvent(S,"PROPOSAL_HELD",p.agent);S.pending=null;return true}
-function startGame(S){
- if(S.phase!=="START")return false;
- S.phase="GARDEN_MAP";S.zol=15;
- logEvent(S,"GAME_STARTED","House JM — Semper Fidelis, guest of the Warren");return true;
-}
-function checkWin(S){
- if(S.ownedCount>=7||S.reputation>=100){S.phase="GAME_WON";logEvent(S,"GAME_WON",
-   S.ownedCount+" warrens, rep "+S.reputation);return true}
- return false;
-}
-function auraWeather(S){
- if(S.held>=3)return{mood:"fog",line:AURA_LINES[0]};
- if(S.denials>=3)return{mood:"storm",line:AURA_LINES[2]};
- if(S.cohesion>=95&&S.knowledge>=6)return{mood:"dawn",line:AURA_LINES[1]};
- return{mood:"still",line:AURA_LINES[3+(S.actions%3)]};
-}
-/* ===== REDUCER-END ===== */
+function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+function utcDay(ms){ return Math.floor(ms / 86400000); }
 
-/* ===== RENDER + UI (browser only; pixel edition) ===== */
-let S=makeState();
-let scene,camera,renderer,meshes=[],flowers=[],labels=[],castle,selected=-1,qcmActive=false,lastCouncil=null;
-const PIX=4; // render at 1/PIX resolution, upscale nearest-neighbor = pixel look
-const MOODS={fog:{bg:0x18220e,fog:0.030},storm:{bg:0x1c1208,fog:0.018},dawn:{bg:0x20260f,fog:0.007},still:{bg:0x141c0e,fog:0.012}};
+function logEvent(S, kind, msg, now){
+  if (EVENT_KINDS.indexOf(kind) < 0) return S;
+  S.events.push({ t: now, k: kind, msg: msg });
+  if (S.events.length > EVENT_CAP) S.events = S.events.slice(-EVENT_CAP);
+  return S;
+}
 
-function initThree(){
- const canvas=document.getElementById("map");
- renderer=new THREE.WebGLRenderer({canvas,antialias:false});
- renderer.setSize(Math.floor(window.innerWidth/PIX),Math.floor(window.innerHeight/PIX),false);
- scene=new THREE.Scene();
- scene.fog=new THREE.FogExp2(0x141c0e,0.012);
- camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,1,1000);
- camera.position.set(0,36,56);camera.lookAt(0,0,0);
- scene.add(new THREE.HemisphereLight(0xaaddaa,0x332211,0.65));
- const dir=new THREE.DirectionalLight(0xffe0aa,0.7);dir.position.set(20,40,10);scene.add(dir);
- const ground=new THREE.Mesh(new THREE.CircleGeometry(28,32),new THREE.MeshLambertMaterial({color:0x1c2812}));
- ground.rotation.x=-Math.PI/2;scene.add(ground);
- // octagram governance ring — law does not reskin
- for(let i=0;i<8;i++){
-  const a1=i/8*Math.PI*2,a2=(i+3)/8*Math.PI*2;
-  const g=new THREE.BufferGeometry().setFromPoints([
-   new THREE.Vector3(Math.cos(a1)*18,0.12,Math.sin(a1)*18),
-   new THREE.Vector3(Math.cos(a2)*18,0.12,Math.sin(a2)*18)]);
-  scene.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:0xd08a3c})));}
- // The Great Compost Heap (GOBLIN's throne-mound): crooked cone stack + mushrooms
- castle=new THREE.Group();
- const heap1=new THREE.Mesh(new THREE.ConeGeometry(5,4,7),new THREE.MeshLambertMaterial({color:0x3a2c1a}));
- heap1.position.y=2;castle.add(heap1);
- const heap2=new THREE.Mesh(new THREE.ConeGeometry(3.4,3.2,6),new THREE.MeshLambertMaterial({color:0x4a3822}));
- heap2.position.set(0.7,4.6,0.3);heap2.rotation.z=0.12;castle.add(heap2);
- const heap3=new THREE.Mesh(new THREE.ConeGeometry(1.8,2.4,5),new THREE.MeshLambertMaterial({color:0x5c4a2c}));
- heap3.position.set(-0.5,6.8,-0.2);heap3.rotation.z=-0.18;castle.add(heap3);
- for(let m=0;m<5;m++){
-  const st=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.2,0.9,5),new THREE.MeshLambertMaterial({color:0xd8cfa8}));
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.42,6,4,0,Math.PI*2,0,Math.PI/2),new THREE.MeshLambertMaterial({color:[0xa8d858,0xd08a3c,0x8b6fc9][m%3]}));
-  const ang=m/5*Math.PI*2,r=3.2+(m%2);
-  st.position.set(Math.cos(ang)*r,0.45,Math.sin(ang)*r);
-  cap.position.set(Math.cos(ang)*r,0.95,Math.sin(ang)*r);
-  castle.add(st);castle.add(cap);}
- const lantern=new THREE.Mesh(new THREE.SphereGeometry(0.7,6,6),new THREE.MeshBasicMaterial({color:0xa8d858}));
- lantern.position.set(0,8.6,0);lantern.name="halLantern";castle.add(lantern);
- scene.add(castle);
- // warren mounds
- S.territories.forEach((t,i)=>{
-  const angle=i/12*Math.PI*2,x=Math.cos(angle)*20,z=Math.sin(angle)*20;
-  const m=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3.2,1.6,5),
-    new THREE.MeshLambertMaterial({color:0x2c3420}));
-  m.position.set(x,0.8,z);m.userData.index=i;scene.add(m);meshes.push(m);
-  const lb=document.createElement("div");
-  lb.style.cssText="position:absolute;color:#e8dcc0;font-size:9px;font-family:Courier New,monospace;pointer-events:none;text-shadow:1px 1px 0 black";
-  lb.textContent=t.name;document.body.appendChild(lb);labels.push(lb);});
- const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
- canvas.addEventListener("click",e=>{
-  if(S.phase!=="GARDEN_MAP"||qcmActive)return;
-  mouse.x=e.clientX/window.innerWidth*2-1;mouse.y=-(e.clientY/window.innerHeight)*2+1;
-  ray.setFromCamera(mouse,camera);
-  const hits=ray.intersectObjects(meshes);
-  if(hits.length)selectNode(hits[0].object.userData.index);});
- window.addEventListener("keydown",e=>{
-  const k=e.key.toUpperCase();
-  if(k==="ENTER"&&S.phase==="START")return uiStart();
-  if(k==="Q")uiQCM(); if(k==="B")uiBuy(); if(k==="P")uiPropose();
-  if(k==="A")uiAdmit(); if(k==="D")uiDeny(); if(k==="H")uiHold(); if(k==="R")uiRestart();});
- window.addEventListener("resize",()=>{camera.aspect=window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(Math.floor(window.innerWidth/PIX),Math.floor(window.innerHeight/PIX),false)});
- animate();
+function makeState(now){
+  const S = {
+    v: GW_VERSION,
+    createdAt: now,
+    lastSeenAt: now,
+    actions: 0,
+    day: 1,
+    goblin: { id:"lulu", name:"Lulu", role:"Explorer", home:"Garden Plot",
+              mood: 50, energy: 80, careStreak: 0 },
+    res: { seeds: 1, bugs: 0, ideas: 2, memories: 0 },
+    compost: 0,
+    heldCount: 0,
+    held: [],
+    tried: 0,
+    current: null,
+    memories: [],
+    events: [],
+  };
+  logEvent(S, "WARREN_STARTED", "A tiny warren begins. Lulu waves.", now);
+  return S;
 }
-const STATE_COLORS={locked:0x2c3420,available:0x4a5a30,owned:0x5c7a3a,evolved:0x74985c};
-function syncVisuals(){
- S.territories.forEach((t,i)=>{
-  meshes[i].material.color.setHex(STATE_COLORS[t.state]||0x2c3420);
-  meshes[i].material.emissive=new THREE.Color(i===selected?0x5a4416:(t.state==="available"?0x1a2410:0x000000));});
- const w=auraWeather(S);const m=MOODS[w.mood];
- scene.fog.density+=(m.fog-scene.fog.density)*0.1;
- renderer.setClearColor(m.bg);
- const lan=castle.getObjectByName("halLantern");
- if(lan&&S.pending&&S.pending.verdict)
-   lan.material.color.setHex(S.pending.verdict==="ACCEPTABLE"?0xa8d858:S.pending.verdict==="HOLD"?0xe0a83c:0x6a3a2a);
- updateHUD();renderLedgerUI();
- if(S.actions>0&&S.actions%6===0)showAura(w.line);
+
+function moodLabel(S){
+  if (S.goblin.energy < 25) return "tired";
+  const m = S.goblin.mood;
+  if (m >= 70) return "happy";
+  if (m >= 45) return "curious";
+  if (m >= 20) return "calm";
+  if (m >= 0)  return "focused";
+  return "worried";
 }
-function addFlower(i,level){ // in the Warren, flowers are mushrooms
- const m=meshes[i];
- const st=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.3,1.4,5),
-   new THREE.MeshLambertMaterial({color:0xd8cfa8}));
- const cap=new THREE.Mesh(new THREE.SphereGeometry(0.75,6,4,0,Math.PI*2,0,Math.PI/2),
-   new THREE.MeshLambertMaterial({color:[0xa8d858,0xd08a3c,0x8b6fc9][level%3]}));
- const ox=((h32(i+"f"+level)%100)/100-0.5)*2.4;
- st.position.copy(m.position);st.position.y=2.1;st.position.x+=ox;
- cap.position.copy(st.position);cap.position.y=2.9;
- st.scale.setScalar(0.01);cap.scale.setScalar(0.01);
- st.userData.born=cap.userData.born=performance.now();
- scene.add(st);scene.add(cap);flowers.push(st,cap);
+
+/* Advance calendar: new real day → energy regen, care streak resets. */
+function tick(S, now){
+  const prevDay = utcDay(S.lastSeenAt), curDay = utcDay(now);
+  if (curDay > prevDay){
+    const passed = curDay - prevDay;
+    S.day += passed;
+    S.goblin.energy = clamp(S.goblin.energy + 30 * passed, 0, 100);
+    S.goblin.careStreak = 0;
+    logEvent(S, "DAY_PASSED", "Day " + S.day + " dawns over the warren.", now);
+  }
+  S.lastSeenAt = now;
+  return S;
 }
-function animate(){
- requestAnimationFrame(animate);
- castle.rotation.y+=0.0012;
- const now=performance.now();
- flowers.forEach(f=>{if(f.userData.born){const s=Math.min(1,(now-f.userData.born)/700);
-   f.scale.setScalar(0.01+s*0.99);if(s>=1)delete f.userData.born;}});
- const lan=castle.getObjectByName("halLantern");
- if(lan&&S.pending)lan.scale.setScalar(1+Math.sin(now/220)*0.25);
- renderer.render(scene,camera);
- const rect=renderer.domElement.getBoundingClientRect();
- meshes.forEach((m,i)=>{
-  const p=m.position.clone().project(camera);
-  labels[i].style.left=(p.x*0.5+0.5)*rect.width+rect.left+"px";
-  labels[i].style.top=(-p.y*0.5+0.5)*rect.height+rect.top-18+"px";
-  labels[i].style.display=p.z<1?"block":"none";});
+
+/* Deterministic: same state → same proposal. */
+function nextProposal(S, now){
+  if (S.current) return S;
+  const idx = h32("prop:" + S.actions + ":" + S.day + ":" + S.goblin.id) % PROPOSALS.length;
+  const p = PROPOSALS[idx];
+  S.current = { id: p.id, text: p.text, seeds: p.seeds, bugs: p.bugs, ideas: p.ideas, mood: p.mood };
+  logEvent(S, "PROPOSAL_MADE", "Lulu: “" + p.text + "”", now);
+  return S;
 }
-/* ---- UI glue: every button routes through the reducer ---- */
-function updateHUD(){
- document.getElementById("zol").textContent=S.zol;
- document.getElementById("knowledge").textContent=S.knowledge;
- document.getElementById("cohesion").textContent=S.cohesion;
- document.getElementById("reputation").textContent=S.reputation;
- document.getElementById("territories").textContent=S.ownedCount;
+
+/* choice ∈ {"try","hold","compost"} — no wrong choices, only different stories. */
+function decide(S, choice, now){
+  if (!S.current) return S;
+  const p = S.current;
+  S.current = null;
+  S.actions += 1;
+  if (choice === "try"){
+    S.res.seeds += p.seeds; S.res.bugs += p.bugs; S.res.ideas += p.ideas;
+    S.goblin.mood = clamp(S.goblin.mood + p.mood, -100, 100);
+    S.goblin.energy = clamp(S.goblin.energy - 6, 0, 100);
+    S.tried += 1;
+    logEvent(S, "PROPOSAL_TRIED", "You tried it. The Garden Plot shifts a little.", now);
+    if (S.tried % 3 === 0){
+      const mi = h32("mem:" + S.tried + ":" + S.day) % MEMORY_LINES.length;
+      S.memories.push(MEMORY_LINES[mi]);
+      S.res.memories += 1;
+      logEvent(S, "MEMORY_BORN", "A memory is born: " + MEMORY_LINES[mi], now);
+    }
+  } else if (choice === "hold"){
+    S.heldCount += 1;
+    S.held.push(p.id);
+    if (S.held.length > 5) S.held = S.held.slice(-5);
+    if (S.heldCount > 3) S.goblin.mood = clamp(S.goblin.mood - 2, -100, 100);
+    logEvent(S, "PROPOSAL_HELD", "Set aside, held for later. Lulu nods.", now);
+  } else if (choice === "compost"){
+    S.compost += 1;
+    S.goblin.mood = clamp(S.goblin.mood + 2, -100, 100);
+    logEvent(S, "PROPOSAL_COMPOSTED", "The idea returns to the soil.", now);
+    if (S.compost % 3 === 0){
+      S.res.seeds += 1;
+      logEvent(S, "COMPOST_BLOOMED", "Old ideas break down. A new seed appears.", now);
+    }
+  } else {
+    S.actions -= 1;
+    S.current = p;
+    return S;
+  }
+  return S;
 }
-function renderLedgerUI(){
- document.getElementById("ledger").innerHTML=S.ledger.slice(-8).reverse().map(e=>
-  `<div class="log-entry ${e.kind==="PROPOSAL_ADMITTED"?"adm":""}">${e.kind} ${e.detail}</div>`).join("");
+
+/* Care verbs: kind attention lifts Lulu, with diminishing returns per day. */
+function care(S, verb, now){
+  const def = CARE_VERBS[verb];
+  if (!def) return S;
+  const streak = S.goblin.careStreak;
+  const moodGain = Math.max(1, def.mood - 3 * streak);
+  const energyGain = def.energy > 0 ? Math.max(2, def.energy - 5 * streak) : 0;
+  S.goblin.mood = clamp(S.goblin.mood + moodGain, -100, 100);
+  S.goblin.energy = clamp(S.goblin.energy + energyGain, 0, 100);
+  S.goblin.careStreak = streak + 1;
+  S.actions += 1;
+  logEvent(S, "CARE_GIVEN", def.line, now);
+  return S;
 }
-function showAura(line){
- const a=document.getElementById("aura");a.textContent="AURA — "+line;a.style.display="block";
- clearTimeout(showAura._t);showAura._t=setTimeout(()=>a.style.display="none",5200);
+
+function serialize(S){ return JSON.stringify(S); }
+
+/* Fail-closed loader: anything malformed → null (caller starts fresh). */
+function loadState(json, now){
+  let S;
+  try { S = JSON.parse(json); } catch (e) { return null; }
+  if (!S || typeof S !== "object") return null;
+  if (S.v !== GW_VERSION) return null;
+  if (typeof S.createdAt !== "number" || typeof S.actions !== "number") return null;
+  if (!S.goblin || typeof S.goblin.mood !== "number" || typeof S.goblin.energy !== "number") return null;
+  if (!S.res || typeof S.res.seeds !== "number") return null;
+  if (!Array.isArray(S.events) || !Array.isArray(S.memories)) return null;
+  logEvent(S, "WARREN_LOADED", "The warren remembers you.", now);
+  return tick(S, now);
 }
-function zolFloat(txt,good){
- const f=document.createElement("div");f.textContent=txt;
- f.style.cssText="position:absolute;right:140px;top:100px;font-size:22px;z-index:60;pointer-events:none;font-family:Courier New,monospace;"+
-  "color:"+(good?"#a8d858":"#c96f6f")+";text-shadow:2px 2px 0 #000;animation:zfloat 1.4s steps(7) forwards";
- document.body.appendChild(f);setTimeout(()=>f.remove(),1500);
-}
-function selectNode(i){
- selected=i;const t=S.territories[i];
- document.getElementById("selected-info").innerHTML=
-  `<b style="color:var(--glow)">${t.name}</b><br>State: ${t.state} · Level: ${t.level}<br>`+
-  `Price: ${t.price} ZOL · Prestige: ${t.prestige}<br><small>B to claim · P for a goblin idea</small>`;
- syncVisuals();
-}
-function uiStart(){
- document.getElementById("start").style.display="none";
- startGame(S);
- selectNode(0);syncVisuals();
-}
-function uiQCM(){
- if(qcmActive||S.phase!=="GARDEN_MAP")return;
- qcmActive=true;
- const qi=h32("q"+S.actions+S.zol)%QUESTIONS.length;const q=QUESTIONS[qi];
- document.getElementById("qcm-panel").style.display="block";
- document.getElementById("qcm-question").textContent=q.question+"  ["+q.category+"]";
- const c=document.getElementById("qcm-choices");c.innerHTML="";
- q.choices.forEach((ch,idx)=>{const b=document.createElement("button");b.textContent=ch;
-  b.onclick=()=>{const ok=answerQuestion(S,qi,idx);b.style.background=ok?"#2a4a1a":"#4a2015";
-   zolFloat(ok?("+"+q.rewardZOL+" ZOL"):"−1 cohesion",ok);
-   setTimeout(()=>{document.getElementById("qcm-panel").style.display="none";c.innerHTML="";qcmActive=false;syncVisuals();},800);};
-  c.appendChild(b);});
-}
-function uiBuy(){
- if(selected<0||S.phase!=="GARDEN_MAP")return;
- const t=S.territories[selected];
- if(!buyTerritory(S,selected)){
-   if(t.state==="available"&&S.zol<t.price)showAura("HAL — the treasury lacks "+(t.price-S.zol)+" ZOL for "+t.name+". Held, not judged.");
-   else showAura("HAL — "+t.name+" is "+t.state+"; only available ground may be claimed.");
- } else zolFloat("−"+t.price+" ZOL · "+t.name,true);
- if(checkWin(S))return uiWin();
- selectNode(selected);
-}
-function uiPropose(){
- if(selected<0||S.phase!=="GARDEN_MAP")return;
- const t=S.territories[selected];
- if(t.state!=="owned"&&t.state!=="evolved"){showAura("only a claimed mound can dream upgrades");return}
- const p=createProposal(S,selected,"ui");
- const v=checkProposalWithHAL(S,p);
- document.getElementById("proposal-panel").style.display="block";
- document.getElementById("agent-name").textContent=p.agent+" — "+p.voice;
- document.getElementById("proposal-text").textContent=p.text+(p.cost?`  (cost ${p.cost} ZOL)`:"  (free — beauty pays nothing, even underground)");
- document.getElementById("hal-verdict").innerHTML=
-  `<span class="lantern V_${v}" style="background:currentColor"></span><span class="V_${v}">HAL: ${v}</span> — ${HAL_LINES[v]} <span style="font-size:9px">(authority=false)</span>`;
- document.getElementById("btnAccept").disabled=(v!=="ACCEPTABLE");
- if(p.big){lastCouncil=councilReview(S,p);showCouncil(lastCouncil,p);}
- syncVisuals();
-}
-function showCouncil(c,p){
- document.getElementById("council").style.display="flex";
- document.getElementById("council-seats").innerHTML=c.stances.map(s=>
-  `<div class="seat"><b>${s.seat}</b> — ${s.stance}<div class="objection">${s.objection}</div></div>`).join("");
- document.getElementById("council-tally").textContent=
-  `Tally ${c.votes}/5 — ${c.rec.replace("RECOMMEND_","the Tall Ones recommend: ")} · (recommendation, not admission)`;
-}
-function uiCloseCouncil(){document.getElementById("council").style.display="none"}
-function uiAdmit(){
- if(!S.pending)return;
- const idx=S.pending.tIndex,lvl=S.territories[idx].level;
- if(admitProposal(S)){addFlower(idx,lvl);}
- document.getElementById("proposal-panel").style.display="none";
- if(checkWin(S))return uiWin();
- syncVisuals();
-}
-function uiDeny(){if(!S.pending)return;denyProposal(S);
- document.getElementById("proposal-panel").style.display="none";syncVisuals();}
-function uiHold(){if(!S.pending)return;holdProposal(S);
- document.getElementById("proposal-panel").style.display="none";syncVisuals();}
-function uiWin(){
- document.getElementById("win-stats").innerHTML=
-  `Warrens: ${S.ownedCount} · Reputation: ${S.reputation}<br>Knowledge: ${S.knowledge} · ZOL left: ${S.zol} (gone at dawn)<br>`+
-  `Admitted upgrades: ${S.ledger.filter(e=>e.kind==="PROPOSAL_ADMITTED").length}`;
- document.getElementById("win").style.display="flex";syncVisuals();
-}
-function uiRestart(){
- flowers.forEach(f=>scene.remove(f));flowers=[];
- S=makeState();selected=-1;qcmActive=false;
- document.getElementById("win").style.display="none";
- document.getElementById("council").style.display="none";
- document.getElementById("proposal-panel").style.display="none";
- document.getElementById("start").style.display="flex";
- syncVisuals();
-}
-window.onload=()=>{initThree();syncVisuals();};
+
+/* ===== REDUCER-END ====================================================== */
+
+/* ---------- render + UI zone (all state changes route through reducers) -- */
+(function(){
+  if (typeof document === "undefined") return; // headless (selftest) — UI skipped
+  const KEY = "goblin_warren_v1";
+  let S = loadState(localStorage.getItem(KEY) || "", Date.now()) || makeState(Date.now());
+  nextProposal(S, Date.now());
+
+  function save(){ localStorage.setItem(KEY, serialize(S)); }
+
+  function dispatch(fn){
+    S = fn(S, Date.now()) || S;
+    tick(S, Date.now());
+    nextProposal(S, Date.now());
+    save();
+    render();
+  }
+
+  const $ = (id) => document.getElementById(id);
+  function fmtTime(t){
+    const d = new Date(t);
+    return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+  }
+
+  function render(){
+    $("daybadge").textContent = "Day " + S.day;
+    $("resources").innerHTML =
+      '<div class="res"><b>' + S.res.seeds + '</b><span>🌱 seeds</span></div>' +
+      '<div class="res"><b>' + S.res.bugs + '</b><span>🐛 bugs</span></div>' +
+      '<div class="res"><b>' + S.res.ideas + '</b><span>💡 ideas</span></div>' +
+      '<div class="res"><b>' + S.res.memories + '</b><span>💜 memories</span></div>';
+    $("moodline").innerHTML = "Lulu feels <b>" + moodLabel(S) + "</b> · energy " + S.goblin.energy;
+    $("speech").textContent = S.current ? S.current.text : "…";
+    const deciding = !!S.current;
+    $("btn-try").disabled = !deciding; $("btn-hold").disabled = !deciding; $("btn-compost").disabled = !deciding;
+    $("memories").textContent = S.memories.length
+      ? "Latest memory: " + S.memories[S.memories.length-1] : "";
+    $("log").innerHTML = S.events.slice(-30).reverse().map(function(e){
+      return '<div><span class="k">' + fmtTime(e.t) + "</span> " + e.msg + "</div>";
+    }).join("");
+  }
+
+  $("btn-try").onclick      = () => dispatch((s,n)=>decide(s,"try",n));
+  $("btn-hold").onclick     = () => dispatch((s,n)=>decide(s,"hold",n));
+  $("btn-compost").onclick  = () => dispatch((s,n)=>decide(s,"compost",n));
+  $("btn-listen").onclick   = () => dispatch((s,n)=>care(s,"listen",n));
+  $("btn-matcha").onclick   = () => dispatch((s,n)=>care(s,"matcha",n));
+  $("btn-celebrate").onclick= () => dispatch((s,n)=>care(s,"celebrate",n));
+  $("lulu").onclick         = () => dispatch((s,n)=>care(s,"listen",n));
+  $("restart").onclick = function(ev){
+    ev.preventDefault();
+    if (confirm("Start a fresh warren? Lulu's memories will fade.")){
+      localStorage.removeItem(KEY);
+      S = makeState(Date.now());
+      nextProposal(S, Date.now());
+      save(); render();
+    }
+  };
+
+  render();
+})();
 </script>
 </body>
 </html>
