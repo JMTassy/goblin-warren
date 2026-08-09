@@ -4,13 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Dream of Conquest — The Goblin Warren (V0)**: a single-file, pixel-styled browser village-builder that makes the HELEN OS governance model playable. Three files, no build step, no dependencies beyond the Three.js CDN loaded at runtime. This repo (`origin` = `github.com/JMTassy/goblin-warren`) is the **published V0 canon** of the conquest/personas lineage (byte-identical to the vault copy `HELEN_OBSIDIAN_OS/goblin-conquest.html`). Genealogy of the home-dir files (`C:\Users\jeanm`), twice-witnessed 2026-07-05: `goblin-conquest.html` there is this repo's **diverged newer draft** (agents-based pixel edition, its own harness); `goblin-warren.html` / `goblin-warren-selftest.js` are a **separate multi-map successor game** (accounts + replay-based persistence, its own 12-test harness) — not drafts of this repo. Naming collision warning: the repo is named *goblin-warren* but its content is conquest-lineage V0.
+**Dream of Conquest — The Goblin Warren (V0)**: a single-file, pixel-styled browser village-builder that makes the HELEN OS governance model playable. The game is `index.html` alone, tested by `selftest.js`; no build step, no dependencies beyond the Three.js CDN loaded at runtime (`docs/` holds non-wired design catalogs). This repo (`origin` = `github.com/JMTassy/goblin-warren`) is the **published V0 canon** of the conquest/personas lineage (byte-identical to the vault copy `HELEN_OBSIDIAN_OS/goblin-conquest.html`). Genealogy of the home-dir files (`C:\Users\jeanm`), twice-witnessed 2026-07-05: `goblin-conquest.html` there is this repo's **diverged newer draft** (agents-based pixel edition, its own harness); `goblin-warren.html` / `goblin-warren-selftest.js` are a **separate multi-map successor game** (accounts + replay-based persistence, its own 12-test harness) — not drafts of this repo. Naming collision warning: the repo is named *goblin-warren* but its content is conquest-lineage V0.
 
 ## Commands
 
 ```bash
 node selftest.js index.html   # the entire test suite: 29 assertions, exit 1 on any failure
 ```
+
+Always pass `index.html` explicitly — with no argument, `selftest.js` defaults to a legacy filename (`akashic-conquest.html`) that does not exist in this repo and the run fails on file-read.
 
 There is no build, lint, or package.json. To play, open `index.html` in a browser (needs network once for the Three.js CDN). There is no way to run a single assertion — the selftest is one sequential script that walks the full game loop; run it whole.
 
@@ -43,13 +45,20 @@ The header comment discipline (`authority=false · claim=NO_CLAIM · non-soverei
 
 - **IP-safe rule**: all sprites, names, buildings, and mechanics are original; the pixel look is a *technique* (quarter-resolution render + nearest-neighbor upscale via `PIX=4` and `image-rendering: pixelated`), not borrowed art. Do not introduce third-party game content.
 - QCM questions must keep the spec shape (`question`/`choices`/`correctIndex`/`rewardZOL`/`category`) and count ≥ 20 — both are asserted.
-- Win condition is 7 warrens or reputation ≥ 100; the 12 territory sites and 3 portal indices (`PORTALS=[9,10,11]`, which trigger council) are part of the tested design.
+- Win condition is 7 warrens or reputation ≥ 100; the 12 territory sites and 3 portal indices (`PORTALS=[9,10,11]`, which trigger council) are part of the tested design. A proposal is "big" (council-triggering) when its target is a portal or its cost ≥ 12; council recommends ADMIT at ≥ 3 of 5 favor votes.
+- Other tested start-state facts: 4 of 12 territories available at boot, `startGame` grants 15 ZOL, knowledge unlocks further territories (`unlockByKnowledge`), wrong answers cost 1 cohesion (floored at 80), territory levels cap at 3.
+
+## docs/WARREN_ITEM_LIBRARY_V0.md
+
+A placeable-item catalog (glyphs/names/zones for feast props and creatures) that is **deliberately not wired into the game** — it is a drafted, non-admitted feature awaiting the operator's go. If asked to wire it: items may only enter through the decoration/collectible/wanderer paths (`item placed ⊬ item admitted` — no ZOL grants, no admissions, no reducer/ledger mutation), and renders stay original emoji/procedural glyphs. Do not treat its mention of `game.js` as a real file — that path belongs to the successor game, not this repo.
 
 ## Authorship
 
 JM Tassy is the sole author. Do **not** add `Co-Authored-By:` lines for any AI model on commits.
 
 ## GardenGrowth bead adaptation (CHIDDUSH reading)
+
+Note for future readers: `HERMENEUTIC_INSPECTOR_CANDIDATE.js`, `replayEvents()`, and per-account `events` live in the **successor game** (`goblin-warren.html`, outside this repo) — none of them are files or functions here. In this repo the equivalent substrate is `S.ledger` written via `logEvent`. The section below records the design reading across the family:
 
 The "GardenGrowth" module (see HERMENEUTIC_INSPECTOR_CANDIDATE.js) assumes a spatial `GardenGrowth.traces` substrate that does not exist on disk. Instead, the event log + `replayEvents()` in this project already provides the mechanism:
 
