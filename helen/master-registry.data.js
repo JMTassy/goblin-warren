@@ -122,12 +122,13 @@ var ENTRIES = [
   { id: "family/manucurist-skills", name: "Manucurist skills", class: "skill_family", domain: "manucurist", maturity: "imagined", status: "provisional", evidence_class: "hypothesized", owner: OWNER,
     purpose: "members must be EXTRACTED from the real Manucurist corpus — operator GO + PII clearance; zero members by design" },
 
-  /* ---- THE PILOT (specified here; execution HELD by law) ---- */
+  /* ---- THE PILOT (Phase 1 executed 2026-08-09; content phases HELD to zone) ---- */
   { id: "protocol/pilot-partner-uzik-operating-model", name: "end-to-end pilot: one partner × UZIK operating model",
-    class: "protocol", domain: "uzik", maturity: "specified", status: "provisional", evidence_class: "hypothesized", owner: OWNER,
+    class: "protocol", domain: "uzik", maturity: "prototyped", status: "provisional", evidence_class: "hypothesized", owner: OWNER,
     purpose: "one bounded case proving the full loop: source inventory → identity resolution → timeline → atomic claims → evidence attachment → repeated patterns → candidate invariants → HAL falsification → capability extraction → skill specifications → human review → receipts → registry update. Outputs: sourced person model · relationship/project graph · tested invariants · reusable methods · candidate skills · contradiction records · a REUSABLE extraction protocol (the template for every later corpus)",
     dependencies: ["family/uzik-skills", "helen/witnessed-data-metabolism", "helen/principle-graph", "helen/evolution-kernel"],
-    execution_held: "requires the primary corpus + operator GO + PII clearance + an out-of-repo destination; the pilot subject is a real private individual, designated in the operator channel and deliberately NOT named in this public repo" }
+    protected_zone: "operator-owned Google Drive folder 'HELEN OS' (out-of-repo; designated by operator GO 2026-08-09; pre-existing [SANCTUAIRE] convention respected)",
+    execution: "Phase 1/13 complete 2026-08-09 — source inventory, metadata-only, witnessed via Drive search: 9 governance/legal sources + 5 agency-era decks typed into two corpora; 2 restricted-PII items identified and EXCLUDED unread (metabolism B10); coverage declared partial (no silent completeness). All content phases write ONLY to the protected zone; step 11 (human review) is the operator's. The pilot subject is a real private individual, designated in the operator channel and deliberately NOT named in this public repo" }
 ];
 
 module.exports = { ENTRIES: ENTRIES, RECAP: RECAP };
