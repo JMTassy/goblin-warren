@@ -47,7 +47,6 @@ import { newDay } from './growth.js';
  * @property {number} day
  * @property {number} energy - 0..6, finds remaining before Lulu sleeps
  * @property {boolean} asleep
- * @property {Mood} mood
  * @property {Find|null} offered - the find currently held up, waiting to be dragged
  * @property {Ground} ground
  * @property {number} compost - 0..5, a plain counter in M1 (no golden-seed trigger yet)
@@ -100,7 +99,6 @@ export function makeState(seed) {
     day: 0,
     energy: 6,
     asleep: false,
-    mood: 'curious',
     offered: null,
     ground: {
       w: 4,
@@ -114,10 +112,30 @@ export function makeState(seed) {
   };
 }
 
+/**
+ * Lulu's mood, derived from state (Mayor's ruling after P1): never stored,
+ * because a stored mood that no rule updates can only drift. Asleep -> tired;
+ * last reaction bighop -> happy; shrug -> worried; otherwise curious.
+ *
+ * @param {State} state
+ * @returns {Mood}
+ */
+export function moodOf(state) {
+  if (state.asleep) return 'tired';
+  if (state.lastReaction === 'bighop') return 'happy';
+  if (state.lastReaction === 'shrug') return 'worried';
+  return 'curious';
+}
+
 const MS_PER_DAY = 86400000;
 
-/** Row-major -> calendar day the event's ms-since-epoch timestamp falls on. */
-function epochDay(t) {
+/**
+ * The calendar day (UTC) a ms-since-epoch timestamp falls on. This is the one
+ * definition of "day" in the game: `state.day` is epochDay of the most recent
+ * VISIT. The view must use this helper, never its own arithmetic. The Warren's
+ * own "day 1, day 2" count is epochDay(t) - epochDay(first VISIT t) + 1.
+ */
+export function epochDay(t) {
   return Math.floor(t / MS_PER_DAY);
 }
 

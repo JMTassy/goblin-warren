@@ -9,7 +9,7 @@
 
 import { describe, expect, test } from 'vitest';
 import { mulberry32 } from '../../src/core/rng.js';
-import { makeState, apply } from '../../src/core/state.js';
+import { makeState, apply, moodOf } from '../../src/core/state.js';
 import { EVENT } from '../../src/core/events.js';
 
 const EVENT_COUNT = 5000;
@@ -26,7 +26,8 @@ function assertInRange(state) {
   expect(typeof state.asleep).toBe('boolean');
   expect(typeof state.sound).toBe('boolean');
   expect(typeof state.day).toBe('number');
-  expect(MOODS).toContain(state.mood);
+  expect(MOODS).toContain(moodOf(state));
+  expect(state).not.toHaveProperty('mood');
   expect(REACTIONS).toContain(state.lastReaction);
   expect(state.ground.terrain.length).toBe(16);
   expect(state.ground.tiles.length).toBe(16);

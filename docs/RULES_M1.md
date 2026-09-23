@@ -116,10 +116,9 @@ left unresolved by those cuts gets a punishment or a timer added back in
   reserved "purr" reaction type in the frozen `Reaction` shape
   (`hop`/`bighop`/`shrug`/`null`), so the simplest read was chosen rather
   than inventing a new value that would widen the frozen contract.
-- **`mood`** is a frozen `State` field (`curious`/`happy`/`worried`/
-  `tired`), but no rule in the vision's P1 scope (after the cuts) assigns
-  it a transition. It stays `curious` for the whole of M1. If M2 wants
-  Lulu's mood to move, that's a new rule to write then, not a P1 guess now.
+- **`mood`** is no longer stored (Mayor's amendment after P1): `moodOf(state)`
+  derives it. Asleep -> tired; after a big hop -> happy; after a shrug ->
+  worried; otherwise curious. See `docs/INTERFACES.md` §8.
 - **A find offered without ever being dropped, and Lulu falling asleep**
   (the vision's cut "sleep with a find offered → cave" rule): in M1 the
   find simply stays in her hand across the sleep/wake boundary — nothing

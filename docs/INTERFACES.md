@@ -89,7 +89,6 @@ type State = {
   day: number
   energy: number        // 0..6, finds remaining before Lulu sleeps
   asleep: boolean
-  mood: Mood
   offered: Find | null  // the find currently held up, waiting to be dragged
   ground: Ground
   compost: number        // 0..5, a PLAIN COUNTER in M1 — no golden-seed trigger
@@ -361,3 +360,15 @@ aren't any) and never reaches into P1's internals.
   the key (see §3).
 - **`tile_glow_ok`/`tile_glow_no` aren't in §9's inventory** but are
   required by the frozen loop; added rather than left implicit.
+
+
+## 8 · Mayor's amendment after P1: mood is derived; one definition of "day"
+
+- `mood` is **not** a State field. `moodOf(state) -> Mood` in `src/core/state.js`
+  derives it: asleep -> `tired`; `lastReaction` `bighop` -> `happy`; `shrug` ->
+  `worried`; else `curious`. Reason: P1 found no rule that transitions a stored
+  mood, so Lulu's four faces would never change. Derived, like `book()`.
+- `epochDay(t)` in `src/core/state.js` is the single definition of a day (UTC).
+  `state.day` is `epochDay` of the latest VISIT, a calendar number, not a count.
+  The Warren's day count is `epochDay(t) - epochDay(firstVisitT) + 1`, derived
+  from the ledger. The view never re-implements day arithmetic.
