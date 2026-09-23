@@ -86,7 +86,11 @@ test('day 1: offer, drag-plant, illegal drag, compost, six offers -> asleep, rel
 
   // --- 1: tap Lulu -> offered -----------------------------------------
 
-  const lulu = await at('lulu');
+  // Re-fetched via at('lulu') before every tap below, not cached once: a
+  // 'bighop' reaction (glow species) calls lulu.settleToward(), which can
+  // move her a few px toward the planted tile, so a stale coordinate can
+  // miss her hit area on a later tap.
+  let lulu = await at('lulu');
   expect(lulu).toBeTruthy();
   await tap(lulu.x, lulu.y);
   await page.waitForTimeout(150);
@@ -134,6 +138,7 @@ test('day 1: offer, drag-plant, illegal drag, compost, six offers -> asleep, rel
 
   // --- 3: offer again, drag to a rock tile -> hover 'no', nothing planted, springs back ---
 
+  lulu = await at('lulu'); // she may have settled toward the planted tile on a bighop
   await tap(lulu.x, lulu.y);
   await page.waitForTimeout(150);
   state = await gw();
@@ -179,6 +184,7 @@ test('day 1: offer, drag-plant, illegal drag, compost, six offers -> asleep, rel
   // --- 5: offer + compost three more times, then a sixth offer -> asleep ---
 
   for (let i = 0; i < 3; i++) {
+    lulu = await at('lulu');
     await tap(lulu.x, lulu.y);
     await page.waitForTimeout(120);
     orb = await orbPos();
@@ -190,6 +196,7 @@ test('day 1: offer, drag-plant, illegal drag, compost, six offers -> asleep, rel
   state = await gw();
   expect(state.asleep).toBe(false); // 5 offers so far, still awake
 
+  lulu = await at('lulu');
   await tap(lulu.x, lulu.y); // 6th offer
   await page.waitForTimeout(200);
 

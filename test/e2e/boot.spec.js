@@ -3,9 +3,11 @@
 // P0's acceptance test (VISION_V2.md §11 P0 / §8): the app boots cleanly
 // at iPhone size, served under /goblin-warren/ via `vite preview`.
 //
-// Device note: `devices['iPhone 15']` is used (see playwright.config.js);
-// it is present in the installed Playwright version. Its viewport is
-// 393x659 CSS px.
+// Device note: runs on both `devices['iPhone 15']` (393x659 CSS px) and
+// `devices['iPhone SE (3rd gen)']` (375x667 CSS px) -- see
+// playwright.config.js. The canvas-width check below compares against the
+// live viewport instead of a device-specific pixel constant so it holds on
+// either.
 
 import { test, expect } from '@playwright/test';
 
@@ -26,7 +28,8 @@ test.describe('boot', () => {
     await expect(canvas).toBeVisible();
 
     const canvasWidth = await canvas.evaluate((el) => el.getBoundingClientRect().width);
-    expect(canvasWidth).toBeGreaterThanOrEqual(380);
+    const viewportWidth = await page.evaluate(() => window.innerWidth);
+    expect(canvasWidth).toBeGreaterThanOrEqual(viewportWidth - 2);
 
     const { scrollHeight, innerHeight } = await page.evaluate(() => ({
       scrollHeight: document.documentElement.scrollHeight,

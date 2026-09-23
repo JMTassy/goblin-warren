@@ -4,12 +4,15 @@
 // `playwright install`). Every project below uses it via
 // `launchOptions.executablePath`.
 //
-// Device: `devices['iPhone 15']` is present in the installed Playwright
+// Devices: `devices['iPhone 15']` is present in the installed Playwright
 // version (1.56.1) and is what VISION_V2.md §8 and the P0 task brief ask
-// for, so it is used as-is. Its preset defaults to WebKit
-// (`defaultBrowserType: 'webkit'`), but only Chromium is available here,
-// so `browserName: 'chromium'` is set explicitly while keeping the
-// device's viewport/UA/touch/DPR emulation.
+// for, so it is used as-is. `devices['iPhone SE (3rd gen)']` is added by
+// P5 (VISION_V2.md §11 P5: "npm test green on iPhone 15 and iPhone SE
+// (3rd gen)") -- the operator's smallest likely real device, so every
+// e2e spec also runs against its shorter/narrower viewport. Both presets
+// default to WebKit (`defaultBrowserType: 'webkit'`), but only Chromium
+// is available here, so `browserName: 'chromium'` is set explicitly on
+// each project while keeping the device's viewport/UA/touch/DPR emulation.
 
 import { defineConfig, devices } from '@playwright/test';
 
@@ -34,6 +37,16 @@ export default defineConfig({
       name: 'iPhone 15',
       use: {
         ...devices['iPhone 15'],
+        browserName: 'chromium',
+        launchOptions: {
+          executablePath: CHROMIUM_PATH,
+        },
+      },
+    },
+    {
+      name: 'iPhone SE (3rd gen)',
+      use: {
+        ...devices['iPhone SE (3rd gen)'],
         browserName: 'chromium',
         launchOptions: {
           executablePath: CHROMIUM_PATH,

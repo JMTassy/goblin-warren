@@ -318,32 +318,68 @@ function glowOverlay(fillCh, ringCh) {
 }
 
 // --- Plants (16x24): 5 species x 4 stages, anchored at the base --------
+//
+// The Mayor's P4 screenshot review (day1-planted.png): a stage-0 plant is
+// the loop's payoff moment (the first thing the player sees after their
+// first drop) and read as "a few art pixels" -- nearly invisible on a
+// 72 px tile. Every builder below is sized so stage 0 already reads as a
+// clear little sprout (its tallest paint is >=40% of the tile's raw
+// 24 px height, i.e. >=~10px), and each later stage is taller again --
+// stage0 < stage1 < stage2 < stage3, strictly, in on-screen height.
 
 const BASE_Y = 22; // where every plant meets the ground, regardless of stage
 
 function moscapPlant(stage) {
   const g = grid(16, 24);
-  const sizes = [1.3, 1.9, 2.8, 3.8];
-  const r = sizes[stage];
-  const cy = BASE_Y - r * 0.9;
-  if (stage > 0) fillRect(g, 8, cy + r * 0.6, 8, BASE_Y, 's');
-  fillCircle(g, 8, cy, r, 'm');
-  if (stage >= 2) fillCircle(g, 8 - r * 0.5, cy - r * 0.4, r * 0.8, 'm');
-  if (stage >= 3) fillCircle(g, 8 + r * 0.5, cy - r * 0.4, r * 0.8, 'm');
-  fillCircle(g, 8 - r * 0.3, cy - r * 0.35, r * 0.35, 'h');
+  // A mound of round lobes (not one stretched oval -- moss stays "round"
+  // per lobe while the whole clump reads taller and bushier stage over
+  // stage). Every lobe is given as {dx, dy, r} relative to a shared anchor
+  // that's re-centred so the mound's lowest edge always meets BASE_Y.
+  const lobes = [
+    [{ dx: 0, dy: 0, r: 4.9 }],
+    [
+      { dx: 0, dy: 0, r: 5.6 },
+      { dx: -2.6, dy: 2.2, r: 3.4 },
+      { dx: 2.6, dy: 2.2, r: 3.4 },
+    ],
+    [
+      { dx: 0, dy: -1.5, r: 5.6 },
+      { dx: -3.2, dy: 1.6, r: 4.2 },
+      { dx: 3.2, dy: 1.6, r: 4.2 },
+      { dx: 0, dy: 4.6, r: 4.4 },
+    ],
+    [
+      { dx: 0, dy: -3.4, r: 5.4 },
+      { dx: -3.6, dy: -0.3, r: 4.6 },
+      { dx: 3.6, dy: -0.3, r: 4.6 },
+      { dx: -1.7, dy: 4.6, r: 4.4 },
+      { dx: 1.7, dy: 4.6, r: 4.4 },
+    ],
+  ][stage];
+
+  const cx = 8;
+  const lowestBottom = Math.max(...lobes.map((l) => l.dy + l.r));
+  const cy = BASE_Y - lowestBottom;
+
+  for (const l of lobes) fillCircle(g, cx + l.dx, cy + l.dy, l.r, 'm');
+  // Highlight on the topmost lobe, kept inside its silhouette.
+  const top = lobes.reduce((a, b) => (b.dy < a.dy ? b : a));
+  fillCircle(g, cx + top.dx - top.r * 0.35, cy + top.dy - top.r * 0.35, top.r * 0.35, 'h');
   addOutline(g);
   return toRows(g);
 }
 
+/** Stem height + cap radius, shared shape/proportions for glowcap and lanternmoss. */
+const MUSHROOM_STEM_H = [7, 10, 13, 17];
+const MUSHROOM_CAP_R = [2.6, 3.0, 3.6, 4.2];
+
 function glowcapPlant(stage) {
   const g = grid(16, 24);
-  const stemH = [1, 4, 8, 12][stage];
-  const capR = [0.9, 1.6, 2.4, 3.3][stage];
+  const stemH = MUSHROOM_STEM_H[stage];
+  const capR = MUSHROOM_CAP_R[stage];
   const stemTop = BASE_Y - stemH;
-  if (stemH > 0) fillRect(g, 7, stemTop, 8, BASE_Y, 'b');
-  fillCircle(g, 7.5, stemTop, capR, 'g');
-  // Mushroom overhang: a cap wider than it is tall, clipped to the cap's
-  // own footprint (not the whole canvas) so small stages stay small.
+  fillRect(g, 7, stemTop, 8, BASE_Y, 'b');
+  // Mushroom overhang: a cap wider than it is tall.
   fillRect(g, 7.5 - capR * 1.3, stemTop - capR * 0.15, 7.5 + capR * 1.3, stemTop + capR * 0.35, 'g');
   fillCircle(g, 7.5, stemTop, capR, 'g');
   setPx(g, 7, stemTop, 'b');
@@ -363,23 +399,23 @@ function glowcapPlant(stage) {
 function reedlingPlant(stage) {
   const g = grid(16, 24);
   const blades = [
-    [{ x: 8, h: 4 }],
+    [{ x: 8, h: 10 }],
     [
-      { x: 6, h: 5 },
-      { x: 9, h: 6 },
+      { x: 6, h: 12 },
+      { x: 9, h: 14 },
     ],
     [
-      { x: 4, h: 8 },
-      { x: 7, h: 10 },
-      { x: 10, h: 9 },
-      { x: 12, h: 6 },
+      { x: 4, h: 16 },
+      { x: 7, h: 19 },
+      { x: 10, h: 18 },
+      { x: 12, h: 14 },
     ],
     [
-      { x: 3, h: 12 },
-      { x: 6, h: 16 },
-      { x: 9, h: 15 },
-      { x: 12, h: 12 },
-      { x: 8, h: 9 },
+      { x: 3, h: 20 },
+      { x: 6, h: 22 },
+      { x: 9, h: 21 },
+      { x: 12, h: 18 },
+      { x: 8, h: 16 },
     ],
   ][stage];
   for (const b of blades) {
@@ -393,10 +429,10 @@ function reedlingPlant(stage) {
 
 function lanternmossPlant(stage) {
   const g = grid(16, 24);
-  const stemH = [1, 4, 8, 12][stage];
-  const bulbR = [0.8, 1.4, 2.1, 2.8][stage];
+  const stemH = MUSHROOM_STEM_H[stage];
+  const bulbR = MUSHROOM_CAP_R[stage];
   const stemTop = BASE_Y - stemH;
-  if (stemH > 0) fillRect(g, 7, stemTop, 8, BASE_Y, 'm');
+  fillRect(g, 7, stemTop, 8, BASE_Y, 'm');
   fillCircle(g, 7.5, stemTop, bulbR, 'e');
   fillCircle(g, 7.5, stemTop, bulbR * 0.5, 'l');
   if (stage >= 2) {
@@ -414,10 +450,10 @@ function lanternmossPlant(stage) {
 
 function mirrorbloomPlant(stage) {
   const g = grid(16, 24);
-  const stemH = [1, 4, 7, 10][stage];
-  const petalR = [0.8, 1.4, 2.2, 3.1][stage];
+  const stemH = [7, 10, 13, 16][stage];
+  const petalR = [2.6, 3.0, 3.6, 4.2][stage];
   const stemTop = BASE_Y - stemH;
-  if (stemH > 0) fillRect(g, 7, stemTop, 8, BASE_Y, 'm');
+  fillRect(g, 7, stemTop, 8, BASE_Y, 'm');
   fillCircle(g, 7.5, stemTop, petalR, 'd');
   fillCircle(g, 7.5, stemTop, petalR * 0.5, 'c');
   if (stage >= 2) {

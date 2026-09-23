@@ -16,6 +16,7 @@ import { legal } from '../core/finds.js';
 import { replay } from '../core/ledger.js';
 import { book as deriveBook } from '../core/book.js';
 
+import { TEXTURE_SIZES } from '../art/registry.js';
 import { buildTextures } from './textures.js';
 import { installTestHook, markReady, toViewport } from './testhook.js';
 import { loadLedger, saveLedger } from './storage.js';
@@ -30,6 +31,7 @@ import { createBook } from './objects/book.js';
 
 const RAW_TILE = 24;
 const RAW_LULU = 16;
+const RAW_FIND = TEXTURE_SIZES.find.h; // 8 -- the held-find orb's raw height
 const COLS = 4;
 const ROWS = 4;
 const GAP = 4;
@@ -43,20 +45,42 @@ function pickZoom(viewportW) {
   return 3;
 }
 
+/**
+ * Mayor's P4 screenshot review (day1-start.png): the ground sat pinned
+ * near the top bar and the bottom ~40% of a tall phone was empty dead
+ * space. The ground + Lulu + compost read as one composition, so they are
+ * laid out as a single block and centred in the space below the top bar,
+ * clamped so the block never has to shrink to fit an iPhone SE screen.
+ */
 function computeLayout(W, H) {
   const zoom = pickZoom(W);
   const TILE = RAW_TILE * zoom;
   const groundW = TILE * COLS + GAP * (COLS - 1);
   const groundH = TILE * ROWS + GAP * (ROWS - 1);
   const groundLeft = (W - groundW) / 2;
-  const topBarH = 40;
-  const groundTop = topBarH + 20;
-  const groundBottom = groundTop + groundH;
-  const leftover = Math.max(0, H - groundBottom);
 
-  const luluY = groundBottom + Math.min(110, Math.max(64, leftover * 0.45));
+  const topBarH = 40;
+  const topMargin = 20; // clearance below the top bar before the ground starts
+  const bottomMargin = 24; // clearance below Lulu/compost before the screen edge
+
+  const luluSize = RAW_LULU * zoom;
+  // Gap from the ground's bottom edge to Lulu's centre -- generous enough
+  // for her hop (juice.hop can lift ~42px) and her line bubble to never
+  // crowd the ground tiles.
+  const groundToLulu = Math.max(72, Math.min(112, luluSize * 1.8));
+  // Visual footprint below Lulu's centre (her lower half + a settle/hop).
+  const belowLulu = luluSize * 0.7;
+
+  const compositionH = groundH + groundToLulu + belowLulu;
+  const available = Math.max(compositionH, H - topBarH - topMargin - bottomMargin);
+  const slack = available - compositionH;
+
+  const groundTop = topBarH + topMargin + slack / 2;
+  const groundBottom = groundTop + groundH;
+  const luluY = groundBottom + groundToLulu;
+
   let luluX = W / 2 - TILE * 0.4;
-  luluX = Math.max(12 + (RAW_LULU * zoom) / 2, luluX);
+  luluX = Math.max(12 + luluSize / 2, luluX);
 
   let compostX = luluX + TILE * 1.25;
   compostX = Math.min(compostX, W - 12 - (RAW_TILE * zoom) / 2);
@@ -161,9 +185,25 @@ export class WarrenScene extends Phaser.Scene {
       this.ground.syncPlants(this.state.ground.tiles);
       this.compost.setCompost(this.state.compost);
       if (prevDay > 0) {
-        this.bubble.say('wake', this.lulu.x, this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9);
+        this.bubble.say('wake', this.lulu.x, this.bubbleY());
       }
     }
+  }
+
+  // -----------------------------------------------------------------
+  // Shared vertical anchors above Lulu's head: the held-find orb spawns
+  // at `findHomeY()`; the line bubble sits at `bubbleY()`, a full orb's
+  // height plus a gap higher, so the two never overlap (Mayor's P4
+  // screenshot review, day1-asleep.png: the line drew straight through
+  // the find Lulu was holding).
+  // -----------------------------------------------------------------
+
+  findHomeY() {
+    return this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9;
+  }
+
+  bubbleY() {
+    return this.findHomeY() - (RAW_FIND * this.layout.zoom) / 2 - 8;
   }
 
   // -----------------------------------------------------------------
@@ -207,7 +247,7 @@ export class WarrenScene extends Phaser.Scene {
     sfx.play('pop');
     this.lulu.pop();
     this.spawnOrbSprite(this.state.offered, true);
-    this.bubble.say('offer', this.lulu.x, this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9);
+    this.bubble.say('offer', this.lulu.x, this.bubbleY());
     if (this.state.asleep) this.handleSleepReached();
   }
 
@@ -215,12 +255,12 @@ export class WarrenScene extends Phaser.Scene {
     this.dispatch(pet());
     sfx.play('purr');
     this.lulu.wobble();
-    this.bubble.say(this.state.asleep ? 'sleep' : 'pet', this.lulu.x, this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9);
+    this.bubble.say(this.state.asleep ? 'sleep' : 'pet', this.lulu.x, this.bubbleY());
   }
 
   handleSleepReached() {
     sfx.play('snore');
-    this.bubble.say('sleep', this.lulu.x, this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9);
+    this.bubble.say('sleep', this.lulu.x, this.bubbleY());
   }
 
   // -----------------------------------------------------------------
@@ -229,7 +269,7 @@ export class WarrenScene extends Phaser.Scene {
 
   spawnOrbSprite(find, animate) {
     const homeX = this.lulu.x;
-    const homeY = this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9;
+    const homeY = this.findHomeY();
 
     const sprite = this.add.sprite(homeX, homeY, `find_${find.species}`).setDepth(15);
     sprite.homeX = homeX;
@@ -334,7 +374,7 @@ export class WarrenScene extends Phaser.Scene {
 
   reactTo(reaction, tileIndex) {
     const center = this.ground.centerOf(tileIndex);
-    const bubbleY = this.lulu.y - (RAW_LULU * this.layout.zoom) * 0.9;
+    const bubbleY = this.bubbleY();
     if (reaction === 'bighop') {
       sfx.play('hop');
       this.lulu.hop(42);
