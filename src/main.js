@@ -10,9 +10,22 @@
 // P4 swaps `BootScene` for the real gameplay scene(s) in P5 Integration;
 // until then this is the only scene, per the P0 task brief ("a minimal
 // boot scene ... No gameplay.").
+//
+// `?scene=lab` boots P3's LabScene instead (src/game/labScene.js) -- a
+// test fixture for audio + juice, never reached without that query param.
 
 import Phaser from 'phaser';
 import { BootScene } from './game/bootScene.js';
+import { LabScene } from './game/labScene.js';
+
+function pickScene() {
+  try {
+    if (new URLSearchParams(window.location.search).get('scene') === 'lab') return LabScene;
+  } catch {
+    // fall through to the default scene
+  }
+  return BootScene;
+}
 
 const config = {
   type: Phaser.AUTO,
@@ -28,7 +41,7 @@ const config = {
   input: {
     activePointers: 1,
   },
-  scene: [BootScene],
+  scene: [pickScene()],
 };
 
 // eslint-disable-next-line no-new
