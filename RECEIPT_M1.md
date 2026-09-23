@@ -166,3 +166,19 @@ never pushes (MAYOR_RULING_V2.md Amendment 4). `dist/` from this pass's
 `scripts/deploy.sh` run is on disk, gitignored, ready for
 `npx --yes gh-pages -d dist --dotfiles` or an equivalent manual push to
 `gh-pages` once the operator says go.
+
+## Mayor's review of P5
+
+Admitted after two fixes the Mayor made on review:
+
+1. **The Book showed the raw calendar number** ("lanternmoss (day 20721)") instead of the Warren's
+   own day. `book(ledger)` now returns `warrenDay` (1 = the day of the first visit) beside the
+   calendar `day`, and the Book page shows `warrenDay`. Rule stays in the core, once; covered by a
+   unit test and by `day2.spec.js` (now requires `warrenDay: 2`).
+2. **The e2e tests could pass against a stale build.** Playwright served whatever `dist/` was on
+   disk (`vite preview` with no build, and a reusable server), so the first run after the fix still
+   showed "day 20721" while every test passed. The web server now always runs `vite build` first
+   and is never reused. `docs/m1/day2-book.png` is regenerated from a fresh build and shows "(day 2)".
+
+Re-run by the Mayor from a clean `dist/`: 313 unit tests; 12/12 e2e on iPhone 15 and iPhone SE
+(3rd gen). Every screenshot in `docs/m1/` was read by the Mayor.

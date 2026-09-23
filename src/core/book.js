@@ -21,7 +21,9 @@ import { makeState, apply } from './state.js';
  * @typedef {Object} RecipeEntry
  * @property {[Species, Species]} pair - the two adjacent species that combined
  * @property {'lanternmoss'|'mirrorbloom'} result
- * @property {number} day - the day it was first discovered
+ * @property {number} day - the calendar day (epochDay) it was first discovered
+ * @property {number} warrenDay - the Warren's own day count (1 = the day of the
+ *   first VISIT); this is what the player sees
  *
  * @typedef {Object} Book
  * @property {RecipeEntry[]} recipes - discovered recipes, in discovery order,
@@ -52,9 +54,11 @@ export function book(ledger) {
   const seenPairs = new Set();
 
   let state = makeState(ledger.seed);
+  let firstDay = null;
   for (const event of ledger.events) {
     const prev = state;
     state = apply(prev, event);
+    if (firstDay === null && event && event.kind === 'VISIT') firstDay = state.day;
 
     if (
       event &&
@@ -84,7 +88,7 @@ export function book(ledger) {
           const key = `${pair[0]}+${pair[1]}=${afterSpecies}`;
           if (!seenPairs.has(key)) {
             seenPairs.add(key);
-            recipes.push({ pair, result: afterSpecies, day: state.day });
+            recipes.push({ pair, result: afterSpecies, day: state.day, warrenDay: state.day - firstDay + 1 });
           }
         }
       }

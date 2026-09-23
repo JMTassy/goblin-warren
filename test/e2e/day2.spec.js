@@ -212,7 +212,7 @@ test('day 2: a sleeper wakes, a wilt composts, a recipe fires, Lulu resets, the 
   //    UI/canvas text scrape.
   const liveLedger = await gwLedger();
   const pageBook = deriveBook(liveLedger);
-  expect(pageBook.recipes).toContainEqual({ pair: ['mosscap', 'glowcap'], result: 'lanternmoss', day: state.day });
+  expect(pageBook.recipes).toContainEqual({ pair: ['mosscap', 'glowcap'], result: 'lanternmoss', day: state.day, warrenDay: 2 });
 
   // Open the Book on screen too, for the operator's screenshot.
   const bookBtn = await page.evaluate(() => window.__gw.at('book'));

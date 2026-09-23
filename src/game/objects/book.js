@@ -62,7 +62,7 @@ export function createBook(scene, W, H) {
       lines.push('nothing found yet.');
     } else {
       for (const r of book.recipes) {
-        lines.push(`${speciesLabel(r.pair[0])} + ${speciesLabel(r.pair[1])} -> ${speciesLabel(r.result)} (day ${r.day})`);
+        lines.push(`${speciesLabel(r.pair[0])} + ${speciesLabel(r.pair[1])} -> ${speciesLabel(r.result)} (day ${r.warrenDay})`);
       }
     }
     lines.push('');

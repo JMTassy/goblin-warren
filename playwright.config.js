@@ -54,10 +54,12 @@ export default defineConfig({
       },
     },
   ],
+  // Always build before serving, and never reuse a running server: e2e must
+  // test the current source, not whatever dist/ happens to be on disk.
   webServer: {
-    command: `npx vite preview --port ${PORT} --strictPort`,
+    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    reuseExistingServer: false,
+    timeout: 120_000,
   },
 });
