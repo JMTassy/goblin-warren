@@ -1,8 +1,8 @@
 // src/core/book.js
 //
-// STUB, frozen signature (MAYOR_RULING_V2.md Amendment 2). P0 owns the
-// signature; P1 owns the body from here on. Full contract:
-// docs/INTERFACES.md.
+// Signature frozen by P0 (MAYOR_RULING_V2.md Amendment 2). Body owned and
+// written by P1. Full contract: docs/INTERFACES.md; rules in plain
+// language: docs/RULES_M1.md.
 //
 // PURE. No wall-clock reads, no chance calls, no DOM globals, no engine import.
 //
@@ -10,6 +10,8 @@
 // piece of state that `apply()` maintains. This is what makes "the first
 // time surprises, the fifth is mastery" true without adding a mutable
 // cache to keep in sync.
+
+import { makeState, apply } from './state.js';
 
 /** @typedef {import('./events.js').Ledger} Ledger */
 /** @typedef {import('./state.js').Species} Species */
@@ -29,16 +31,65 @@
  *   once discovered)
  */
 
+const RECIPE_RESULTS = new Set(['lanternmoss', 'mirrorbloom']);
+
 /**
- * Derive Pip's Book from a ledger by replaying it and recording every
- * recipe-fire and every reaction along the way. Never reads or writes
- * anything but `ledger`.
+ * Derive Pip's Book from a ledger by replaying it and recording the first
+ * reaction shown for each species dropped, and the first day each recipe
+ * pair combined. Never reads or writes anything but `ledger`.
  *
- * STUB: returns an empty book. P1 replaces this with the real derivation.
+ * Recipe results (lanternmoss/mirrorbloom) are never themselves dropped in
+ * M1 -- they only arise from the daily recipe transform -- so `reactions`
+ * only ever gains mosscap/glowcap/reedling entries in this milestone; see
+ * docs/RULES_M1.md "The Book".
  *
  * @param {Ledger} ledger
  * @returns {Book}
  */
 export function book(ledger) {
-  return { recipes: [], reactions: {} };
+  const recipes = [];
+  const reactions = {};
+  const seenPairs = new Set();
+
+  let state = makeState(ledger.seed);
+  for (const event of ledger.events) {
+    const prev = state;
+    state = apply(prev, event);
+
+    if (
+      event &&
+      event.kind === 'FIND_DROPPED' &&
+      event.target === 'tile' &&
+      prev.offered &&
+      state.offered === null
+    ) {
+      const species = prev.offered.species;
+      if (!(species in reactions)) {
+        reactions[species] = state.lastReaction;
+      }
+    }
+
+    if (event && event.kind === 'VISIT' && state.day !== prev.day) {
+      for (let i = 0; i < prev.ground.tiles.length; i++) {
+        const before = prev.ground.tiles[i];
+        const after = state.ground.tiles[i];
+        const beforeSpecies = before ? before.species : null;
+        const afterSpecies = after ? after.species : null;
+        if (
+          afterSpecies &&
+          RECIPE_RESULTS.has(afterSpecies) &&
+          beforeSpecies !== afterSpecies
+        ) {
+          const pair = [beforeSpecies, 'glowcap'];
+          const key = `${pair[0]}+${pair[1]}=${afterSpecies}`;
+          if (!seenPairs.has(key)) {
+            seenPairs.add(key);
+            recipes.push({ pair, result: afterSpecies, day: state.day });
+          }
+        }
+      }
+    }
+  }
+
+  return { recipes, reactions };
 }
