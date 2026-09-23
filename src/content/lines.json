@@ -1,0 +1,63 @@
+{
+  "offer": [
+    "look what i found.",
+    "still warm.",
+    "smells like tomorrow.",
+    "for you, maybe.",
+    "found this. yours now.",
+    "careful, it hums."
+  ],
+  "hop": [
+    "there.",
+    "ta-da.",
+    "yes, good spot.",
+    "in it goes.",
+    "that'll do."
+  ],
+  "bighop": [
+    "oh! oh! glow!",
+    "my favorite.",
+    "shiny shiny.",
+    "i love this one.",
+    "glow glow glow."
+  ],
+  "shrug": [
+    "eh.",
+    "not by me.",
+    "reeds again.",
+    "meh, okay.",
+    "if you say so."
+  ],
+  "compost": [
+    "not this one.",
+    "back to the dirt.",
+    "compost says no.",
+    "oh well.",
+    "into the pile."
+  ],
+  "sleep": [
+    "...zzz...",
+    "tomorrow, promise.",
+    "so sleepy.",
+    "just resting eyes."
+  ],
+  "wake": [
+    "you came back.",
+    "morning already?",
+    "hello again.",
+    "i missed the sun."
+  ],
+  "pet": [
+    "mmm.",
+    "purrrr.",
+    "that's the spot.",
+    "don't stop."
+  ],
+  "idle": [
+    "hm.",
+    "grass tickles.",
+    "something's humming.",
+    "waiting is nice too.",
+    "shh, listen."
+  ]
+}

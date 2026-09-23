@@ -15,8 +15,14 @@ import Phaser from 'phaser';
 import { SFX_CUES } from '../audio/registry.js';
 import * as sfx from '../audio/sfx.js';
 import * as juice from './juice.js';
-import { buildPlaceholderTextures } from './placeholders.js';
+// src/game/placeholders.js was deleted once real art (P2/raster.js) landed
+// (VISION_V2.md §11 P4); this lab fixture now uses the same real-texture
+// builder the gameplay scene uses, at a fixed zoom (LabScene has no
+// viewport-driven layout of its own to pick one from).
+import { buildTextures } from './textures.js';
 import { isTestMode, toViewport } from './testhook.js';
+
+const LAB_ZOOM = 3;
 
 const HELPERS = Object.freeze(['pop', 'hop', 'wobble', 'springBack', 'burst']);
 
@@ -29,7 +35,7 @@ export class LabScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
 
-    buildPlaceholderTextures(this);
+    buildTextures(this, LAB_ZOOM);
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x16260f).setDepth(-10);
 

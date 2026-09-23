@@ -1,21 +1,19 @@
 // src/main.js
 //
-// Phaser 4 game bootstrap. Owned by P0 (VISION_V2.md §11).
+// Phaser 4 game bootstrap. Scaffolded by P0 (VISION_V2.md §11); the default
+// scene swapped to P4's real gameplay scene (`src/game/scene.js`) here.
 //
 // Scale: RESIZE mode gives a 1:1 pixel canvas matching its parent -- no
 // CSS scaling -- so 1 game px = 1 CSS px (docs/engine-notes/scale-and-responsive).
 // `pixelArt: true` disables texture smoothing so the pixel-map art (P2)
-// stays crisp under nearest-neighbour upscale instead of blurring.
+// stays crisp -- belt-and-braces alongside src/game/textures.js baking the
+// whole-number zoom directly into each texture's pixels.
 //
-// P4 swaps `BootScene` for the real gameplay scene(s) in P5 Integration;
-// until then this is the only scene, per the P0 task brief ("a minimal
-// boot scene ... No gameplay.").
-//
-// `?scene=lab` boots P3's LabScene instead (src/game/labScene.js) -- a
-// test fixture for audio + juice, never reached without that query param.
+// `?scene=lab` still boots P3's LabScene instead (src/game/labScene.js) --
+// a test fixture for audio + juice, never reached without that query param.
 
 import Phaser from 'phaser';
-import { BootScene } from './game/bootScene.js';
+import { WarrenScene } from './game/scene.js';
 import { LabScene } from './game/labScene.js';
 
 function pickScene() {
@@ -24,7 +22,7 @@ function pickScene() {
   } catch {
     // fall through to the default scene
   }
-  return BootScene;
+  return WarrenScene;
 }
 
 const config = {
