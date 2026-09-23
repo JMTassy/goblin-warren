@@ -5,7 +5,7 @@ it adds no gameplay feature. This is the record the Mayor re-runs against.
 
 ## Commit
 
-`3c964bfb0d2e42a75c17ceba07dc00c3f5df6c4` on branch `v2`, parent
+`2ec2d4d16cfd68aacbbf112d4c4f48609ff94ca6` on branch `v2`, parent
 `3c7225c7dc0382c213b7257dcba2a2f168f798ce` ("Mayor: admit P4; remove dead
 bootScene.js"). `git log -1` from the repo root confirms it.
 
