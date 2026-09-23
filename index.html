@@ -35,6 +35,10 @@
   #lulu{width:120px; height:120px; margin:6px auto 2px; display:block; cursor:pointer;
     transition:transform .15s ease;}
   #lulu:active{transform:scale(1.08)}
+  #lulu.bounce{animation:bounce .35s ease}
+  @keyframes bounce{0%{transform:translateY(0)}40%{transform:translateY(-10px) scale(1.06)}100%{transform:translateY(0)}}
+  #reaction{color:var(--amber); font-size:14px; margin-bottom:6px; min-height:0;}
+  #reaction:empty{display:none}
   #moodline{font-size:15px; min-height:22px;}
   #moodline b{color:var(--amber);}
   #speech{background:var(--panel2); border-radius:14px; padding:12px 14px; margin:12px 0 10px;
@@ -68,8 +72,7 @@
       <rect x="10" y="4" width="12" height="3" fill="#3f7a3f"/>
       <rect x="6" y="7" width="4" height="6" fill="#4e9a4e"/><rect x="22" y="7" width="4" height="6" fill="#4e9a4e"/>
       <rect x="9" y="7" width="14" height="10" fill="#63b063"/>
-      <rect x="12" y="10" width="2" height="3" fill="#10240f"/><rect x="18" y="10" width="2" height="3" fill="#10240f"/>
-      <rect x="14" y="14" width="4" height="1" fill="#2c5d2c"/>
+      <g id="face"></g>
       <rect x="11" y="17" width="10" height="8" fill="#7a5c34"/>
       <rect x="9" y="18" width="2" height="5" fill="#63b063"/><rect x="21" y="18" width="2" height="5" fill="#63b063"/>
       <rect x="12" y="25" width="3" height="3" fill="#4e3a20"/><rect x="17" y="25" width="3" height="3" fill="#4e3a20"/>
@@ -78,7 +81,7 @@
     </svg>
     <div id="moodline"></div>
   </div>
-  <div id="speech"></div>
+  <div id="speech"><div id="reaction"></div><div id="proposal"></div></div>
   <div id="decide">
     <button id="btn-try">🌱 Try it</button>
     <button id="btn-hold">🕯️ Hold it</button>
@@ -221,7 +224,11 @@ function decide(S, choice, now){
     S.goblin.mood = clamp(S.goblin.mood + p.mood, -100, 100);
     S.goblin.energy = clamp(S.goblin.energy - 6, 0, 100);
     S.tried += 1;
-    logEvent(S, "PROPOSAL_TRIED", "You tried it. The Garden Plot shifts a little.", now);
+    const gains = [];
+    if (p.seeds) gains.push("+" + p.seeds + " 🌱 seed");
+    if (p.bugs)  gains.push("+" + p.bugs + " 🐛 bug friend");
+    if (p.ideas) gains.push("+" + p.ideas + " 💡 idea");
+    logEvent(S, "PROPOSAL_TRIED", "You tried it! " + gains.join(", ") + ".", now);
     if (S.tried % 3 === 0){
       const mi = h32("mem:" + S.tried + ":" + S.day) % MEMORY_LINES.length;
       S.memories.push(MEMORY_LINES[mi]);
@@ -265,6 +272,21 @@ function care(S, verb, now){
   return S;
 }
 
+/* Lulu's reaction to the player's latest act, derived from the event log
+   (the only source): the events after the most recent proposal, or between
+   the last two proposals when the act itself produced a new one. */
+const REACTION_KINDS = ["PROPOSAL_TRIED","PROPOSAL_HELD","PROPOSAL_COMPOSTED",
+  "COMPOST_BLOOMED","CARE_GIVEN","MEMORY_BORN"];
+function lastReaction(S){
+  const ev = S.events, out = [];
+  let i = ev.length - 1;
+  if (i >= 0 && ev[i].k === "PROPOSAL_MADE") i--;
+  for (; i >= 0 && ev[i].k !== "PROPOSAL_MADE"; i--){
+    if (REACTION_KINDS.indexOf(ev[i].k) >= 0) out.unshift(ev[i].msg);
+  }
+  return out;
+}
+
 function serialize(S){ return JSON.stringify(S); }
 
 /* Fail-closed loader: anything malformed → null (caller starts fresh). */
@@ -292,12 +314,24 @@ function loadState(json, now){
 
   function save(){ localStorage.setItem(KEY, serialize(S)); }
 
+  const E = (x,y,w,h,c) => '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+(c||"#10240f")+'"/>';
+  const MOUTH = "#2c5d2c";
+  const FACES = {
+    happy:   E(12,10,2,2)+E(18,10,2,2)+E(13,14,6,1,MOUTH)+E(12,13,1,1,MOUTH)+E(19,13,1,1,MOUTH),
+    curious: E(12,9,2,3)+E(18,10,2,3)+E(15,14,2,2,MOUTH),
+    calm:    E(12,11,2,1)+E(18,11,2,1)+E(14,14,4,1,MOUTH),
+    focused: E(12,10,2,2)+E(18,10,2,2)+E(11,9,3,1)+E(18,9,3,1)+E(14,14,4,1,MOUTH),
+    worried: E(12,10,2,3)+E(18,10,2,3)+E(13,14,6,1,MOUTH)+E(12,15,1,1,MOUTH)+E(19,15,1,1,MOUTH),
+    tired:   E(12,11,2,1)+E(18,11,2,1)+E(15,14,2,1,MOUTH)+E(24,4,2,1,"#a98fd6")+E(26,2,2,1,"#a98fd6"),
+  };
+
   function dispatch(fn){
     S = fn(S, Date.now()) || S;
     tick(S, Date.now());
     nextProposal(S, Date.now());
     save();
     render();
+    const l = $("lulu"); l.classList.remove("bounce"); void l.offsetWidth; l.classList.add("bounce");
   }
 
   const $ = (id) => document.getElementById(id);
@@ -314,7 +348,9 @@ function loadState(json, now){
       '<div class="res"><b>' + S.res.ideas + '</b><span>💡 ideas</span></div>' +
       '<div class="res"><b>' + S.res.memories + '</b><span>💜 memories</span></div>';
     $("moodline").innerHTML = "Lulu feels <b>" + moodLabel(S) + "</b> · energy " + S.goblin.energy;
-    $("speech").textContent = S.current ? S.current.text : "…";
+    $("face").innerHTML = FACES[moodLabel(S)];
+    $("reaction").textContent = lastReaction(S).join(" ");
+    $("proposal").textContent = S.current ? S.current.text : "…";
     const deciding = !!S.current;
     $("btn-try").disabled = !deciding; $("btn-hold").disabled = !deciding; $("btn-compost").disabled = !deciding;
     $("memories").textContent = S.memories.length

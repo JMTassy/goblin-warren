@@ -137,6 +137,31 @@ S = makeState(T0);
 for (let i = 0; i < 300; i++) care(S, "listen", T0 + i);
 assert("events: capped at 250", S.events.length <= 250);
 
+/* --- reaction: every act has visible feedback, derived from events ---- */
+S = makeState(T0); nextProposal(S, T0);
+assert("reaction: none before any act", lastReaction(S).length === 0);
+decide(S, "hold", T0 + 1); nextProposal(S, T0 + 1);
+assert("reaction: hold is visible after next proposal", lastReaction(S).join(" ").indexOf("held for later") >= 0);
+care(S, "matcha", T0 + 2);
+assert("reaction: care replaces prior reaction", lastReaction(S).length === 1 && lastReaction(S)[0].indexOf("matcha") >= 0);
+S = makeState(T0);
+for (let i = 0; i < 3; i++){ nextProposal(S, T0 + i); decide(S, "try", T0 + i); }
+nextProposal(S, T0 + 9);
+const r3 = lastReaction(S);
+assert("reaction: 3rd try shows both the try and the memory", r3.length === 2 && r3[1].indexOf("memory is born") >= 0);
+S = makeState(T0); nextProposal(S, T0);
+const pp = S.current; decide(S, "try", T0 + 1); nextProposal(S, T0 + 1);
+const want = pp.seeds ? "seed" : (pp.bugs ? "bug" : "idea");
+assert("reaction: try names what was gained", lastReaction(S)[0].indexOf(want) >= 0);
+for (const ch of ["try","hold","compost"]){
+  S = makeState(T0); nextProposal(S, T0); decide(S, ch, T0 + 1); nextProposal(S, T0 + 1);
+  assert("reaction: " + ch + " never silent", lastReaction(S).length >= 1);
+}
+for (const v of ["listen","matcha","celebrate"]){
+  S = makeState(T0); nextProposal(S, T0); care(S, v, T0 + 1);
+  assert("reaction: " + v + " never silent", lastReaction(S).length >= 1);
+}
+
 /* --- state stays JSON-plain ---------------------------------------------- */
 S = makeState(T0); nextProposal(S, T0);
 assert("state: survives JSON round-trip identically", JSON.stringify(JSON.parse(JSON.stringify(S))) === JSON.stringify(S));
