@@ -63,3 +63,39 @@ shows the ground (§8 already says so).
 This repo's CLAUDE.md: JM Tassy is the sole author; no `Co-Authored-By:` lines on commits.
 All V2 builders follow it. (v1 commit 29d95a5 carries one in error; left in place,
 because pushed history is not rewritten.)
+
+## Engine decision: Phaser 4.2.1 (bake-off, final)
+
+Six contestants built the same gesture (bakeoff/SPEC.md); one harness, run by the Mayor:
+iPhone 13 viewport, real CDP touch drags, 4× CPU throttle, 3 runs per cell. All 36 runs
+passed every correctness check. "Slow" = frames over 33 ms during a 1 s drag.
+
+| entry | gzip JS | source lines | slow @ 1× density | slow @ 3× (iPhone) |
+|---|---|---|---|---|
+| **Phaser 4.2.1** | 350 KB | 365 | 0% | 0% |
+| LittleJS 1.19.3 | 19 KB | 294 | 6% | 5% |
+| no framework | 3 KB | 596 | 0% | 79% |
+| Excalibur 0.32 | 123 KB | 592 | 0% | 100% |
+| PixiJS 8.21 | 147 KB | 402 | 66% | 100% |
+| Kaplay 3001.0.19 | 69 KB | 321 | 84% | 80% |
+
+The last three were measured while P0 was installing, so they read slightly pessimistic;
+the ranking does not depend on it. Phaser is the only entry with no slow frames at either
+density; its screenshots were correct; its builder hit no v3→v4 trap because the package
+ships its own v4 docs. LittleJS was the close second on speed at a fraction of the weight,
+but its builder drew the hover glow off the tile. The harness checked state, not pixels;
+only the screenshot caught it. Lesson carried into V2: the Mayor reads screenshots, not
+just the hook.
+
+The harness originally didn't pin render density, which confounded the first frame
+numbers. The Mayor's early diagnosis that the no-framework entry was slow because of
+per-frame gradients was wrong; it was rendering at 3× density. Retracted.
+
+## P0 review: ADMIT
+
+Re-run by the Mayor from a clean install: build 360 KB gzip, 25 unit tests, 2 iPhone boot
+tests, purity clean, tree clean. P0's six flags: stage 0..3, glow keys, the Playwright
+1.56.1 pin, Chromium-for-iPhone-15, and bootScene.js are all accepted. `tile_wet` is cut
+(dead art in M1). Standing risk: every automated test runs Chromium, while the operator
+plays on Safari (WebKit). The operator's playtest is the only WebKit test until a WebKit
+browser is available here.

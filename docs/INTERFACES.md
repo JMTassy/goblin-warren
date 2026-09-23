@@ -112,12 +112,9 @@ the frozen gameplay loop and the test hook's `view().hover` require it, so
 P0 added it rather than leaving P4 to invent an ad hoc key. See
 `src/art/registry.js`.
 
-**Kept, possibly-unused key:** `tile_wet` is carried over from §9's art
-list verbatim. The P0 task brief's cut list for `TEXTURE_KEYS` names only
-"no bug, jar, cave, golden" — it does not cut `wet` — but no M1 rule in
-`MAYOR_RULING_V2.md`'s "M1 keeps" list reads or writes a wet/dry tile
-state. P0 kept the key as literally instructed and flags it here: P1/P4
-may simply not use it in M1.
+**Cut by the Mayor after P0:** `tile_wet` (vision §9) was removed from
+`TEXTURE_KEYS`: no M1 rule reads or writes a wet/dry tile state (watering
+arrives with Zaz, after M1).
 
 ---
 
@@ -251,7 +248,7 @@ view):
   face overlay, not 8 baked permutations.
 - **Finds** (`finds`): `find_mosscap`, `find_glowcap`, `find_reedling`. No
   `find_bug` (cut, Amendment 1).
-- **Tiles** (`tiles`): `tile_soil`, `tile_wet`, `tile_rock`, `tile_pond`.
+- **Tiles** (`tiles`): `tile_soil`, `tile_rock`, `tile_pond`.
 - **Legality glow** (`glow`): `tile_glow_ok`, `tile_glow_no` — see §2's
   "addition beyond §9" note.
 - **Plants** (`plants`): `plant_<species>_<stage>` for
@@ -360,8 +357,7 @@ aren't any) and never reaches into P1's internals.
 
 - **§9's "3 stages" vs §11's `stage: 0..3`.** Resolved in favour of the
   frozen `Plant` shape (4 values) — see §2 above.
-- **`tile_wet` has no wired mechanic in M1.** Kept because the P0 task's
-  explicit cut list for `TEXTURE_KEYS` didn't name it, but flagged since
-  it may be dead art for this milestone.
+- **`tile_wet` has no wired mechanic in M1.** Flagged by P0; the Mayor cut
+  the key (see §3).
 - **`tile_glow_ok`/`tile_glow_no` aren't in §9's inventory** but are
   required by the frozen loop; added rather than left implicit.

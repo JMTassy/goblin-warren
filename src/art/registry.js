@@ -27,12 +27,8 @@ const LULU_KEYS = [
 /** Finds: one 8x8 hue per species. Bug is cut in M1 (Amendment 1). */
 const FIND_KEYS = ['find_mosscap', 'find_glowcap', 'find_reedling'];
 
-/**
- * Ground tiles, 24x24. `tile_wet` is carried over from §9's art list (not
- * in the P0 task's cut list) even though no M1 rule reads it yet --
- * flagged in the P0 handoff report as a possible unused key.
- */
-const TILE_KEYS = ['tile_soil', 'tile_wet', 'tile_rock', 'tile_pond'];
+/** Ground tiles, 24x24. */
+const TILE_KEYS = ['tile_soil', 'tile_rock', 'tile_pond'];
 
 /**
  * Legality-glow overlays for the drag gesture (VISION_V2.md §4: tiles glow
