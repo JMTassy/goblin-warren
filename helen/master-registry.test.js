@@ -103,10 +103,11 @@ function base(over) {
 })();
 
 /* ===================================================================
-   MR6 — REALITY AND ASPIRATION COUNTED APART: 12 proven-verified
-   (9 helen cells incl. constitution+registry, 3 game harnesses); the 4
-   reported lane artifacts and every imagined/specified entry add ZERO
-   to the proven fold; exactly ONE canonical entry, operator-sealed.
+   MR6 — REALITY AND ASPIRATION COUNTED APART: 11 proven-verified
+   (9 helen cells incl. constitution+registry, 2 game harnesses); the
+   reported entries and every imagined/specified entry add ZERO to the
+   proven fold; NO canonical entry on this branch (the V0 canon is not
+   at index.html here — corrected 2026-11-12 after MR9 caught it).
    =================================================================== */
 (function () {
   var reg = R.newRegistry();
@@ -114,13 +115,12 @@ function base(over) {
   R.verifyReceipts(reg, repoFileExists);
   var s = R.summary(reg);
   var canonId = reg.order.filter(function (id) { return reg.entries[id].status === "canonical"; });
-  log("MR6_reported_never_inflates_proven_one_sealed_canon",
-    s.proven_verified === 12 && s.proven_unverified === 0 &&
-    s.by_evidence.reported === 27 && s.by_evidence.hypothesized === 3 &&
-    s.by_status.canonical === 1 && canonId[0] === "game/index-v0" &&
-    !!reg.entries["game/index-v0"].sealed_by,
+  log("MR6_reported_never_inflates_proven_no_unearned_canon",
+    s.proven_verified === 11 && s.proven_unverified === 0 &&
+    s.by_evidence.reported === 28 && s.by_evidence.hypothesized === 3 &&
+    !s.by_status.canonical && canonId.length === 0,
     "proven_verified=" + s.proven_verified + " ; reported=" + s.by_evidence.reported +
-    " → +0 ; canonical=[" + canonId.join(",") + "] (operator-sealed)");
+    " → +0 ; canonical entries on this branch = " + canonId.length);
 })();
 
 /* ===================================================================
@@ -148,6 +148,29 @@ function base(over) {
   var clean = !/Date\.now|Math\.random|require\(['"]fs['"]\)|require\(['"]https?|\bfetch\(|\bnet\.|\bhttp\./.test(code);
   log("MR8_engine_is_pure_probe_is_injected", clean,
     clean ? "no fs/clock/random/network in the engine" : "IMPURITY FOUND");
+})();
+
+/* ===================================================================
+   MR9 — A RECEIPT IS REPLAYED, NOT JUST LOCATED. MR5 only proves each
+   receipt FILE exists; an entry could say "tested" while its suite is
+   red. Here every replay command in the real registry is actually run
+   and must exit 0. The registry's own entry is skipped (it is this
+   process); everything else is measured, not read from a note.
+   =================================================================== */
+(function () {
+  var cp = require("child_process");
+  var ran = 0, red = [];
+  DATA.ENTRIES.forEach(function (e) {
+    if (!(e.receipt && e.receipt.replay)) return;
+    if (e.id === "helen/master-registry") return;
+    if (!/^node [\w\-./ ]+$/.test(e.receipt.replay)) { red.push(e.id + ":UNRUNNABLE_REPLAY"); return; }
+    try {
+      cp.execSync(e.receipt.replay, { cwd: REPO_ROOT, stdio: "ignore", timeout: 120000 });
+      ran += 1;
+    } catch (err) { red.push(e.id + ":EXIT_" + (err.status === null ? "TIMEOUT" : err.status)); }
+  });
+  log("MR9_every_receipt_replays_green", ran > 0 && red.length === 0,
+    red.length ? "RED: " + red.join(" ") : ran + " replay commands executed, all exit 0");
 })();
 
 var failed = Object.keys(results).filter(function (k) { return !results[k]; });

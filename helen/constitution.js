@@ -58,7 +58,7 @@ var ELEMENTS = [
 
   /* ---- described contracts, partially embodied → provisional ---- */
   { id: "role/HER", state: "provisional", meaning: "continuity & possibility; reconstructs meaning; never decides truth" },
-  { id: "role/HAL", state: "provisional", meaning: "institutional scepticism; falsification, admissibility, risk markers; playable embodiment witnessed in index.html" },
+  { id: "role/HAL", state: "provisional", meaning: "institutional scepticism; falsification, admissibility, risk markers; playable embodiment witnessed in v2.html on this branch (and in V0 on master)" },
   { id: "role/CHRONOS", state: "provisional", meaning: "time, provenance, versions, replay; source-class forgery is a schema check, witnessed in the kernel cell" },
   { id: "role/AUTORESEARCH", state: "provisional", meaning: "bounded read→propose→execute→measure→keep/discard loop; optimizes non-sovereign layers only; never rewrites kernel truth, identity, ledger, replay or sovereign memory rules" },
   { id: "role/MAYOR", state: "provisional", meaning: "final gate; verifies objections handled; applies the reducer; presents to human authority" },

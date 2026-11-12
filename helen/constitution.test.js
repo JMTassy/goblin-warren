@@ -15,7 +15,7 @@ function log(n, p, d) { results[n] = p; console.log((p ? "PASS " : "FAIL ") + n 
 /* THE PIN. Changing any element's id, state or meaning changes this hash.
    To amend the constitution: make the edit, re-run to get the new hash,
    update this constant IN THE SAME COMMIT. The diff is the amendment record. */
-var PINNED_HASH = "e8bd1806";
+var PINNED_HASH = "c2779378";   /* amended 2026-11-12: role/HAL embodiment moved from index.html to v2.html (was e8bd1806) */
 
 /* ===================================================================
    C1 — every element carries a valid state and a meaning; no unmarked

@@ -11,8 +11,8 @@
      unknown     — mentioned but insufficiently understood
    evidence_class proven requires a local receipt; reported is testimony;
    hypothesized is a candidate direction. No entry here carries authority
-   (authority_level=none everywhere; not grantable by this seat). The
-   ONE canonical entry cites its operator-authored seal. No private
+   (authority_level=none everywhere; not grantable by this seat). There
+   is currently NO canonical entry on this branch (see game/index-v0). No private
    individual is named in this file.
    ===================================================================== */
 
@@ -43,11 +43,10 @@ var ENTRIES = [
     receipt: { path: "helen/master-registry.js", replay: "node helen/master-registry.test.js" },
     purpose: "this registry (V0.1) — the columns are admission gates" },
 
-  { id: "game/index-v0", name: "Goblin Warren V0", class: "artifact", domain: "game",
-    maturity: "operational", status: "canonical", evidence_class: "proven", owner: OWNER,
-    sealed_by: "CLAUDE.md (operator-authored: frozen V0 canon, byte-identical to vault, never edited)",
-    receipt: { path: "index.html", replay: "node selftest.js index.html" },
-    purpose: "playable HELEN governance; 29 assertions; the one canonical artifact" },
+  { id: "game/index-v0", name: "Goblin Warren V0 (canon)", class: "artifact", domain: "game",
+    maturity: "unknown", status: "provisional", evidence_class: "reported", owner: OWNER,
+    evidence_sources: ["CLAUDE.md", "origin/master:index.html"],
+    purpose: "CORRECTED 2026-11-12. V0 canon is NOT at index.html on this branch: 36 commits replaced that file with the WORLDS game shell, and `node selftest.js index.html` fails here (reducer markers absent). The canon lives on the master branch, where this seat replayed 29/29 from a scratch copy on 2026-11-12 — but a receipt must be a path IN this checkout plus its replay command, so the entry cannot be 'proven' or 'canonical' here. The earlier entry claimed both on the strength of a file's existence and a note; MR9 (replay every receipt) caught it" },
   { id: "game/v2-ai-council", name: "AI Council edition", class: "artifact", domain: "game",
     maturity: "operational", status: "provisional", evidence_class: "proven", owner: OWNER,
     receipt: { path: "v2.html", replay: "node v2-selftest.js v2.html" },
@@ -75,7 +74,7 @@ var ENTRIES = [
   { id: "role/HER", name: "HER", class: "role", domain: "helen-os", maturity: "specified", status: "provisional",
     evidence_class: "reported", owner: OWNER, evidence_sources: [RECAP], purpose: "continuity & possibility; never decides truth" },
   { id: "role/HAL", name: "HAL", class: "role", domain: "helen-os", maturity: "specified", status: "provisional",
-    evidence_class: "reported", owner: OWNER, evidence_sources: [RECAP, "index.html checkProposalWithHAL (playable embodiment)"],
+    evidence_class: "reported", owner: OWNER, evidence_sources: [RECAP, "v2.html checkProposalWithHAL (playable embodiment; also V0 on master)"],
     purpose: "institutional scepticism; falsification & admissibility" },
   { id: "role/CHRONOS", name: "CHRONOS", class: "role", domain: "helen-os", maturity: "specified", status: "provisional",
     evidence_class: "reported", owner: OWNER, evidence_sources: [RECAP, "helen/governed-transformation-kernel.js (source-class check)"],

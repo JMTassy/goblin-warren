@@ -264,8 +264,8 @@ every column of the Director's record schema is an **admission gate**:
   the exact replay command). NO RECEIPT → NO SHIP, structurally (MR1).
 - **canonization and authority are not grantable here** — `status:
   canonical` and any `authority_level ≠ none` require an operator seal
-  reference; authority defaults to none (MR3). Exactly ONE entry is
-  canonical: the frozen V0 game, sealed by the operator-authored CLAUDE.md.
+  reference; authority defaults to none (MR3). **No entry is canonical on
+  this branch** — see the correction below.
 - **kernel sovereignty** — no entry may declare write access to a
   sovereign surface (kernel truth · sovereign ledger · replay · identity ·
   sovereign memory rules); every entry is auto-fenced from all five (MR4).
@@ -280,8 +280,18 @@ every column of the Director's record schema is an **admission gate**:
   flagged `RECEIPT_PATH_MISSING` and excluded (MR5/MR7). The engine itself
   has no fs.
 
-The 2026-07-27 fold (42 entries): **12 proven-verified artifacts** (9
-helen cells + 3 game harnesses) · 4 other-lane artifacts `reported ·
+- **a receipt is replayed, not just located** (MR9, added 2026-11-12) —
+  every replay command in the registry is actually executed and must exit 0.
+  On its first run this check caught a false entry written by the registry's
+  own author: the V0 game had been registered as proven, operational and
+  canonical because `index.html` exists and CLAUDE.md describes it, but on
+  this branch that file was replaced by the WORLDS game 36 commits ago and
+  `node selftest.js index.html` fails. The V0 canon lives on `master` (29/29
+  replayed there). The entry is now `reported · unknown · provisional`. A
+  file's existence plus a note is not a receipt.
+
+The current fold (42 entries): **11 proven-verified artifacts** (9
+helen cells + 2 game harnesses) · 4 other-lane artifacts `reported ·
 unknown` (checked absent here) · 7 roles `specified` · 10 frames
 `imagined` · 8 skill families · **1 pilot protocol `specified`** whose
 execution is HELD (real corpus + operator GO + PII clearance + out-of-repo
@@ -289,8 +299,9 @@ destination; the pilot subject is a real private individual, deliberately
 not named in this public repo).
 
 ```bash
-node helen/master-registry.test.js   # 8/8; MR5 measures the real registry
-                                     # against the real filesystem
+node helen/master-registry.test.js   # 9/9; MR5 measures the real registry
+                                     # against the real filesystem; MR9 replays
+                                     # every receipt
 ```
 
 ## HELEN_CONSTITUTION_V0.1 — the freeze, made measurable
