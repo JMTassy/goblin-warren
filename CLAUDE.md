@@ -6,6 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Dream of Conquest — The Goblin Warren (V0)**: a single-file, pixel-styled browser village-builder that makes the HELEN OS governance model playable. Three files, no build step, no dependencies beyond the Three.js CDN loaded at runtime. This repo (`origin` = `github.com/JMTassy/goblin-warren`) is the **published V0 canon** of the conquest/personas lineage (byte-identical to the vault copy `HELEN_OBSIDIAN_OS/goblin-conquest.html`). Genealogy of the home-dir files (`C:\Users\jeanm`), twice-witnessed 2026-07-05: `goblin-conquest.html` there is this repo's **diverged newer draft** (agents-based pixel edition, its own harness); `goblin-warren.html` / `goblin-warren-selftest.js` are a **separate multi-map successor game** (accounts + replay-based persistence, its own 12-test harness) — not drafts of this repo. Naming collision warning: the repo is named *goblin-warren* but its content is conquest-lineage V0.
 
+## Branch reality check (added 2026-11-12 — read before trusting the sections below)
+
+The description above and the commands below were written for the `master`
+branch. On feature branches such as `claude/trusting-ritchie-fpivea` they are
+partly wrong, and an agent that trusted them recorded a false "canonical" entry:
+
+- **`index.html` here is the WORLDS game** (the build witnessed at 4/10), not
+  the V0 canon. `node selftest.js index.html` FAILS on this branch.
+- **The V0 canon lives on `master`.** To replay it from any branch:
+  `git show origin/master:index.html > .v0-canon.html && node selftest.js .v0-canon.html; rm -f .v0-canon.html`
+  (29 assertions). The copy must sit in the repo root: `selftest.js` reads its
+  target relative to its own directory, so a `/tmp/...` path fails.
+- `node v2-selftest.js v2.html` — 61 assertions.
+- `node v3-selftest.js v3.html` — 90 assertions (the figures 61 and 83 quoted
+  below for the Garden are out of date).
+- `helen/` holds the OS-lane proofs; `node helen/master-registry.test.js`
+  replays every registered receipt.
+
+Rule that follows: **run the command; do not quote this file.** A count or a
+"frozen" claim read here is testimony until replayed on the branch you are on.
+The original text below is left untouched for the record.
+
 ## Commands
 
 ```bash
